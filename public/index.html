@@ -67,18 +67,24 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .cal-title{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--amber);letter-spacing:.05em}
 .cal-btn{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:5px 10px;cursor:pointer;font-size:13px;color:var(--text2);transition:all .15s;}
 .cal-btn:hover{border-color:var(--amber);color:var(--amber)}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:1rem}
-.dow{text-align:center;font-size:10px;font-weight:700;color:var(--text3);padding:4px 0;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono);}
-.day{min-height:56px;border-radius:4px;border:1px solid transparent;padding:4px;background:var(--bg3);transition:all .12s;}
-.day:hover{border-color:var(--border2)}.day.other{opacity:.2}
-.day.today{border-color:var(--amber);background:var(--amber-dim)}
-.dn{font-size:11px;font-weight:600;color:var(--text3);margin-bottom:2px;font-family:var(--mono)}
-.day.today .dn{color:var(--amber)}
-.evdot{border-radius:2px;padding:1px 4px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;font-size:9px;font-weight:500;font-family:var(--mono);}
-.evdot-vac{background:rgba(0,255,136,.15);color:var(--green)}
-.evdot-sol{background:rgba(77,158,255,.15);color:var(--blue)}
-.evdot-otro{background:var(--amber-dim);color:var(--amber)}
-.evdot-rec{background:var(--purple-dim);color:var(--purple)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);margin-bottom:1rem;border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.dow{text-align:center;font-size:10px;font-weight:700;color:var(--text3);padding:6px 0;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono);background:var(--bg3);}
+.day{min-height:90px;padding:4px 3px 3px;background:var(--bg2);transition:background .12s;position:relative;vertical-align:top;}
+.day:hover{background:var(--bg3)}.day.other{opacity:.25}
+.day.today{background:rgba(245,166,35,.06)}
+.dn{font-size:11px;font-weight:600;color:var(--text3);margin-bottom:3px;font-family:var(--mono);display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;border-radius:50%;}
+.day.today .dn{background:var(--amber);color:var(--bg);font-weight:700;}
+/* Barras de evento estilo Google Calendar */
+.ev-bar{display:flex;align-items:center;gap:3px;border-radius:3px;padding:1px 5px;margin-bottom:2px;font-size:9px;font-weight:600;font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;cursor:default;}
+.ev-bar-vac{background:rgba(0,255,136,.2);color:var(--green);border-left:2px solid var(--green);}
+.ev-bar-sol{background:rgba(77,158,255,.2);color:var(--blue);border-left:2px solid var(--blue);}
+.ev-bar-otro{background:rgba(245,166,35,.18);color:var(--amber);border-left:2px solid var(--amber);}
+.ev-bar-rec{background:rgba(168,85,247,.18);color:var(--purple);border-left:2px solid var(--purple);}
+/* Continuación de evento (días intermedios sin nombre) */
+.ev-bar.continuation{opacity:.7;}
+.ev-bar.ev-start{border-radius:3px 0 0 3px;}
+.ev-bar.ev-end{border-radius:0 3px 3px 0;}
+.ev-bar.ev-mid{border-radius:0;opacity:.75;}
 .legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:1rem}
 .leg{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text3);font-family:var(--mono)}
 .leg-dot{width:8px;height:8px;border-radius:2px}
@@ -402,20 +408,65 @@ function renderCal(){
   const dim=new Date(curYear,curMonth+1,0).getDate();
   const prev=new Date(curYear,curMonth,0).getDate();
   const today=new Date();
-  function evts(y,m,d){const s=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;return events.filter(e=>e.start_date<=s&&e.end_date>=s);}
-  function rems(y,m,d){const s=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;return reminders.filter(r=>r.due_date===s);}
-  for(let i=0;i<fd;i++){const c=document.createElement('div');c.className='day other';c.innerHTML=`<div class="dn">${prev-fd+1+i}</div>`;grid.appendChild(c);}
-  for(let d=1;d<=dim;d++){
-    const c=document.createElement('div');c.className='day';
-    if(d===today.getDate()&&curMonth===today.getMonth()&&curYear===today.getFullYear())c.classList.add('today');
-    const ev=evts(curYear,curMonth,d);const re=rems(curYear,curMonth,d);
-    let h=`<div class="dn">${String(d).padStart(2,'0')}</div>`;
-    ev.slice(0,1).forEach(e=>{h+=`<span class="evdot evdot-${e.type}">${e.title}</span>`;});
-    re.slice(0,1).forEach(r=>{h+=`<span class="evdot evdot-rec">📌${r.title}</span>`;});
-    const total=ev.length+re.length;if(total>2)h+=`<span class="evdot" style="color:var(--text3)">+${total-2}</span>`;
-    c.innerHTML=h;grid.appendChild(c);
+
+  // Construir array de días del grid
+  const days=[];
+  for(let i=0;i<fd;i++){
+    const d=prev-fd+1+i;
+    const m=curMonth===0?11:curMonth-1;
+    const y=curMonth===0?curYear-1:curYear;
+    days.push({d,m,y,other:true});
   }
-  const rem2=(fd+dim)%7;if(rem2>0){for(let i=1;i<=7-rem2;i++){const c=document.createElement('div');c.className='day other';c.innerHTML=`<div class="dn">${String(i).padStart(2,'0')}</div>`;grid.appendChild(c);}}
+  for(let d=1;d<=dim;d++) days.push({d,m:curMonth,y:curYear,other:false});
+  const rem2=(fd+dim)%7;
+  if(rem2>0){for(let i=1;i<=7-rem2;i++){const m=curMonth===11?0:curMonth+1;const y=curMonth===11?curYear+1:curYear;days.push({d:i,m,y,other:true});}}
+
+  // Para cada evento calcular en qué días del grid aparece
+  function dateStr(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+  function eventsForDay(y,m,d){
+    const s=dateStr(y,m,d);
+    const evs=events.filter(e=>e.start_date<=s&&e.end_date>=s).map(e=>({...e,kind:'ev'}));
+    const rems2=reminders.filter(r=>r.due_date===s).map(r=>({...r,type:'rec',title:r.title,kind:'rem'}));
+    return [...evs,...rems2];
+  }
+
+  // Renderizar cada celda
+  days.forEach(({d,m,y,other})=>{
+    const cell=document.createElement('div');
+    cell.className='day'+(other?' other':'');
+    const isToday=!other&&d===today.getDate()&&m===today.getMonth()&&y===today.getFullYear();
+    if(isToday)cell.classList.add('today');
+
+    const dnEl=document.createElement('div');
+    dnEl.className='dn';
+    dnEl.textContent=String(d).padStart(2,'0');
+    cell.appendChild(dnEl);
+
+    if(!other){
+      const dayEvs=eventsForDay(y,m,d);
+      const s=dateStr(y,m,d);
+      dayEvs.forEach(e=>{
+        const bar=document.createElement('div');
+        const isStart=e.start_date===s||(e.due_date&&e.due_date===s);
+        const isEnd=e.end_date===s||(e.due_date&&e.due_date===s);
+        const cls=e.type==='rec'?'ev-bar-rec':`ev-bar-${e.type}`;
+        bar.className=`ev-bar ${cls}`;
+        // Solo mostrar texto en el primer día del evento en el grid
+        const prevDay=new Date(y,m,d-1);
+        const prevStr=dateStr(prevDay.getFullYear(),prevDay.getMonth(),prevDay.getDate());
+        const isFirstInGrid=(e.start_date===s)||(e.start_date<dateStr(y,m,1)&&d===1)||(!other&&e.start_date===s);
+        const showLabel=isStart||(e.start_date<dateStr(y,m,1)&&d===1);
+        if(showLabel){
+          bar.textContent=(e.type==='rec'?'📌 ':'')+e.title;
+        } else {
+          bar.innerHTML='&nbsp;';
+          bar.style.opacity='.5';
+        }
+        cell.appendChild(bar);
+      });
+    }
+    grid.appendChild(cell);
+  });
   renderEvtList();
 }
 
