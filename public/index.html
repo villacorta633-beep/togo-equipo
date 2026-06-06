@@ -451,17 +451,8 @@ function renderCal(){
         const isEnd=e.end_date===s||(e.due_date&&e.due_date===s);
         const cls=e.type==='rec'?'ev-bar-rec':`ev-bar-${e.type}`;
         bar.className=`ev-bar ${cls}`;
-        // Solo mostrar texto en el primer día del evento en el grid
-        const prevDay=new Date(y,m,d-1);
-        const prevStr=dateStr(prevDay.getFullYear(),prevDay.getMonth(),prevDay.getDate());
-        const isFirstInGrid=(e.start_date===s)||(e.start_date<dateStr(y,m,1)&&d===1)||(!other&&e.start_date===s);
-        const showLabel=isStart||(e.start_date<dateStr(y,m,1)&&d===1);
-        if(showLabel){
-          bar.textContent=(e.type==='rec'?'📌 ':'')+e.title;
-        } else {
-          bar.innerHTML='&nbsp;';
-          bar.style.opacity='.5';
-        }
+        // Mostrar el nombre en TODOS los días
+        bar.textContent=(e.type==='rec'?'📌 ':'')+e.title;
         cell.appendChild(bar);
       });
     }
