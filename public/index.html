@@ -265,10 +265,19 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       Notas
     </button>
-    <button class="tab" id="tabRec" onclick="switchTab('rec',this)">
+    <button class="tab" onclick="switchTab('rec',this)">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       Recordatorios
       <span class="tab-badge" id="remBadge" style="display:none">!</span>
+    </button>
+    <button class="tab" onclick="switchTab('chat',this)">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Chat
+      <span class="tab-badge" id="chatBadge" style="display:none">!</span>
+    </button>
+    <button class="tab" onclick="switchTab('agenda',this)">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      Agenda
     </button>
   </div>
 
@@ -348,6 +357,49 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     </div>
     <div class="section-head"><div class="section-label purple">Recordatorios activos</div></div>
     <div id="remList"></div>
+  </div>
+
+  <!-- CHAT -->
+  <div id="tab-chat" class="panel">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;display:flex;flex-direction:column;height:520px;">
+      <div id="chatMessages" style="flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:8px;"></div>
+      <div style="border-top:1px solid var(--border);padding:12px;display:flex;gap:8px;align-items:flex-end;">
+        <textarea id="chatInput" placeholder="// Escribe un mensaje... (Enter para enviar)" onkeydown="chatKeyDown(event)"
+          style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-size:13px;color:var(--text);font-family:'Inter',sans-serif;resize:none;outline:none;min-height:38px;max-height:100px;line-height:1.5;transition:border .15s;"
+          onfocus="this.style.borderColor='var(--amber)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+        <button onclick="sendChat()" style="background:var(--amber);color:var(--bg);border:none;border-radius:4px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--mono);white-space:nowrap;">ENVIAR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENDA -->
+  <div id="tab-agenda" class="panel">
+    <div class="card" style="border-color:rgba(0,212,255,.2)">
+      <div class="section-head"><div class="section-label">Agregar a la agenda</div></div>
+      <div class="form-grid" style="grid-template-columns:2fr 1fr 1fr 1fr">
+        <div class="fgroup"><label>Título</label><input type="text" id="agTitle" placeholder="Reunión con gerencia..."></div>
+        <div class="fgroup"><label>Tipo</label>
+          <select id="agType">
+            <option value="reunion">📋 Reunión</option>
+            <option value="llamada">📞 Llamada</option>
+            <option value="visita">🏪 Visita sucursal</option>
+            <option value="capacitacion">📚 Capacitación</option>
+            <option value="otro">📌 Otro</option>
+          </select>
+        </div>
+        <div class="fgroup"><label>Fecha</label><input type="date" id="agDate"></div>
+        <div class="fgroup"><label>Hora</label><input type="time" id="agTime"></div>
+      </div>
+      <div class="fgroup" style="margin-bottom:1rem">
+        <label>Descripción (opcional)</label>
+        <textarea id="agDesc" placeholder="Detalles..." style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-size:12px;color:var(--text);font-family:'Inter',sans-serif;resize:none;min-height:56px;outline:none;transition:border .15s;" onfocus="this.style.borderColor='var(--cyan)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+      </div>
+      <button onclick="addAgenda()" style="background:var(--cyan);color:var(--bg);border:none;border-radius:4px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--mono);">+ AGREGAR</button>
+    </div>
+    <div class="section-head"><div class="section-label">Esta semana</div></div>
+    <div id="agendaWeek" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:1.5rem;"></div>
+    <div class="section-head"><div class="section-label">Próximos eventos</div></div>
+    <div id="agendaList"></div>
   </div>
 </div>
 
@@ -481,6 +533,12 @@ function switchTab(name,btn){
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');document.getElementById('tab-'+name).classList.add('active');
+  if(name==='chat'){
+    chatOpen=true;
+    document.getElementById('chatBadge').style.display='none';
+    loadChat().then(()=>{ const el=document.getElementById('chatMessages'); el.scrollTop=el.scrollHeight; });
+  } else { chatOpen=false; }
+  if(name==='agenda') loadAgenda();
 }
 
 async function fetchData(){
@@ -666,7 +724,144 @@ async function testPush(){
   showToast(`// notificación enviada a ${d.sent_to} dispositivo(s)`);
 }
 
-// WEB PUSH
+// ── CHAT ──────────────────────────────────────────────────────────────────────
+let lastChatId = 0;
+let chatOpen = false;
+
+function chatKeyDown(e){
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendChat(); }
+}
+
+async function sendChat(){
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  input.value='';
+  await fetch(API+'/api/chat',{method:'POST',headers:authHeaders(),body:JSON.stringify({text})});
+  await loadChat();
+}
+
+async function loadChat(){
+  const r = await fetch(API+'/api/chat?limit=60',{headers:authHeaders()});
+  if(r.status===401){window.location.href='/login.html';return;}
+  const msgs = await r.json();
+  const el = document.getElementById('chatMessages');
+  const wasAtBottom = el.scrollHeight - el.clientHeight <= el.scrollTop + 10;
+  const me = getUser();
+
+  // Detectar mensajes nuevos para badge
+  if(msgs.length && msgs[msgs.length-1].id > lastChatId){
+    if(!chatOpen && lastChatId > 0){
+      document.getElementById('chatBadge').style.display='inline';
+    }
+    lastChatId = msgs[msgs.length-1].id;
+  }
+
+  el.innerHTML = msgs.map(m => {
+    const isMe = m.author === me;
+    const time = new Date(m.created_at).toLocaleTimeString('es-BO',{hour:'2-digit',minute:'2-digit'});
+    const date = new Date(m.created_at).toLocaleDateString('es-BO',{day:'2-digit',month:'2-digit'});
+    return `<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:2px;max-width:80%;${isMe?'align-self:flex-end':'align-self:flex-start'}">
+      <span style="font-size:9px;font-family:var(--mono);color:var(--text3);">${isMe?'':'<b style="color:var(--amber)">'+m.author+'</b> · '}${date} ${time}</span>
+      <div style="background:${isMe?'var(--amber-dim)':'var(--bg3)'};border:1px solid ${isMe?'var(--amber)':'var(--border2)'};border-radius:${isMe?'8px 2px 8px 8px':'2px 8px 8px 8px'};padding:8px 12px;font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap;word-break:break-word;">${m.text.replace(/</g,'&lt;')}</div>
+    </div>`;
+  }).join('');
+
+  if(wasAtBottom || msgs.length < 5) el.scrollTop = el.scrollHeight;
+}
+
+// ── AGENDA ────────────────────────────────────────────────────────────────────
+let agendaItems = [];
+const AG_TYPES = {
+  reunion:'📋 Reunión', llamada:'📞 Llamada',
+  visita:'🏪 Visita', capacitacion:'📚 Capacitación', otro:'📌 Otro'
+};
+const AG_COLORS = {
+  reunion:'rgba(77,158,255,.2)', llamada:'rgba(0,255,136,.15)',
+  visita:'rgba(245,166,35,.15)', capacitacion:'rgba(168,85,247,.15)', otro:'rgba(0,212,255,.12)'
+};
+const AG_BORDER = {
+  reunion:'var(--blue)', llamada:'var(--green)',
+  visita:'var(--amber)', capacitacion:'var(--purple)', otro:'var(--cyan)'
+};
+
+async function loadAgenda(){
+  const r = await fetch(API+'/api/agenda',{headers:authHeaders()});
+  agendaItems = await r.json();
+  renderAgendaWeek();
+  renderAgendaList();
+}
+
+function renderAgendaWeek(){
+  const el = document.getElementById('agendaWeek');
+  const today = new Date();
+  const dow = today.getDay()===0?6:today.getDay()-1;
+  const monday = new Date(today); monday.setDate(today.getDate()-dow);
+  const dias = ['LU','MA','MI','JU','VI','SA','DO'];
+  el.innerHTML = Array.from({length:7},(_,i)=>{
+    const d = new Date(monday); d.setDate(monday.getDate()+i);
+    const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const isToday = ds === new Date().toISOString().slice(0,10);
+    const dayItems = agendaItems.filter(a=>a.date===ds);
+    return `<div style="background:${isToday?'var(--amber-dim)':'var(--bg2)'};border:1px solid ${isToday?'var(--amber)':'var(--border)'};border-radius:4px;padding:6px 5px;min-height:80px;">
+      <div style="font-size:10px;font-weight:700;color:${isToday?'var(--amber)':'var(--text3)'};font-family:var(--mono);margin-bottom:4px;text-align:center;">${dias[i]}<br>${d.getDate()}</div>
+      ${dayItems.map(a=>`<div style="background:${AG_COLORS[a.type]||AG_COLORS.otro};border-left:2px solid ${AG_BORDER[a.type]||AG_BORDER.otro};border-radius:2px;padding:2px 4px;font-size:9px;font-family:var(--mono);color:var(--text);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${a.title}">${a.time?a.time+' ':''} ${a.title}</div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function renderAgendaList(){
+  const el = document.getElementById('agendaList');
+  const today = new Date().toISOString().slice(0,10);
+  const upcoming = agendaItems.filter(a=>a.date>=today).slice(0,20);
+  if(!upcoming.length){el.innerHTML='<div class="empty">// sin eventos próximos</div>';return;}
+
+  // Agrupar por fecha
+  const byDate = {};
+  upcoming.forEach(a=>{ if(!byDate[a.date])byDate[a.date]=[]; byDate[a.date].push(a); });
+
+  el.innerHTML = Object.entries(byDate).map(([date,items])=>{
+    const d = new Date(date+'T12:00:00');
+    const isToday = date===today;
+    const label = isToday?'HOY':d.toLocaleDateString('es-BO',{weekday:'long',day:'2-digit',month:'long'}).toUpperCase();
+    return `<div style="margin-bottom:1rem;">
+      <div style="font-size:10px;font-weight:700;font-family:var(--mono);color:${isToday?'var(--amber)':'var(--text3)'};text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+        ${isToday?'<span style="width:6px;height:6px;border-radius:50%;background:var(--amber);box-shadow:0 0 6px var(--amber);display:inline-block;"></span>':''}${label}
+      </div>
+      ${items.map(a=>`
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${AG_BORDER[a.type]||AG_BORDER.otro};border-radius:4px;margin-bottom:6px;transition:border .15s;" onmouseover="this.style.borderColor='${AG_BORDER[a.type]||AG_BORDER.otro}'" onmouseout="this.style.borderLeftColor='${AG_BORDER[a.type]||AG_BORDER.otro}'">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
+              <span style="font-size:13px;font-weight:600;color:var(--text)">${a.title}</span>
+              <span style="font-size:9px;font-family:var(--mono);background:${AG_COLORS[a.type]||AG_COLORS.otro};color:var(--text2);padding:1px 6px;border-radius:2px;">${AG_TYPES[a.type]||'OTRO'}</span>
+            </div>
+            <div style="font-size:11px;color:var(--text3);font-family:var(--mono);">${a.time?'⏰ '+a.time+' · ':''} 👤 ${a.author}${a.description?' · '+a.description:''}</div>
+          </div>
+          <button onclick="delAgenda(${a.id})" class="del">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          </button>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+async function addAgenda(){
+  const title=document.getElementById('agTitle').value.trim();
+  const type=document.getElementById('agType').value;
+  const date=document.getElementById('agDate').value;
+  const time=document.getElementById('agTime').value;
+  const description=document.getElementById('agDesc').value.trim();
+  if(!title||!date){showToast('// error: título y fecha requeridos');return;}
+  await fetch(API+'/api/agenda',{method:'POST',headers:authHeaders(),body:JSON.stringify({title,type,date,time,description})});
+  document.getElementById('agTitle').value='';document.getElementById('agDesc').value='';document.getElementById('agTime').value='';
+  showToast('// evento agendado → supervisores notificados');
+  await loadAgenda();
+}
+
+async function delAgenda(id){
+  await fetch(API+'/api/agenda/'+id,{method:'DELETE',headers:authHeaders()});
+  await loadAgenda();
+}
 function urlB64ToU8(b){const p='='.repeat((4-b.length%4)%4);const b64=(b+p).replace(/-/g,'+').replace(/_/g,'/');const raw=atob(b64);const arr=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);return arr;}
 async function initSW(){
   if(!('serviceWorker'in navigator))return;
@@ -703,10 +898,13 @@ async function toggleNotifications(){
 const now=new Date();curYear=now.getFullYear();curMonth=now.getMonth();
 const td=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 document.getElementById('evtStart').value=td;document.getElementById('evtEnd').value=td;document.getElementById('remDue').value=td;
+if(document.getElementById('agDate')) document.getElementById('agDate').value=td;
 updatePrioStyle();
 if(!checkAuth()){} else {
-  initSW();fetchData();
-  setInterval(fetchData,20000);setInterval(()=>{renderNotes();renderReminders();updateStats();},60000);
+  initSW();fetchData();loadChat();
+  setInterval(fetchData,20000);
+  setInterval(()=>{renderNotes();renderReminders();updateStats();},60000);
+  setInterval(loadChat, 8000); // polling chat cada 8 segundos
 }
 const params=new URLSearchParams(location.search);
 if(params.get('tab')==='notas')document.querySelectorAll('.tab')[1].click();
