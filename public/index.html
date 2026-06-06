@@ -194,14 +194,55 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   </div>
   <div class="topbar-right">
     <span class="reset-info" id="resetInfo"></span>
+    <span id="userInfo" style="font-size:10px;color:var(--text3);font-family:var(--mono)"></span>
     <button class="test-btn" onclick="testPush()" title="Enviar notificación de prueba">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       TEST
+    </button>
+    <button class="test-btn" id="adminBtn" onclick="openAdmin()" style="display:none;border-color:var(--purple);color:var(--purple)">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      USUARIOS
     </button>
     <button class="notif-btn idle" id="notifBtn" onclick="toggleNotifications()">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       ALERTAS
     </button>
+    <button class="test-btn" onclick="logout()" style="border-color:var(--red);color:var(--red)">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      SALIR
+    </button>
+  </div>
+
+  <!-- MODAL USUARIOS -->
+  <div id="adminModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center;">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:1.5rem;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+        <span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--purple)">▌ GESTIÓN DE USUARIOS</span>
+        <button onclick="closeAdmin()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;line-height:1;">×</button>
+      </div>
+      <div id="usersList" style="margin-bottom:1.25rem;"></div>
+      <div style="border-top:1px solid var(--border);padding-top:1rem;">
+        <p style="font-size:10px;font-weight:700;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem;">Crear nuevo usuario</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div>
+            <label style="font-size:10px;color:var(--text3);font-family:var(--mono);display:block;margin-bottom:3px;">USUARIO</label>
+            <input id="newUsername" type="text" placeholder="nombre_usuario" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;font-size:12px;color:var(--text);background:var(--bg3);outline:none;font-family:var(--mono);">
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--text3);font-family:var(--mono);display:block;margin-bottom:3px;">CONTRASEÑA</label>
+            <input id="newPassword" type="password" placeholder="••••••••" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;font-size:12px;color:var(--text);background:var(--bg3);outline:none;font-family:var(--mono);">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="newRole" style="padding:8px;border:1px solid var(--border);border-radius:4px;font-size:12px;color:var(--text);background:var(--bg3);outline:none;font-family:var(--mono);">
+            <option value="user">Usuario normal</option>
+            <option value="admin">Administrador</option>
+          </select>
+          <button onclick="createUser()" style="background:var(--purple);color:#fff;border:none;border-radius:4px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--mono);">+ CREAR</button>
+        </div>
+        <div id="adminMsg" style="font-size:11px;font-family:var(--mono);margin-top:8px;display:none;"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -320,6 +361,67 @@ const TYPE_LABELS={vac:'VACACIONES',sol:'SOLICITUD',otro:'OTRO'};
 const PRIO_LIMITS={normal:7*864e5, importante:2*864e5, urgente:864e5};
 let curYear,curMonth,events=[],notes=[],reminders=[],swReg=null,pushSub=null,currentFilter='all';
 
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+function getToken(){ return localStorage.getItem('togo_token'); }
+function getUser(){ return localStorage.getItem('togo_user'); }
+function getRole(){ return localStorage.getItem('togo_role'); }
+function authHeaders(){ return {'Content-Type':'application/json','x-auth-token':getToken()}; }
+
+function checkAuth(){
+  if(!getToken()){ window.location.href='/login.html'; return false; }
+  document.getElementById('userInfo').textContent = '👤 '+getUser();
+  if(getRole()==='admin') document.getElementById('adminBtn').style.display='flex';
+  return true;
+}
+
+async function logout(){
+  await fetch(API+'/api/logout',{method:'POST',headers:authHeaders()});
+  localStorage.removeItem('togo_token');
+  localStorage.removeItem('togo_user');
+  localStorage.removeItem('togo_role');
+  window.location.href='/login.html';
+}
+
+// ── ADMIN PANEL ───────────────────────────────────────────────────────────────
+async function openAdmin(){
+  document.getElementById('adminModal').style.display='flex';
+  await loadUsers();
+}
+function closeAdmin(){ document.getElementById('adminModal').style.display='none'; }
+
+async function loadUsers(){
+  const r=await fetch(API+'/api/users',{headers:authHeaders()});
+  const users=await r.json();
+  const el=document.getElementById('usersList');
+  el.innerHTML=users.map(u=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg3);border-radius:4px;margin-bottom:6px;border:1px solid var(--border);">
+      <span style="font-family:var(--mono);font-size:12px;flex:1;color:var(--text)">${u.username}</span>
+      <span style="font-size:9px;font-family:var(--mono);padding:2px 6px;border-radius:2px;${u.role==='admin'?'background:var(--amber-dim);color:var(--amber)':'background:var(--bg2);color:var(--text3)'}">${u.role.toUpperCase()}</span>
+      ${u.username!=='admin'?`<button onclick="deleteUser(${u.id},'${u.username}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:2px 4px;" title="Eliminar">🗑</button>`:''}
+    </div>`).join('');
+}
+
+async function createUser(){
+  const username=document.getElementById('newUsername').value.trim();
+  const password=document.getElementById('newPassword').value;
+  const role=document.getElementById('newRole').value;
+  const msg=document.getElementById('adminMsg');
+  if(!username||!password){msg.textContent='// error: completa usuario y contraseña';msg.style.color='var(--red)';msg.style.display='block';return;}
+  const r=await fetch(API+'/api/users',{method:'POST',headers:authHeaders(),body:JSON.stringify({username,password,role})});
+  const d=await r.json();
+  if(d.ok){
+    msg.textContent='// usuario creado correctamente';msg.style.color='var(--green)';msg.style.display='block';
+    document.getElementById('newUsername').value='';document.getElementById('newPassword').value='';
+    await loadUsers();
+  } else { msg.textContent='// error: '+d.error;msg.style.color='var(--red)';msg.style.display='block'; }
+}
+
+async function deleteUser(id,name){
+  if(!confirm(`¿Eliminar usuario "${name}"?`))return;
+  await fetch(API+'/api/users/'+id,{method:'DELETE',headers:authHeaders()});
+  await loadUsers();
+}
+
 function showToast(msg,ms=3200){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),ms);}
 function syncBarSet(msg){document.getElementById('syncBar').textContent=msg;}
 function fmt(s){const[y,m,d]=s.split('-');return`${d}/${m}/${y}`}
@@ -383,7 +485,14 @@ function switchTab(name,btn){
 
 async function fetchData(){
   try{
-    const[evR,noR,reR,inR]=await Promise.all([fetch(API+'/api/events'),fetch(API+'/api/notes'),fetch(API+'/api/reminders'),fetch(API+'/api/info')]);
+    const h=authHeaders();
+    const[evR,noR,reR,inR]=await Promise.all([
+      fetch(API+'/api/events',{headers:h}),
+      fetch(API+'/api/notes',{headers:h}),
+      fetch(API+'/api/reminders',{headers:h}),
+      fetch(API+'/api/info',{headers:h})
+    ]);
+    if(evR.status===401){window.location.href='/login.html';return;}
     events=await evR.json();notes=await noR.json();reminders=await reR.json();
     const info=await inR.json();
     const[y,m]=info.last_reset.split('-');
@@ -474,10 +583,10 @@ async function addEvent(){
   const start=document.getElementById('evtStart').value;
   const end=document.getElementById('evtEnd').value||start;
   if(!title||!start){showToast('// error: completa nombre y fecha');return;}
-  await fetch(API+'/api/events',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type,title,start_date:start,end_date:end})});
+  await fetch(API+'/api/events',{method:'POST',headers:authHeaders(),body:JSON.stringify({type,title,start_date:start,end_date:end})});
   document.getElementById('evtTitle').value='';showToast('// evento registrado → equipo notificado');fetchData();
 }
-async function delEvent(id){await fetch(API+'/api/events/'+id,{method:'DELETE'});fetchData();}
+async function delEvent(id){await fetch(API+'/api/events/'+id,{method:'DELETE',headers:authHeaders()});fetchData();}
 
 function renderNotes(){
   const el=document.getElementById('notesList');
@@ -504,15 +613,14 @@ function renderNotes(){
 
 async function addNote(){
   const text=document.getElementById('noteText').value.trim();
-  const author=document.getElementById('noteAuthor').value.trim();
   const pinned=document.getElementById('notePin').checked;
   const priority=document.getElementById('notePriority').value;
   if(!text){showToast('// error: escribe algo primero');return;}
-  await fetch(API+'/api/notes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,author,pinned,priority})});
+  await fetch(API+'/api/notes',{method:'POST',headers:authHeaders(),body:JSON.stringify({text,pinned,priority})});
   document.getElementById('noteText').value='';document.getElementById('notePin').checked=false;
   showToast(`// nota [${priority.toUpperCase()}] guardada → equipo notificado`);fetchData();
 }
-async function delNote(id){await fetch(API+'/api/notes/'+id,{method:'DELETE'});fetchData();}
+async function delNote(id){await fetch(API+'/api/notes/'+id,{method:'DELETE',headers:authHeaders()});fetchData();}
 
 function renderReminders(){
   const el=document.getElementById('remList');
@@ -541,20 +649,19 @@ function renderReminders(){
 
 async function addReminder(){
   const title=document.getElementById('remTitle').value.trim();
-  const author=document.getElementById('remAuthor').value.trim();
   const due_date=document.getElementById('remDue').value;
   const text=document.getElementById('remText').value.trim();
   if(!title||!due_date){showToast('// error: título y fecha límite requeridos');return;}
-  await fetch(API+'/api/reminders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,author,due_date,text})});
+  await fetch(API+'/api/reminders',{method:'POST',headers:authHeaders(),body:JSON.stringify({title,due_date,text})});
   document.getElementById('remTitle').value='';document.getElementById('remText').value='';document.getElementById('remDue').value='';
   showToast('// recordatorio creado → aparece en el calendario');fetchData();
 }
-async function delReminder(id){await fetch(API+'/api/reminders/'+id,{method:'DELETE'});fetchData();}
+async function delReminder(id){await fetch(API+'/api/reminders/'+id,{method:'DELETE',headers:authHeaders()});fetchData();}
 
 // TEST PUSH
 async function testPush(){
   if(!pushSub){showToast('// activa las alertas primero');return;}
-  const r=await fetch(API+'/api/test-push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'Prueba exitosa — el sistema de alertas funciona correctamente.'})});
+  const r=await fetch(API+'/api/test-push',{method:'POST',headers:authHeaders(),body:JSON.stringify({})});
   const d=await r.json();
   showToast(`// notificación enviada a ${d.sent_to} dispositivo(s)`);
 }
@@ -580,7 +687,7 @@ async function toggleNotifications(){
   if(Notification.permission==='denied'){showToast('// desbloquea en config del navegador');return;}
   if(pushSub){
     await pushSub.unsubscribe();
-    await fetch(API+'/api/subscribe',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:pushSub.endpoint})});
+    await fetch(API+'/api/subscribe',{method:'DELETE',headers:authHeaders(),body:JSON.stringify({endpoint:pushSub.endpoint})});
     pushSub=null;updateNotifBtn();showToast('// alertas desactivadas');return;
   }
   try{
@@ -588,8 +695,7 @@ async function toggleNotifications(){
     const perm=await Notification.requestPermission();
     if(perm!=='granted'){showToast('// permiso denegado');return;}
     pushSub=await swReg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToU8(key)});
-    const name=prompt('Tu nombre (para identificarte en el equipo):','')||'ANONIMO';
-    await fetch(API+'/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subscription:pushSub.toJSON(),userName:name})});
+    await fetch(API+'/api/subscribe',{method:'POST',headers:authHeaders(),body:JSON.stringify({subscription:pushSub.toJSON()})});
     updateNotifBtn();showToast('// alertas activadas → OK');
   }catch(e){showToast('// error: '+e.message);}
 }
@@ -597,8 +703,11 @@ async function toggleNotifications(){
 const now=new Date();curYear=now.getFullYear();curMonth=now.getMonth();
 const td=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 document.getElementById('evtStart').value=td;document.getElementById('evtEnd').value=td;document.getElementById('remDue').value=td;
-updatePrioStyle();initSW();fetchData();
-setInterval(fetchData,20000);setInterval(()=>{renderNotes();renderReminders();updateStats();},60000);
+updatePrioStyle();
+if(!checkAuth()){} else {
+  initSW();fetchData();
+  setInterval(fetchData,20000);setInterval(()=>{renderNotes();renderReminders();updateStats();},60000);
+}
 const params=new URLSearchParams(location.search);
 if(params.get('tab')==='notas')document.querySelectorAll('.tab')[1].click();
 if(params.get('tab')==='recordatorios')document.querySelectorAll('.tab')[2].click();
