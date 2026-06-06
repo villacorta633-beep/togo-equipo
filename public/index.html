@@ -4,108 +4,322 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TOGO — Equipo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f0;color:#1a1a1a;min-height:100vh}
-.topbar{background:#1A1A2E;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:52px}
-.logo{color:#F5C400;font-weight:700;font-size:18px;letter-spacing:.5px}
-.logo span{color:#fff;font-weight:400;font-size:13px;margin-left:8px;opacity:.7}
-.notif-btn{background:#F5C400;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;color:#1A1A2E;display:flex;align-items:center;gap:5px}
-.notif-btn.active{background:#1D9E75;color:#fff}
-.notif-btn.denied{background:#D85A30;color:#fff;cursor:default}
-.container{max-width:820px;margin:0 auto;padding:1.5rem 1rem}
-.tabs{display:flex;gap:2px;margin-bottom:1.25rem;background:#e8e8e2;padding:3px;border-radius:10px}
-.tab{flex:1;padding:8px 0;font-size:13px;font-weight:500;color:#666;cursor:pointer;border:none;background:none;border-radius:8px;transition:all .15s}
-.tab.active{background:#fff;color:#1a1a1a;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+:root{
+  --amber:#F59E0B;
+  --amber-dark:#D97706;
+  --amber-light:#FEF3C7;
+  --amber-mid:#FDE68A;
+  --navy:#1C1917;
+  --navy2:#292524;
+  --navy3:#44403C;
+  --cream:#FAFAF9;
+  --white:#FFFFFF;
+  --border:#E7E5E4;
+  --text:#1C1917;
+  --text2:#57534E;
+  --text3:#A8A29E;
+  --green:#059669;
+  --green-bg:#D1FAE5;
+  --blue:#2563EB;
+  --blue-bg:#DBEAFE;
+  --red:#DC2626;
+  --red-bg:#FEE2E2;
+  --radius:10px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.06);
+}
+body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--text);min-height:100vh}
+
+/* TOPBAR */
+.topbar{
+  background:var(--navy);
+  padding:0 2rem;
+  display:flex;align-items:center;justify-content:space-between;
+  height:58px;
+  border-bottom:1px solid var(--navy2);
+  position:sticky;top:0;z-index:100;
+}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-badge{
+  background:var(--amber);
+  color:var(--navy);
+  font-weight:700;font-size:14px;letter-spacing:.5px;
+  padding:5px 10px;border-radius:6px;
+}
+.logo-sub{color:rgba(255,255,255,.5);font-size:13px;font-weight:400}
+.logo-divider{width:1px;height:16px;background:rgba(255,255,255,.15)}
+
+.notif-btn{
+  display:flex;align-items:center;gap:7px;
+  padding:7px 16px;border-radius:8px;border:none;
+  font-size:13px;font-weight:600;cursor:pointer;
+  font-family:'Inter',sans-serif;
+  transition:all .2s;
+}
+.notif-btn.idle{background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.12)}
+.notif-btn.idle:hover{background:rgba(255,255,255,.14)}
+.notif-btn.active{background:var(--amber);color:var(--navy)}
+.notif-btn.active:hover{background:var(--amber-dark)}
+.notif-btn.denied{background:rgba(220,38,38,.15);color:#FCA5A5;border:1px solid rgba(220,38,38,.2);cursor:default}
+
+/* CONTAINER */
+.container{max-width:860px;margin:0 auto;padding:2rem 1.25rem}
+
+/* TABS */
+.tabs{
+  display:flex;gap:0;margin-bottom:1.75rem;
+  background:var(--white);border:1px solid var(--border);
+  border-radius:var(--radius);padding:4px;
+  box-shadow:var(--shadow);
+}
+.tab{
+  flex:1;padding:9px 0;font-size:13px;font-weight:500;
+  color:var(--text3);cursor:pointer;border:none;background:none;
+  border-radius:7px;transition:all .18s;font-family:'Inter',sans-serif;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.tab.active{background:var(--amber);color:var(--navy);font-weight:600;box-shadow:0 1px 3px rgba(245,158,11,.3)}
+.tab:not(.active):hover{color:var(--text2);background:var(--cream)}
+
+/* PANEL */
 .panel{display:none}.panel.active{display:block}
-.card{background:#fff;border-radius:12px;border:0.5px solid #e0ded8;padding:1.25rem;margin-bottom:1rem}
-.section-title{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.75rem}
-.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
-.cal-nav button{background:#f5f5f0;border:0.5px solid #ddd;border-radius:8px;padding:6px 12px;cursor:pointer;color:#333;font-size:13px}
-.cal-nav h2{font-size:15px;font-weight:600;color:#1a1a1a}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:1rem}
-.dow{text-align:center;font-size:11px;font-weight:600;color:#888;padding:4px 0}
-.day{min-height:58px;border-radius:8px;border:0.5px solid #eee;padding:4px;background:#fff;font-size:10px}
-.day.other{opacity:.3}.day.today{border-color:#378ADD;background:#E6F1FB}
-.day .dn{font-size:11px;font-weight:600;color:#555;margin-bottom:2px}
-.day.today .dn{color:#185FA5}
-.dot{border-radius:3px;padding:1px 4px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;font-size:9px}
-.dot-vac{background:#E1F5EE;color:#085041}
-.dot-sol{background:#E6F1FB;color:#0C447C}
-.dot-otro{background:#FAEEDA;color:#633806}
-.legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem}
-.leg{display:flex;align-items:center;gap:4px;font-size:12px;color:#666}
-.leg-dot{width:10px;height:10px;border-radius:3px}
-.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:.75rem}
-.form-group label{font-size:11px;font-weight:600;color:#888;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
-.form-group input,.form-group select{width:100%;padding:8px 10px;border:0.5px solid #ddd;border-radius:8px;font-size:13px;color:#1a1a1a;background:#fff;outline:none}
-.form-group input:focus,.form-group select:focus{border-color:#378ADD}
-.btn-primary{background:#1A1A2E;color:#F5C400;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px}
-.btn-primary:hover{background:#2a2a4e}
-.evt-list{display:flex;flex-direction:column;gap:6px}
-.evt-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:0.5px solid #eee;background:#fafaf7}
-.badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:10px;white-space:nowrap}
-.badge-vac{background:#E1F5EE;color:#085041}
-.badge-sol{background:#E6F1FB;color:#0C447C}
-.badge-otro{background:#FAEEDA;color:#633806}
+
+/* CARD */
+.card{
+  background:var(--white);border-radius:var(--radius);
+  border:1px solid var(--border);padding:1.5rem;
+  margin-bottom:1.25rem;box-shadow:var(--shadow);
+}
+.card-header{
+  display:flex;align-items:center;gap:8px;
+  margin-bottom:1.25rem;padding-bottom:1rem;
+  border-bottom:1px solid var(--border);
+}
+.card-header h3{font-size:14px;font-weight:600;color:var(--text)}
+.card-icon{
+  width:30px;height:30px;border-radius:7px;
+  background:var(--amber-light);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;
+}
+
+/* CALENDAR */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+.cal-nav h2{font-size:16px;font-weight:600;color:var(--text)}
+.cal-btn{
+  background:var(--cream);border:1px solid var(--border);
+  border-radius:7px;padding:6px 11px;cursor:pointer;
+  font-size:15px;color:var(--text2);transition:all .15s;
+}
+.cal-btn:hover{background:var(--amber-light);border-color:var(--amber);color:var(--amber-dark)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:1.25rem}
+.dow{text-align:center;font-size:11px;font-weight:600;color:var(--text3);padding:5px 0;text-transform:uppercase;letter-spacing:.05em}
+.day{
+  min-height:62px;border-radius:7px;border:1px solid transparent;
+  padding:5px;background:var(--cream);font-size:10px;
+  transition:all .15s;cursor:default;
+}
+.day:hover{border-color:var(--amber-mid);background:var(--amber-light)}
+.day.other{opacity:.3}
+.day.today{border-color:var(--amber);background:var(--amber-light)}
+.day .dn{font-size:12px;font-weight:600;color:var(--text3);margin-bottom:2px}
+.day.today .dn{color:var(--amber-dark)}
+.evdot{
+  border-radius:4px;padding:1px 5px;margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  display:block;font-size:9px;font-weight:500;
+}
+.evdot-vac{background:var(--green-bg);color:#065F46}
+.evdot-sol{background:var(--blue-bg);color:#1E40AF}
+.evdot-otro{background:var(--amber-light);color:#92400E}
+
+/* LEGEND */
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:1.25rem}
+.leg{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2)}
+.leg-dot{width:9px;height:9px;border-radius:3px}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1rem}
+.fgroup label{
+  font-size:11px;font-weight:600;color:var(--text3);
+  display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;
+}
+.fgroup input,.fgroup select{
+  width:100%;padding:9px 11px;border:1px solid var(--border);
+  border-radius:8px;font-size:13px;color:var(--text);
+  background:var(--white);outline:none;font-family:'Inter',sans-serif;
+  transition:border .15s;
+}
+.fgroup input:focus,.fgroup select:focus{border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,158,11,.1)}
+.btn-primary{
+  background:var(--amber);color:var(--navy);border:none;
+  border-radius:8px;padding:10px 20px;
+  font-size:13px;font-weight:600;cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:'Inter',sans-serif;transition:all .15s;
+  box-shadow:0 1px 3px rgba(245,158,11,.3);
+}
+.btn-primary:hover{background:var(--amber-dark);box-shadow:0 2px 6px rgba(245,158,11,.4)}
+
+/* EVENT LIST */
+.evt-list{display:flex;flex-direction:column;gap:8px;margin-top:1rem}
+.evt-row{
+  display:flex;align-items:center;gap:12px;
+  padding:11px 14px;border-radius:8px;
+  border:1px solid var(--border);background:var(--white);
+  box-shadow:var(--shadow);transition:box-shadow .15s;
+}
+.evt-row:hover{box-shadow:var(--shadow-md)}
+.badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.badge-vac{background:var(--green-bg);color:#065F46}
+.badge-sol{background:var(--blue-bg);color:#1E40AF}
+.badge-otro{background:var(--amber-light);color:#92400E}
 .evt-info{flex:1}
-.evt-title{font-size:13px;font-weight:500;color:#1a1a1a}
-.evt-sub{font-size:11px;color:#888;margin-top:1px}
-.del{background:none;border:none;cursor:pointer;color:#ccc;font-size:16px;padding:2px 4px;line-height:1;border-radius:4px}
-.del:hover{color:#D85A30;background:#fff0ee}
-.quick-note-area{width:100%;border:none;background:none;resize:none;min-height:80px;font-size:14px;color:#1a1a1a;font-family:inherit;outline:none;line-height:1.6}
-.note-footer{display:flex;align-items:center;gap:8px;padding-top:10px;border-top:0.5px solid #eee;margin-top:8px;flex-wrap:wrap}
-.note-footer input{padding:7px 10px;border:0.5px solid #ddd;border-radius:8px;font-size:12px;color:#1a1a1a;background:#fff;outline:none;width:140px}
-.pin-label{display:flex;align-items:center;gap:5px;font-size:12px;color:#666;cursor:pointer}
-.note-card{padding:12px;border-radius:8px;border:0.5px solid #eee;background:#fafaf7;margin-bottom:6px}
-.note-card.pinned{border-color:#EF9F27;background:#FAEEDA22}
-.note-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-.note-author{font-size:11px;font-weight:600;color:#888}
-.pin-tag{font-size:10px;background:#FAEEDA;color:#633806;border-radius:4px;padding:1px 6px;font-weight:600;margin-left:6px}
-.note-text{font-size:13px;color:#1a1a1a;line-height:1.55;white-space:pre-wrap}
-.empty{text-align:center;padding:2rem;color:#aaa;font-size:13px}
-.sync{font-size:11px;color:#888;text-align:right;margin-bottom:.75rem}
-.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#1A1A2E;color:#F5C400;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
-.toast.show{opacity:1}
+.evt-title{font-size:13px;font-weight:500;color:var(--text)}
+.evt-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.del{
+  background:none;border:none;cursor:pointer;
+  color:var(--text3);padding:4px 6px;border-radius:5px;
+  font-size:15px;transition:all .15s;line-height:1;
+}
+.del:hover{color:var(--red);background:var(--red-bg)}
+
+/* NOTES */
+.quick-note{
+  border:1px solid var(--border);border-radius:var(--radius);
+  padding:1rem 1.25rem;background:var(--white);
+  margin-bottom:1.25rem;box-shadow:var(--shadow);
+  transition:border .15s;
+}
+.quick-note:focus-within{border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,158,11,.08)}
+.quick-note textarea{
+  width:100%;border:none;background:none;resize:none;
+  min-height:80px;font-size:14px;color:var(--text);
+  font-family:'Inter',sans-serif;outline:none;line-height:1.6;
+}
+.note-footer{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  margin-top:10px;padding-top:10px;border-top:1px solid var(--border);
+}
+.note-footer input{
+  padding:7px 11px;border:1px solid var(--border);
+  border-radius:7px;font-size:12px;color:var(--text);
+  background:var(--cream);outline:none;font-family:'Inter',sans-serif;
+  width:150px;transition:border .15s;
+}
+.note-footer input:focus{border-color:var(--amber)}
+.pin-label{
+  display:flex;align-items:center;gap:5px;
+  font-size:12px;color:var(--text2);cursor:pointer;font-weight:500;
+}
+.pin-label input[type=checkbox]{accent-color:var(--amber)}
+.note-card{
+  padding:13px 14px;border-radius:8px;
+  border:1px solid var(--border);background:var(--white);
+  margin-bottom:8px;box-shadow:var(--shadow);
+  transition:box-shadow .15s;
+}
+.note-card:hover{box-shadow:var(--shadow-md)}
+.note-card.pinned{border-color:var(--amber);background:linear-gradient(135deg,#FFFBEB,var(--white))}
+.note-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.note-author{font-size:11px;font-weight:600;color:var(--text3);display:flex;align-items:center;gap:5px}
+.pin-tag{
+  font-size:10px;background:var(--amber);color:var(--navy);
+  border-radius:4px;padding:1px 6px;font-weight:700;
+}
+.note-text{font-size:13px;color:var(--text);line-height:1.6;white-space:pre-wrap}
+.empty{
+  text-align:center;padding:2.5rem;color:var(--text3);font-size:13px;
+  border:1px dashed var(--border);border-radius:var(--radius);
+  background:var(--white);
+}
+.empty-icon{font-size:28px;margin-bottom:6px}
+
+/* SYNC BAR */
+.sync-bar{
+  display:flex;align-items:center;justify-content:flex-end;gap:6px;
+  font-size:11px;color:var(--text3);margin-bottom:1.25rem;
+}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:1.5rem;right:1.5rem;
+  background:var(--navy);color:var(--amber);
+  padding:11px 18px;border-radius:10px;
+  font-size:13px;font-weight:500;z-index:999;
+  opacity:0;transition:opacity .3s,transform .3s;
+  pointer-events:none;transform:translateY(8px);
+  box-shadow:0 4px 12px rgba(0,0,0,.2);
+  border:1px solid rgba(245,158,11,.2);
+}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* SECTION LABEL */
+.section-label{
+  font-size:11px;font-weight:700;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.07em;margin-bottom:.75rem;
+}
 </style>
 </head>
 <body>
 
 <div class="topbar">
-  <div class="logo">TOGO <span>Equipo</span></div>
-  <button class="notif-btn" id="notifBtn" onclick="toggleNotifications()">
+  <div class="logo">
+    <span class="logo-badge">TOGO</span>
+    <span class="logo-divider"></span>
+    <span class="logo-sub">Panel del equipo</span>
+  </div>
+  <button class="notif-btn idle" id="notifBtn" onclick="toggleNotifications()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
     Activar alertas
   </button>
 </div>
 
 <div class="container">
-  <div class="sync" id="syncBar">Conectando...</div>
-
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('cal', this)">📅 Calendario</button>
-    <button class="tab" onclick="switchTab('notas', this)">📝 Bloc de notas</button>
+  <div class="sync-bar">
+    <div class="sync-dot" id="syncDot" style="background:var(--text3)"></div>
+    <span id="syncBar">Conectando...</span>
   </div>
 
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('cal',this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Calendario
+    </button>
+    <button class="tab" onclick="switchTab('notas',this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+      Bloc de notas
+    </button>
+  </div>
+
+  <!-- CALENDARIO -->
   <div id="tab-cal" class="panel active">
     <div class="card">
       <div class="legend">
-        <div class="leg"><div class="leg-dot" style="background:#1D9E75"></div>Vacaciones</div>
-        <div class="leg"><div class="leg-dot" style="background:#378ADD"></div>Solicitud</div>
-        <div class="leg"><div class="leg-dot" style="background:#EF9F27"></div>Otro</div>
+        <div class="leg"><div class="leg-dot" style="background:#059669"></div>Vacaciones</div>
+        <div class="leg"><div class="leg-dot" style="background:#2563EB"></div>Solicitud</div>
+        <div class="leg"><div class="leg-dot" style="background:#F59E0B"></div>Otro</div>
       </div>
       <div class="cal-nav">
-        <button onclick="changeMonth(-1)">&#8592;</button>
+        <button class="cal-btn" onclick="changeMonth(-1)">&#8592;</button>
         <h2 id="calTitle"></h2>
-        <button onclick="changeMonth(1)">&#8594;</button>
+        <button class="cal-btn" onclick="changeMonth(1)">&#8594;</button>
       </div>
       <div class="cal-grid" id="calGrid"></div>
     </div>
 
     <div class="card">
-      <p class="section-title">Agregar evento</p>
+      <div class="card-header">
+        <div class="card-icon">📅</div>
+        <h3>Agregar evento</h3>
+      </div>
       <div class="form-grid">
-        <div class="form-group">
+        <div class="fgroup">
           <label>Tipo</label>
           <select id="evtType">
             <option value="vac">Vacaciones</option>
@@ -113,32 +327,39 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <option value="otro">Otro</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>Persona / descripcion</label>
+        <div class="fgroup">
+          <label>Persona / descripción</label>
           <input type="text" id="evtTitle" placeholder="Ej: Juan - Vacaciones">
         </div>
-        <div class="form-group">
+        <div class="fgroup">
           <label>Fecha inicio</label>
           <input type="date" id="evtStart">
         </div>
-        <div class="form-group">
+        <div class="fgroup">
           <label>Fecha fin</label>
           <input type="date" id="evtEnd">
         </div>
       </div>
-      <button class="btn-primary" onclick="addEvent()">+ Agregar evento</button>
+      <button class="btn-primary" onclick="addEvent()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Agregar evento
+      </button>
     </div>
 
     <div class="evt-list" id="evtList"></div>
   </div>
 
+  <!-- NOTAS -->
   <div id="tab-notas" class="panel">
-    <div class="card">
-      <textarea class="quick-note-area" id="noteText" placeholder="Escribe aqui tu nota rapida..."></textarea>
+    <div class="quick-note">
+      <textarea id="noteText" placeholder="Escribe aquí tu nota rápida... se guarda para todo el equipo"></textarea>
       <div class="note-footer">
         <input type="text" id="noteAuthor" placeholder="Tu nombre">
-        <label class="pin-label"><input type="checkbox" id="notePin"> Fijar</label>
-        <button class="btn-primary" onclick="addNote()">Guardar nota</button>
+        <label class="pin-label"><input type="checkbox" id="notePin"> Fijar nota</label>
+        <button class="btn-primary" onclick="addNote()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Guardar
+        </button>
       </div>
     </div>
     <div id="notesList"></div>
@@ -148,22 +369,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="toast" id="toast"></div>
 
 <script>
-const API = '';
-const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const DOWS = ['Lu','Ma','Mi','Ju','Vi','Sa','Do'];
-const TYPE_LABELS = { vac:'Vacaciones', sol:'Solicitud', otro:'Otro' };
-let curYear, curMonth, events = [], notes = [], swReg = null, pushSub = null;
+const API='';
+const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DOWS=['Lu','Ma','Mi','Ju','Vi','Sa','Do'];
+const TYPE_LABELS={vac:'Vacaciones',sol:'Solicitud',otro:'Otro'};
+let curYear,curMonth,events=[],notes=[],swReg=null,pushSub=null;
 
-function showToast(msg, ms=3000){
-  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), ms);
+function showToast(msg,ms=3000){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),ms);
 }
+function syncBar(msg,ok=true){
+  document.getElementById('syncBar').textContent=msg;
+  document.getElementById('syncDot').style.background=ok?'var(--green)':'var(--text3)';
+}
+function fmt(s){const[y,m,d]=s.split('-');return`${d}/${m}/${y}`}
 
-function syncBar(msg){ document.getElementById('syncBar').textContent = msg; }
-
-function fmt(s){ const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; }
-
-function switchTab(name, btn){
+function switchTab(name,btn){
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');
@@ -171,45 +393,44 @@ function switchTab(name, btn){
 }
 
 async function fetchData(){
-  try {
-    const [evRes, noRes] = await Promise.all([fetch(API+'/api/events'), fetch(API+'/api/notes')]);
-    events = await evRes.json();
-    notes = await noRes.json();
-    renderCal(); renderNotes();
-    syncBar('Actualizado ' + new Date().toLocaleTimeString('es-BO',{hour:'2-digit',minute:'2-digit'}));
-  } catch(e){ syncBar('Sin conexion al servidor'); }
+  try{
+    const[evRes,noRes]=await Promise.all([fetch(API+'/api/events'),fetch(API+'/api/notes')]);
+    events=await evRes.json();notes=await noRes.json();
+    renderCal();renderNotes();
+    syncBar('Sincronizado · '+new Date().toLocaleTimeString('es-BO',{hour:'2-digit',minute:'2-digit'}));
+  }catch(e){syncBar('Sin conexión',false)}
 }
 
-function changeMonth(d){ curMonth+=d; if(curMonth>11){curMonth=0;curYear++;}else if(curMonth<0){curMonth=11;curYear--;} renderCal(); }
+function changeMonth(d){curMonth+=d;if(curMonth>11){curMonth=0;curYear++;}else if(curMonth<0){curMonth=11;curYear--;}renderCal();}
 
 function renderCal(){
-  document.getElementById('calTitle').textContent = MONTHS[curMonth] + ' ' + curYear;
-  const grid = document.getElementById('calGrid');
-  grid.innerHTML = '';
-  DOWS.forEach(d=>{ const c=document.createElement('div'); c.className='dow'; c.textContent=d; grid.appendChild(c); });
-  let fd = new Date(curYear,curMonth,1).getDay(); if(fd===0)fd=7; fd--;
-  const dim = new Date(curYear,curMonth+1,0).getDate();
-  const prev = new Date(curYear,curMonth,0).getDate();
-  const today = new Date();
-  function evts(y,m,d){ const s=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; return events.filter(e=>e.start_date<=s&&e.end_date>=s); }
-  for(let i=0;i<fd;i++){ const c=document.createElement('div'); c.className='day other'; c.innerHTML=`<div class="dn">${prev-fd+1+i}</div>`; grid.appendChild(c); }
+  document.getElementById('calTitle').textContent=MONTHS[curMonth]+' '+curYear;
+  const grid=document.getElementById('calGrid');
+  grid.innerHTML='';
+  DOWS.forEach(d=>{const c=document.createElement('div');c.className='dow';c.textContent=d;grid.appendChild(c);});
+  let fd=new Date(curYear,curMonth,1).getDay();if(fd===0)fd=7;fd--;
+  const dim=new Date(curYear,curMonth+1,0).getDate();
+  const prev=new Date(curYear,curMonth,0).getDate();
+  const today=new Date();
+  function evts(y,m,d){const s=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;return events.filter(e=>e.start_date<=s&&e.end_date>=s);}
+  for(let i=0;i<fd;i++){const c=document.createElement('div');c.className='day other';c.innerHTML=`<div class="dn">${prev-fd+1+i}</div>`;grid.appendChild(c);}
   for(let d=1;d<=dim;d++){
-    const c=document.createElement('div'); c.className='day';
-    if(d===today.getDate()&&curMonth===today.getMonth()&&curYear===today.getFullYear()) c.classList.add('today');
+    const c=document.createElement('div');c.className='day';
+    if(d===today.getDate()&&curMonth===today.getMonth()&&curYear===today.getFullYear())c.classList.add('today');
     const ev=evts(curYear,curMonth,d);
     let h=`<div class="dn">${d}</div>`;
-    ev.slice(0,2).forEach(e=>{ h+=`<span class="dot dot-${e.type}">${e.title}</span>`; });
-    if(ev.length>2) h+=`<span class="dot" style="color:#aaa">+${ev.length-2}</span>`;
-    c.innerHTML=h; grid.appendChild(c);
+    ev.slice(0,2).forEach(e=>{h+=`<span class="evdot evdot-${e.type}">${e.title}</span>`;});
+    if(ev.length>2)h+=`<span class="evdot" style="color:var(--text3)">+${ev.length-2} más</span>`;
+    c.innerHTML=h;grid.appendChild(c);
   }
-  const rem=(fd+dim)%7; if(rem>0){for(let i=1;i<=7-rem;i++){const c=document.createElement('div');c.className='day other';c.innerHTML=`<div class="dn">${i}</div>`;grid.appendChild(c);}}
+  const rem=(fd+dim)%7;if(rem>0){for(let i=1;i<=7-rem;i++){const c=document.createElement('div');c.className='day other';c.innerHTML=`<div class="dn">${i}</div>`;grid.appendChild(c);}}
   renderEvtList();
 }
 
 function renderEvtList(){
   const el=document.getElementById('evtList');
   const sorted=[...events].sort((a,b)=>a.start_date.localeCompare(b.start_date));
-  if(!sorted.length){ el.innerHTML='<div class="empty">Sin eventos. Agrega uno arriba.</div>'; return; }
+  if(!sorted.length){el.innerHTML='<div class="empty"><div class="empty-icon">📭</div>Sin eventos. Agrega uno arriba.</div>';return;}
   el.innerHTML=sorted.map(e=>`
     <div class="evt-row">
       <span class="badge badge-${e.type}">${TYPE_LABELS[e.type]||'Otro'}</span>
@@ -217,7 +438,9 @@ function renderEvtList(){
         <div class="evt-title">${e.title}</div>
         <div class="evt-sub">${fmt(e.start_date)}${e.end_date!==e.start_date?' → '+fmt(e.end_date):''}</div>
       </div>
-      <button class="del" onclick="delEvent(${e.id})">&#128465;</button>
+      <button class="del" onclick="delEvent(${e.id})" title="Eliminar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
     </div>`).join('');
 }
 
@@ -226,28 +449,30 @@ async function addEvent(){
   const title=document.getElementById('evtTitle').value.trim();
   const start=document.getElementById('evtStart').value;
   const end=document.getElementById('evtEnd').value||start;
-  if(!title||!start){ showToast('Completa nombre y fecha'); return; }
+  if(!title||!start){showToast('Completa el nombre y la fecha');return;}
   await fetch(API+'/api/events',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type,title,start_date:start,end_date:end})});
   document.getElementById('evtTitle').value='';
-  document.getElementById('evtStart').value='';
-  document.getElementById('evtEnd').value='';
-  showToast('Evento agregado. Notificando al equipo...');
+  showToast('✓ Evento agregado — equipo notificado');
   fetchData();
 }
-
 async function delEvent(id){
-  await fetch(API+'/api/events/'+id,{method:'DELETE'});
-  fetchData();
+  await fetch(API+'/api/events/'+id,{method:'DELETE'});fetchData();
 }
 
 function renderNotes(){
   const el=document.getElementById('notesList');
-  if(!notes.length){ el.innerHTML='<div class="empty">Sin notas. Escribe la primera.</div>'; return; }
+  if(!notes.length){el.innerHTML='<div class="empty"><div class="empty-icon">📝</div>Sin notas aún. Escribe la primera.</div>';return;}
   el.innerHTML=notes.map(n=>`
     <div class="note-card${n.pinned?' pinned':''}">
       <div class="note-meta">
-        <span class="note-author">${n.author||'Anonimo'} · ${n.created_at.substring(0,16)}${n.pinned?'<span class="pin-tag">Fijada</span>':''}</span>
-        <button class="del" onclick="delNote(${n.id})">&#128465;</button>
+        <div class="note-author">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          ${n.author||'Anónimo'} · ${n.created_at}
+          ${n.pinned?'<span class="pin-tag">📌 Fijada</span>':''}
+        </div>
+        <button class="del" onclick="delNote(${n.id})" title="Eliminar">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        </button>
       </div>
       <div class="note-text">${n.text.replace(/</g,'&lt;')}</div>
     </div>`).join('');
@@ -257,83 +482,65 @@ async function addNote(){
   const text=document.getElementById('noteText').value.trim();
   const author=document.getElementById('noteAuthor').value.trim();
   const pinned=document.getElementById('notePin').checked;
-  if(!text){ showToast('Escribe algo antes de guardar'); return; }
+  if(!text){showToast('Escribe algo antes de guardar');return;}
   await fetch(API+'/api/notes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,author,pinned})});
   document.getElementById('noteText').value='';
   document.getElementById('notePin').checked=false;
-  showToast('Nota guardada. Notificando al equipo...');
+  showToast('✓ Nota guardada — equipo notificado');
   fetchData();
 }
-
 async function delNote(id){
-  await fetch(API+'/api/notes/'+id,{method:'DELETE'});
-  fetchData();
+  await fetch(API+'/api/notes/'+id,{method:'DELETE'});fetchData();
 }
 
-// ── Web Push ──────────────────────────────────────────────────────────────────
-function urlBase64ToUint8Array(base64String){
-  const padding='='.repeat((4-base64String.length%4)%4);
-  const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
-  const raw=window.atob(base64); const arr=new Uint8Array(raw.length);
-  for(let i=0;i<raw.length;i++) arr[i]=raw.charCodeAt(i);
-  return arr;
-}
+// WEB PUSH
+function urlBase64ToUint8Array(b){const p='='.repeat((4-b.length%4)%4);const base64=(b+p).replace(/-/g,'+').replace(/_/g,'/');const raw=window.atob(base64);const arr=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);return arr;}
 
 async function initSW(){
-  if(!('serviceWorker' in navigator)) return;
-  try {
-    swReg = await navigator.serviceWorker.register('/sw.js');
-    pushSub = await swReg.pushManager.getSubscription();
+  if(!('serviceWorker'in navigator))return;
+  try{
+    swReg=await navigator.serviceWorker.register('/sw.js');
+    pushSub=await swReg.pushManager.getSubscription();
     updateNotifBtn();
-    navigator.serviceWorker.addEventListener('message', e=>{
-      if(e.data?.action==='switchTab'){
-        const btn=document.querySelector(`.tab[onclick*="${e.data.tab}"]`);
-        if(btn) btn.click();
-      }
-    });
-  } catch(e){ console.error('SW error', e); }
+    navigator.serviceWorker.addEventListener('message',e=>{if(e.data?.action==='switchTab'){const btn=document.querySelector(`.tab[onclick*="${e.data.tab}"]`);if(btn)btn.click();}});
+  }catch(e){console.error('SW error',e);}
 }
-
 function updateNotifBtn(){
   const btn=document.getElementById('notifBtn');
   const perm=Notification.permission;
-  if(perm==='denied'){ btn.className='notif-btn denied'; btn.textContent='Alertas bloqueadas'; return; }
-  if(pushSub){ btn.className='notif-btn active'; btn.textContent='Alertas activas'; }
-  else { btn.className='notif-btn'; btn.textContent='Activar alertas'; }
+  if(perm==='denied'){btn.className='notif-btn denied';btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> Alertas bloqueadas';return;}
+  if(pushSub){btn.className='notif-btn active';btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Alertas activas';}
+  else{btn.className='notif-btn idle';btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Activar alertas';}
 }
-
 async function toggleNotifications(){
-  if(!swReg){ showToast('Navegador no compatible'); return; }
-  if(Notification.permission==='denied'){ showToast('Desbloquealo en configuracion del navegador'); return; }
+  if(!swReg){showToast('Navegador no compatible');return;}
+  if(Notification.permission==='denied'){showToast('Desbloquea en configuración del navegador');return;}
   if(pushSub){
     await pushSub.unsubscribe();
     await fetch(API+'/api/subscribe',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({endpoint:pushSub.endpoint})});
-    pushSub=null; updateNotifBtn(); showToast('Alertas desactivadas');
-    return;
+    pushSub=null;updateNotifBtn();showToast('Alertas desactivadas');return;
   }
-  try {
+  try{
     const keyRes=await fetch(API+'/api/vapid-public-key');
-    const {key}=await keyRes.json();
+    const{key}=await keyRes.json();
     const perm=await Notification.requestPermission();
-    if(perm!=='granted'){ showToast('Permiso denegado'); return; }
+    if(perm!=='granted'){showToast('Permiso denegado');return;}
     pushSub=await swReg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(key)});
-    const name=prompt('¿Tu nombre? (para identificar quien activo las alertas)','') || 'Anonimo';
+    const name=prompt('¿Tu nombre?','')|| 'Anónimo';
     await fetch(API+'/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subscription:pushSub.toJSON(),userName:name})});
-    updateNotifBtn(); showToast('Alertas activadas. Te avisaremos de cada novedad.');
-  } catch(e){ showToast('Error al activar: '+e.message); }
+    updateNotifBtn();showToast('✓ Alertas activadas. Te avisaremos de cada novedad.');
+  }catch(e){showToast('Error: '+e.message);}
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────────
-const now=new Date(); curYear=now.getFullYear(); curMonth=now.getMonth();
+// INIT
+const now=new Date();curYear=now.getFullYear();curMonth=now.getMonth();
 const td=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 document.getElementById('evtStart').value=td;
 document.getElementById('evtEnd').value=td;
-initSW();
-fetchData();
-setInterval(fetchData, 20000);
-
+initSW();fetchData();
+setInterval(fetchData,20000);
 const params=new URLSearchParams(location.search);
-if(params.get('tab')==='notas') document.querySelectorAll('.tab')[1].click();
+if(params.get('tab')==='notas')document.querySelectorAll('.tab')[1].click();
 </script>
 </body>
 </html>
