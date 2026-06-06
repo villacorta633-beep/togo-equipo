@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOGO — Acceso</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0D0D0D;--bg2:#141414;--bg3:#1A1A1A;--border:#2A2A2A;--amber:#F5A623;--amber2:#FFBF47;--amber-dim:rgba(245,166,35,.12);--amber-glow:rgba(245,166,35,.3);--text:#E8E8E8;--text2:#999;--text3:#555;--red:#FF3B3B;--red-dim:rgba(255,59,59,.1);--mono:'JetBrains Mono',monospace;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.login-box{width:100%;max-width:380px;padding:2rem;}
+.logo{text-align:center;margin-bottom:2.5rem;}
+.logo-mark{display:inline-block;font-family:var(--mono);font-weight:600;font-size:28px;color:var(--bg);background:var(--amber);padding:8px 20px;border-radius:6px;letter-spacing:2px;margin-bottom:10px;}
+.logo-sub{font-size:12px;color:var(--text3);font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:2rem;}
+.field{margin-bottom:1.25rem;}
+.field label{display:block;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);margin-bottom:6px;}
+.field input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:4px;font-size:13px;color:var(--text);background:var(--bg3);outline:none;font-family:var(--mono);transition:border .15s;}
+.field input:focus{border-color:var(--amber);box-shadow:0 0 0 2px var(--amber-dim);}
+.btn{width:100%;padding:11px;background:var(--amber);color:var(--bg);border:none;border-radius:4px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--mono);letter-spacing:.05em;transition:all .15s;margin-top:.5rem;}
+.btn:hover{background:var(--amber2);box-shadow:0 0 16px var(--amber-glow);}
+.error{background:var(--red-dim);border:1px solid var(--red);border-radius:4px;padding:8px 12px;font-size:12px;color:var(--red);font-family:var(--mono);margin-bottom:1rem;display:none;}
+.footer{text-align:center;font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:1.5rem;}
+</style>
+</head>
+<body>
+<div class="login-box">
+  <div class="logo">
+    <div class="logo-mark">TOGO</div>
+    <div class="logo-sub">Panel del Equipo · Farmacorp Bolivia</div>
+  </div>
+  <div class="card">
+    <div class="error" id="error"></div>
+    <div class="field">
+      <label>Usuario</label>
+      <input type="text" id="username" placeholder="tu_usuario" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn" onclick="login()">INGRESAR →</button>
+  </div>
+  <div class="footer">Farmacorp Bolivia · TOGO Delivery · 2026</div>
+</div>
+<script>
+document.getElementById('password').addEventListener('keydown', e => { if(e.key==='Enter') login(); });
+document.getElementById('username').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('password').focus(); });
+
+async function login() {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const errEl = document.getElementById('error');
+  errEl.style.display = 'none';
+  if (!username || !password) { errEl.textContent='// error: completa usuario y contraseña'; errEl.style.display='block'; return; }
+  try {
+    const r = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username, password}) });
+    const d = await r.json();
+    if (!d.ok) { errEl.textContent='// error: '+d.error; errEl.style.display='block'; return; }
+    localStorage.setItem('togo_token', d.token);
+    localStorage.setItem('togo_user', d.username);
+    localStorage.setItem('togo_role', d.role);
+    window.location.href = '/';
+  } catch(e) { errEl.textContent='// error de conexión'; errEl.style.display='block'; }
+}
+
+// Si ya hay sesión, redirigir
+if (localStorage.getItem('togo_token')) window.location.href = '/';
+</script>
+</body>
+</html>
