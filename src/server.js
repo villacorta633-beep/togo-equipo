@@ -53,6 +53,24 @@ async function initDB() {
       key TEXT PRIMARY KEY, value TEXT NOT NULL
     );
     INSERT INTO config (key, value) VALUES ('last_reset', '') ON CONFLICT (key) DO NOTHING;
+
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id BIGINT PRIMARY KEY,
+      author TEXT NOT NULL,
+      text TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS agenda_items (
+      id BIGINT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      date TEXT NOT NULL,
+      time TEXT,
+      type TEXT DEFAULT 'reunion',
+      author TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
   `);
 
   // Crear admin por defecto si no existe
@@ -290,6 +308,79 @@ app.post('/api/test-push', requireAuth, async (req, res) => {
   await sendPushToAll({ title:'🔔 Prueba TOGO', body:`Test de ${req.user.username}`, tag:'test-push', data:{tab:'notas'} });
   const { rows } = await pool.query('SELECT COUNT(*) FROM subscriptions');
   res.json({ ok: true, sent_to: parseInt(rows[0].count) });
+});
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+app.get('/api/chat', requireAuth, async (req, res) => {
+  const limit = parseInt(req.query.limit) || 50;
+  const before = req.query.before;
+  let q = 'SELECT * FROM chat_messages';
+  let params = [];
+  if (before) { q += ' WHERE id < $1'; params.push(before); }
+  q += ' ORDER BY id DESC LIMIT $' + (params.length + 1);
+  params.push(limit);
+  const { rows } = await pool.query(q, params);
+  res.json(rows.reverse());
+});
+
+app.post('/api/chat', requireAuth, async (req, res) => {
+  const { text } = req.body;
+  if (!text?.trim()) return res.status(400).json({ error: 'Texto requerido' });
+  const id = Date.now();
+  const now = new Date();
+  const created_at = now.toISOString();
+  await pool.query(
+    'INSERT INTO chat_messages (id, author, text, created_at) VALUES ($1,$2,$3,$4)',
+    [id, req.user.username, text.trim(), created_at]
+  );
+  // Push a todos
+  sendPushToAll({
+    title: `💬 ${req.user.username}`,
+    body: text.trim().slice(0, 80),
+    tag: 'chat-' + id,
+    data: { tab: 'chat' }
+  });
+  res.json({ id, ok: true });
+});
+
+app.delete('/api/chat/:id', requireAuth, async (req, res) => {
+  await pool.query('DELETE FROM chat_messages WHERE id=$1', [req.params.id]);
+  res.json({ ok: true });
+});
+
+// ── Agenda ────────────────────────────────────────────────────────────────────
+app.get('/api/agenda', requireAuth, async (req, res) => {
+  const date = req.query.date; // YYYY-MM-DD
+  let q = 'SELECT * FROM agenda_items';
+  let params = [];
+  if (date) { q += ' WHERE date=$1'; params.push(date); }
+  q += ' ORDER BY date ASC, time ASC';
+  const { rows } = await pool.query(q, params);
+  res.json(rows);
+});
+
+app.post('/api/agenda', requireAuth, async (req, res) => {
+  const { title, description, date, time, type } = req.body;
+  if (!title || !date) return res.status(400).json({ error: 'Título y fecha requeridos' });
+  const id = Date.now();
+  const now = new Date();
+  const created_at = now.toISOString().slice(0,16).replace('T',' ');
+  await pool.query(
+    'INSERT INTO agenda_items (id, title, description, date, time, type, author, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
+    [id, title, description||'', date, time||null, type||'reunion', req.user.username, created_at]
+  );
+  sendPushToAll({
+    title: `📋 Nueva agenda: ${title}`,
+    body: `${date}${time ? ' · ' + time : ''} — ${req.user.username}`,
+    tag: 'agenda-' + id,
+    data: { tab: 'agenda' }
+  });
+  res.json({ id, ok: true });
+});
+
+app.delete('/api/agenda/:id', requireAuth, async (req, res) => {
+  await pool.query('DELETE FROM agenda_items WHERE id=$1', [req.params.id]);
+  res.json({ ok: true });
 });
 
 app.listen(PORT, async () => {
