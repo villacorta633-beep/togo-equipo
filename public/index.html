@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TOGO — Panel del Equipo</title>
+<title>TOGO â Panel del Equipo</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -181,6 +181,34 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   .stat-bar{grid-template-columns:1fr 1fr}
   .topbar .logo-title,.reset-info{display:none}
 }
+
+  /* Presencia en tiempo real */
+  #presenceAvatars { display:flex; align-items:center; gap:4px; margin:0 6px; }
+  .pav {
+    width:28px; height:28px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:700; font-family:'Courier New',monospace;
+    color:#0d1117; border:2px solid rgba(255,255,255,0.18);
+    cursor:default; position:relative; transition:transform 0.2s; flex-shrink:0;
+  }
+  .pav:hover { transform:scale(1.18); z-index:10; }
+  .pav-tip {
+    position:absolute; bottom:-26px; left:50%; transform:translateX(-50%);
+    background:#1a1f2e; color:#f0c040; font-size:10px; padding:2px 6px;
+    border-radius:4px; white-space:nowrap; pointer-events:none; opacity:0;
+    transition:opacity 0.2s; border:1px solid #f0c040; z-index:999;
+  }
+  .pav:hover .pav-tip { opacity:1; }
+  .pav-dot {
+    width:7px; height:7px; background:#22c55e; border-radius:50%;
+    position:absolute; bottom:-1px; right:-1px; border:1.5px solid #0d1117;
+    animation:pavpulse 2s infinite;
+  }
+  .pav.self { box-shadow:0 0 0 2px #0d1117, 0 0 0 4px currentColor; }
+  @keyframes pavpulse {
+    0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,0.5);}
+    50%{box-shadow:0 0 0 4px rgba(34,197,94,0);}
+  }
 </style>
 </head>
 <body>
@@ -194,8 +222,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   </div>
   <div class="topbar-right">
     <span class="reset-info" id="resetInfo"></span>
-    <span id="userInfo" style="font-size:10px;color:var(--text3);font-family:var(--mono)"></span>
-    <button class="test-btn" onclick="testPush()" title="Enviar notificación de prueba">
+    <span id="userInfo" style="font-size:10px;color:var(--text3);font-family:var(--mono)"></span><div id="presenceAvatars"></div>
+    <button class="test-btn" onclick="testPush()" title="Enviar notificaciÃ³n de prueba">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       TEST
     </button>
@@ -217,8 +245,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   <div id="adminModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center;">
     <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:1.5rem;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
-        <span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--purple)">▌ GESTIÓN DE USUARIOS</span>
-        <button onclick="closeAdmin()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;line-height:1;">×</button>
+        <span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--purple)">â GESTIÃN DE USUARIOS</span>
+        <button onclick="closeAdmin()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;line-height:1;">Ã</button>
       </div>
       <div id="usersList" style="margin-bottom:1.25rem;"></div>
       <div style="border-top:1px solid var(--border);padding-top:1rem;">
@@ -229,8 +257,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
             <input id="newUsername" type="text" placeholder="nombre_usuario" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;font-size:12px;color:var(--text);background:var(--bg3);outline:none;font-family:var(--mono);">
           </div>
           <div>
-            <label style="font-size:10px;color:var(--text3);font-family:var(--mono);display:block;margin-bottom:3px;">CONTRASEÑA</label>
-            <input id="newPassword" type="password" placeholder="••••••••" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;font-size:12px;color:var(--text);background:var(--bg3);outline:none;font-family:var(--mono);">
+            <label style="font-size:10px;color:var(--text3);font-family:var(--mono);display:block;margin-bottom:3px;">CONTRASEÃA</label>
+            <input id="newPassword" type="password" placeholder="â¢â¢â¢â¢â¢â¢â¢â¢" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;font-size:12px;color:var(--text);background:var(--bg3);outline:none;font-family:var(--mono);">
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
@@ -248,12 +276,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 
 <div class="container">
   <div class="stat-bar">
-    <div class="stat"><div class="stat-label">Eventos</div><div class="stat-value" id="sEv">—</div><div class="stat-sub">registros</div></div>
-    <div class="stat"><div class="stat-label">Vacaciones</div><div class="stat-value sv-green" id="sVac">—</div><div class="stat-sub">activas</div></div>
-    <div class="stat"><div class="stat-label">Solicitudes</div><div class="stat-value sv-cyan" id="sSol">—</div><div class="stat-sub">pendientes</div></div>
-    <div class="stat"><div class="stat-label">Urgentes</div><div class="stat-value sv-red" id="sUrg">—</div><div class="stat-sub">notas</div></div>
-    <div class="stat"><div class="stat-label">Recordatorios</div><div class="stat-value sv-purple" id="sRem">—</div><div class="stat-sub">activos</div></div>
-    <div class="stat"><div class="stat-label">Notas</div><div class="stat-value" id="sNot">—</div><div class="stat-sub">guardadas</div></div>
+    <div class="stat"><div class="stat-label">Eventos</div><div class="stat-value" id="sEv">â</div><div class="stat-sub">registros</div></div>
+    <div class="stat"><div class="stat-label">Vacaciones</div><div class="stat-value sv-green" id="sVac">â</div><div class="stat-sub">activas</div></div>
+    <div class="stat"><div class="stat-label">Solicitudes</div><div class="stat-value sv-cyan" id="sSol">â</div><div class="stat-sub">pendientes</div></div>
+    <div class="stat"><div class="stat-label">Urgentes</div><div class="stat-value sv-red" id="sUrg">â</div><div class="stat-sub">notas</div></div>
+    <div class="stat"><div class="stat-label">Recordatorios</div><div class="stat-value sv-purple" id="sRem">â</div><div class="stat-sub">activos</div></div>
+    <div class="stat"><div class="stat-label">Notas</div><div class="stat-value" id="sNot">â</div><div class="stat-sub">guardadas</div></div>
   </div>
 
   <div class="tabs">
@@ -303,7 +331,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         <div class="fgroup"><label>Tipo</label>
           <select id="evtType"><option value="vac">VACACIONES</option><option value="sol">SOLICITUD</option><option value="otro">OTRO</option></select>
         </div>
-        <div class="fgroup"><label>Persona / descripción</label><input type="text" id="evtTitle" placeholder="JUAN · VACACIONES"></div>
+        <div class="fgroup"><label>Persona / descripciÃ³n</label><input type="text" id="evtTitle" placeholder="JUAN Â· VACACIONES"></div>
         <div class="fgroup"><label>Fecha inicio</label><input type="date" id="evtStart"></div>
         <div class="fgroup"><label>Fecha fin</label><input type="date" id="evtEnd"></div>
       </div>
@@ -317,13 +345,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   <div id="tab-notas" class="panel">
     <div class="section-head"><div class="section-label">Nueva nota</div></div>
     <div class="quick-note">
-      <textarea id="noteText" placeholder="// Escribe aquí tu nota o tarea..."></textarea>
+      <textarea id="noteText" placeholder="// Escribe aquÃ­ tu nota o tarea..."></textarea>
       <div class="note-form-row">
         <input type="text" id="noteAuthor" placeholder="TU_NOMBRE">
         <select id="notePriority" onchange="updatePrioStyle()">
-          <option value="normal">● NORMAL</option>
-          <option value="importante">◆ IMPORTANTE</option>
-          <option value="urgente">▲ URGENTE</option>
+          <option value="normal">â NORMAL</option>
+          <option value="importante">â IMPORTANTE</option>
+          <option value="urgente">â² URGENTE</option>
         </select>
         <label class="pin-label"><input type="checkbox" id="notePin"> FIJAR</label>
         <button class="btn-primary" onclick="addNote()">GUARDAR</button>
@@ -332,10 +360,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <div class="section-head"><div class="section-label">Notas del equipo</div></div>
     <div class="note-filters">
       <button class="filter-btn af" onclick="setFilter('all',this)">TODAS</button>
-      <button class="filter-btn" onclick="setFilter('normal',this)">● NORMAL</button>
-      <button class="filter-btn" onclick="setFilter('importante',this)">◆ IMPORTANTE</button>
-      <button class="filter-btn" onclick="setFilter('urgente',this)">▲ URGENTE</button>
-      <button class="filter-btn fv" onclick="setFilter('vencidas',this)">⚠ VENCIDAS</button>
+      <button class="filter-btn" onclick="setFilter('normal',this)">â NORMAL</button>
+      <button class="filter-btn" onclick="setFilter('importante',this)">â IMPORTANTE</button>
+      <button class="filter-btn" onclick="setFilter('urgente',this)">â² URGENTE</button>
+      <button class="filter-btn fv" onclick="setFilter('vencidas',this)">â  VENCIDAS</button>
     </div>
     <div id="notesList"></div>
   </div>
@@ -345,15 +373,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <div class="section-head"><div class="section-label purple">Nuevo recordatorio</div></div>
     <div class="card" style="border-color:rgba(168,85,247,.2)">
       <div class="form-grid" style="grid-template-columns:2fr 1fr 1fr">
-        <div class="fgroup"><label>Título del recordatorio</label><input type="text" id="remTitle" placeholder="Ej: Renovar contrato driver"></div>
+        <div class="fgroup"><label>TÃ­tulo del recordatorio</label><input type="text" id="remTitle" placeholder="Ej: Renovar contrato driver"></div>
         <div class="fgroup"><label>Responsable</label><input type="text" id="remAuthor" placeholder="TU_NOMBRE"></div>
-        <div class="fgroup"><label>Fecha límite</label><input type="date" id="remDue"></div>
+        <div class="fgroup"><label>Fecha lÃ­mite</label><input type="date" id="remDue"></div>
       </div>
       <div class="fgroup" style="margin-bottom:1rem">
-        <label>Descripción (opcional)</label>
+        <label>DescripciÃ³n (opcional)</label>
         <textarea id="remText" placeholder="Detalles del recordatorio..." style="min-height:60px;font-family:'Inter',sans-serif;font-size:13px;color:var(--text);background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:8px 10px;width:100%;outline:none;resize:vertical;" onfocus="this.style.borderColor='var(--purple)'" onblur="this.style.borderColor='var(--border)'"></textarea>
       </div>
-      <button class="btn-purple" onclick="addReminder()">📌 CREAR RECORDATORIO</button>
+      <button class="btn-purple" onclick="addReminder()">ð CREAR RECORDATORIO</button>
     </div>
     <div class="section-head"><div class="section-label purple">Recordatorios activos</div></div>
     <div id="remList"></div>
@@ -377,28 +405,28 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <div class="card" style="border-color:rgba(0,212,255,.2)">
       <div class="section-head"><div class="section-label">Agregar a la agenda</div></div>
       <div class="form-grid" style="grid-template-columns:2fr 1fr 1fr 1fr">
-        <div class="fgroup"><label>Título</label><input type="text" id="agTitle" placeholder="Reunión con gerencia..."></div>
+        <div class="fgroup"><label>TÃ­tulo</label><input type="text" id="agTitle" placeholder="ReuniÃ³n con gerencia..."></div>
         <div class="fgroup"><label>Tipo</label>
           <select id="agType">
-            <option value="reunion">📋 Reunión</option>
-            <option value="llamada">📞 Llamada</option>
-            <option value="visita">🏪 Visita sucursal</option>
-            <option value="capacitacion">📚 Capacitación</option>
-            <option value="otro">📌 Otro</option>
+            <option value="reunion">ð ReuniÃ³n</option>
+            <option value="llamada">ð Llamada</option>
+            <option value="visita">ðª Visita sucursal</option>
+            <option value="capacitacion">ð CapacitaciÃ³n</option>
+            <option value="otro">ð Otro</option>
           </select>
         </div>
         <div class="fgroup"><label>Fecha</label><input type="date" id="agDate"></div>
         <div class="fgroup"><label>Hora</label><input type="time" id="agTime"></div>
       </div>
       <div class="fgroup" style="margin-bottom:1rem">
-        <label>Descripción (opcional)</label>
+        <label>DescripciÃ³n (opcional)</label>
         <textarea id="agDesc" placeholder="Detalles..." style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-size:12px;color:var(--text);font-family:'Inter',sans-serif;resize:none;min-height:56px;outline:none;transition:border .15s;" onfocus="this.style.borderColor='var(--cyan)'" onblur="this.style.borderColor='var(--border)'"></textarea>
       </div>
       <button onclick="addAgenda()" style="background:var(--cyan);color:var(--bg);border:none;border-radius:4px;padding:9px 18px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--mono);">+ AGREGAR</button>
     </div>
     <div class="section-head"><div class="section-label">Esta semana</div></div>
     <div id="agendaWeek" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:1.5rem;"></div>
-    <div class="section-head"><div class="section-label">Próximos eventos</div></div>
+    <div class="section-head"><div class="section-label">PrÃ³ximos eventos</div></div>
     <div id="agendaList"></div>
   </div>
 </div>
@@ -413,7 +441,7 @@ const TYPE_LABELS={vac:'VACACIONES',sol:'SOLICITUD',otro:'OTRO'};
 const PRIO_LIMITS={normal:7*864e5, importante:2*864e5, urgente:864e5};
 let curYear,curMonth,events=[],notes=[],reminders=[],swReg=null,pushSub=null,currentFilter='all';
 
-// ── AUTH ──────────────────────────────────────────────────────────────────────
+// ââ AUTH ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function getToken(){ return localStorage.getItem('togo_token'); }
 function getUser(){ return localStorage.getItem('togo_user'); }
 function getRole(){ return localStorage.getItem('togo_role'); }
@@ -421,7 +449,7 @@ function authHeaders(){ return {'Content-Type':'application/json','x-auth-token'
 
 function checkAuth(){
   if(!getToken()){ window.location.href='/login.html'; return false; }
-  document.getElementById('userInfo').textContent = '👤 '+getUser();
+  document.getElementById('userInfo').textContent = 'ð¤ '+getUser();
   if(getRole()==='admin') document.getElementById('adminBtn').style.display='flex';
   return true;
 }
@@ -434,7 +462,7 @@ async function logout(){
   window.location.href='/login.html';
 }
 
-// ── ADMIN PANEL ───────────────────────────────────────────────────────────────
+// ââ ADMIN PANEL âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function openAdmin(){
   document.getElementById('adminModal').style.display='flex';
   await loadUsers();
@@ -449,7 +477,7 @@ async function loadUsers(){
     <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg3);border-radius:4px;margin-bottom:6px;border:1px solid var(--border);">
       <span style="font-family:var(--mono);font-size:12px;flex:1;color:var(--text)">${u.username}</span>
       <span style="font-size:9px;font-family:var(--mono);padding:2px 6px;border-radius:2px;${u.role==='admin'?'background:var(--amber-dim);color:var(--amber)':'background:var(--bg2);color:var(--text3)'}">${u.role.toUpperCase()}</span>
-      ${u.username!=='admin'?`<button onclick="deleteUser(${u.id},'${u.username}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:2px 4px;" title="Eliminar">🗑</button>`:''}
+      ${u.username!=='admin'?`<button onclick="deleteUser(${u.id},'${u.username}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:2px 4px;" title="Eliminar">ð</button>`:''}
     </div>`).join('');
 }
 
@@ -458,7 +486,7 @@ async function createUser(){
   const password=document.getElementById('newPassword').value;
   const role=document.getElementById('newRole').value;
   const msg=document.getElementById('adminMsg');
-  if(!username||!password){msg.textContent='// error: completa usuario y contraseña';msg.style.color='var(--red)';msg.style.display='block';return;}
+  if(!username||!password){msg.textContent='// error: completa usuario y contraseÃ±a';msg.style.color='var(--red)';msg.style.display='block';return;}
   const r=await fetch(API+'/api/users',{method:'POST',headers:authHeaders(),body:JSON.stringify({username,password,role})});
   const d=await r.json();
   if(d.ok){
@@ -469,7 +497,7 @@ async function createUser(){
 }
 
 async function deleteUser(id,name){
-  if(!confirm(`¿Eliminar usuario "${name}"?`))return;
+  if(!confirm(`Â¿Eliminar usuario "${name}"?`))return;
   await fetch(API+'/api/users/'+id,{method:'DELETE',headers:authHeaders()});
   await loadUsers();
 }
@@ -487,7 +515,7 @@ function getAlertClass(note){
 function getCountdown(note){
   if(!note.created_ts)return null;
   const remaining=(PRIO_LIMITS[note.priority]||PRIO_LIMITS.normal)-(Date.now()-note.created_ts);
-  if(remaining<=0)return{text:'⚠ VENCIDA',cls:`cd-${note.priority}`};
+  if(remaining<=0)return{text:'â  VENCIDA',cls:`cd-${note.priority}`};
   const h=Math.floor(remaining/36e5),m=Math.floor((remaining%36e5)/6e4);
   const txt=h>=24?`${Math.floor(h/24)}d restantes`:h>0?`${h}h ${m}m`:`${m}m`;
   return{text:txt,cls:`cd-${note.priority}`};
@@ -556,7 +584,7 @@ async function fetchData(){
     const[y,m]=info.last_reset.split('-');
     document.getElementById('resetInfo').textContent=`reset: ${MONTHS_FULL[parseInt(m)-1]} ${y}`;
     renderCal();renderNotes();renderReminders();updateStats();
-    syncBarSet('sync · '+new Date().toLocaleTimeString('es-BO',{hour:'2-digit',minute:'2-digit'}));
+    syncBarSet('sync Â· '+new Date().toLocaleTimeString('es-BO',{hour:'2-digit',minute:'2-digit'}));
   }catch(e){syncBarSet('offline');}
 }
 
@@ -571,7 +599,7 @@ function renderCal(){
   const prev=new Date(curYear,curMonth,0).getDate();
   const today=new Date();
 
-  // Construir array de días del grid
+  // Construir array de dÃ­as del grid
   const days=[];
   for(let i=0;i<fd;i++){
     const d=prev-fd+1+i;
@@ -583,7 +611,7 @@ function renderCal(){
   const rem2=(fd+dim)%7;
   if(rem2>0){for(let i=1;i<=7-rem2;i++){const m=curMonth===11?0:curMonth+1;const y=curMonth===11?curYear+1:curYear;days.push({d:i,m,y,other:true});}}
 
-  // Para cada evento calcular en qué días del grid aparece
+  // Para cada evento calcular en quÃ© dÃ­as del grid aparece
   function dateStr(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
   function eventsForDay(y,m,d){
     const s=dateStr(y,m,d);
@@ -613,8 +641,8 @@ function renderCal(){
         const isEnd=e.end_date===s||(e.due_date&&e.due_date===s);
         const cls=e.type==='rec'?'ev-bar-rec':`ev-bar-${e.type}`;
         bar.className=`ev-bar ${cls}`;
-        // Mostrar el nombre en TODOS los días
-        bar.textContent=(e.type==='rec'?'📌 ':'')+e.title;
+        // Mostrar el nombre en TODOS los dÃ­as
+        bar.textContent=(e.type==='rec'?'ð ':'')+e.title;
         cell.appendChild(bar);
       });
     }
@@ -630,7 +658,7 @@ function renderEvtList(){
   el.innerHTML=sorted.map(e=>`
     <div class="evt-row">
       <span class="badge badge-${e.type}">${TYPE_LABELS[e.type]}</span>
-      <div class="evt-info"><div class="evt-title">${e.title}</div><div class="evt-sub">${fmt(e.start_date)}${e.end_date!==e.start_date?' → '+fmt(e.end_date):''}</div></div>
+      <div class="evt-info"><div class="evt-title">${e.title}</div><div class="evt-sub">${fmt(e.start_date)}${e.end_date!==e.start_date?' â '+fmt(e.end_date):''}</div></div>
       <button class="del" onclick="delEvent(${e.id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
     </div>`).join('');
 }
@@ -642,14 +670,14 @@ async function addEvent(){
   const end=document.getElementById('evtEnd').value||start;
   if(!title||!start){showToast('// error: completa nombre y fecha');return;}
   await fetch(API+'/api/events',{method:'POST',headers:authHeaders(),body:JSON.stringify({type,title,start_date:start,end_date:end})});
-  document.getElementById('evtTitle').value='';showToast('// evento registrado → equipo notificado');fetchData();
+  document.getElementById('evtTitle').value='';showToast('// evento registrado â equipo notificado');fetchData();
 }
 async function delEvent(id){await fetch(API+'/api/events/'+id,{method:'DELETE',headers:authHeaders()});fetchData();}
 
 function renderNotes(){
   const el=document.getElementById('notesList');
   let filtered=currentFilter==='vencidas'?notes.filter(n=>n.created_ts&&Date.now()-n.created_ts>=(PRIO_LIMITS[n.priority]||PRIO_LIMITS.normal)):currentFilter==='all'?notes:notes.filter(n=>n.priority===currentFilter);
-  if(!filtered.length){el.innerHTML='<div class="empty">// sin notas en esta categoría</div>';return;}
+  if(!filtered.length){el.innerHTML='<div class="empty">// sin notas en esta categorÃ­a</div>';return;}
   const PL={normal:'NORMAL',importante:'IMPORTANTE',urgente:'URGENTE'};
   el.innerHTML=filtered.map(n=>{
     const ac=n.pinned?'note-pinned':getAlertClass(n);
@@ -658,9 +686,9 @@ function renderNotes(){
       ${cd?`<span class="alert-countdown ${cd.cls}">${cd.text}</span>`:''}
       <div class="note-meta">
         <div class="note-author">
-          <span class="prio-badge prio-${n.priority}">${n.priority==='urgente'?'▲':n.priority==='importante'?'◆':'●'} ${PL[n.priority]||'NORMAL'}</span>
-          ${n.pinned?'<span class="pin-tag">📌 FIJADA</span>':''}
-          ${n.author||'ANONIMO'} · ${n.created_at}
+          <span class="prio-badge prio-${n.priority}">${n.priority==='urgente'?'â²':n.priority==='importante'?'â':'â'} ${PL[n.priority]||'NORMAL'}</span>
+          ${n.pinned?'<span class="pin-tag">ð FIJADA</span>':''}
+          ${n.author||'ANONIMO'} Â· ${n.created_at}
         </div>
         <button class="del" onclick="delNote(${n.id})"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
       </div>
@@ -676,7 +704,7 @@ async function addNote(){
   if(!text){showToast('// error: escribe algo primero');return;}
   await fetch(API+'/api/notes',{method:'POST',headers:authHeaders(),body:JSON.stringify({text,pinned,priority})});
   document.getElementById('noteText').value='';document.getElementById('notePin').checked=false;
-  showToast(`// nota [${priority.toUpperCase()}] guardada → equipo notificado`);fetchData();
+  showToast(`// nota [${priority.toUpperCase()}] guardada â equipo notificado`);fetchData();
 }
 async function delNote(id){await fetch(API+'/api/notes/'+id,{method:'DELETE',headers:authHeaders()});fetchData();}
 
@@ -689,16 +717,16 @@ function renderReminders(){
     let timeStr='';
     if(remaining<=0){timeStr='VENCIDO';}
     else if(remaining<864e5){const h=Math.floor(remaining/36e5);const m=Math.floor((remaining%36e5)/6e4);timeStr=h>0?`${h}h ${m}m`:`${m}m`;}
-    else{timeStr=`${Math.ceil(remaining/864e5)} días`;}
+    else{timeStr=`${Math.ceil(remaining/864e5)} dÃ­as`;}
     return`<div class="rem-card ${s.cls}">
       <div class="rem-header">
-        <div class="rem-title">📌 ${r.title}</div>
+        <div class="rem-title">ð ${r.title}</div>
         <button class="del" onclick="delReminder(${r.id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
       </div>
       <div class="rem-meta">
         <span class="rem-badge ${s.badge}">${s.label}</span>
-        <span class="rem-due">⏱ Vence: ${fmt(r.due_date)} (${timeStr})</span>
-        <span>👤 ${r.author||'ANONIMO'}</span>
+        <span class="rem-due">â± Vence: ${fmt(r.due_date)} (${timeStr})</span>
+        <span>ð¤ ${r.author||'ANONIMO'}</span>
       </div>
       ${r.text?`<div class="rem-text">${r.text.replace(/</g,'&lt;')}</div>`:''}
     </div>`;
@@ -709,10 +737,10 @@ async function addReminder(){
   const title=document.getElementById('remTitle').value.trim();
   const due_date=document.getElementById('remDue').value;
   const text=document.getElementById('remText').value.trim();
-  if(!title||!due_date){showToast('// error: título y fecha límite requeridos');return;}
+  if(!title||!due_date){showToast('// error: tÃ­tulo y fecha lÃ­mite requeridos');return;}
   await fetch(API+'/api/reminders',{method:'POST',headers:authHeaders(),body:JSON.stringify({title,due_date,text})});
   document.getElementById('remTitle').value='';document.getElementById('remText').value='';document.getElementById('remDue').value='';
-  showToast('// recordatorio creado → aparece en el calendario');fetchData();
+  showToast('// recordatorio creado â aparece en el calendario');fetchData();
 }
 async function delReminder(id){await fetch(API+'/api/reminders/'+id,{method:'DELETE',headers:authHeaders()});fetchData();}
 
@@ -721,10 +749,10 @@ async function testPush(){
   if(!pushSub){showToast('// activa las alertas primero');return;}
   const r=await fetch(API+'/api/test-push',{method:'POST',headers:authHeaders(),body:JSON.stringify({})});
   const d=await r.json();
-  showToast(`// notificación enviada a ${d.sent_to} dispositivo(s)`);
+  showToast(`// notificaciÃ³n enviada a ${d.sent_to} dispositivo(s)`);
 }
 
-// ── CHAT ──────────────────────────────────────────────────────────────────────
+// ââ CHAT ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 let lastChatId = 0;
 let chatOpen = false;
 
@@ -762,7 +790,7 @@ async function loadChat(){
     const time = new Date(m.created_at).toLocaleTimeString('es-BO',{hour:'2-digit',minute:'2-digit'});
     const date = new Date(m.created_at).toLocaleDateString('es-BO',{day:'2-digit',month:'2-digit'});
     return `<div style="display:flex;flex-direction:column;align-items:${isMe?'flex-end':'flex-start'};gap:2px;max-width:80%;${isMe?'align-self:flex-end':'align-self:flex-start'}">
-      <span style="font-size:9px;font-family:var(--mono);color:var(--text3);">${isMe?'':'<b style="color:var(--amber)">'+m.author+'</b> · '}${date} ${time}</span>
+      <span style="font-size:9px;font-family:var(--mono);color:var(--text3);">${isMe?'':'<b style="color:var(--amber)">'+m.author+'</b> Â· '}${date} ${time}</span>
       <div style="background:${isMe?'var(--amber-dim)':'var(--bg3)'};border:1px solid ${isMe?'var(--amber)':'var(--border2)'};border-radius:${isMe?'8px 2px 8px 8px':'2px 8px 8px 8px'};padding:8px 12px;font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap;word-break:break-word;">${m.text.replace(/</g,'&lt;')}</div>
     </div>`;
   }).join('');
@@ -770,11 +798,11 @@ async function loadChat(){
   if(wasAtBottom || msgs.length < 5) el.scrollTop = el.scrollHeight;
 }
 
-// ── AGENDA ────────────────────────────────────────────────────────────────────
+// ââ AGENDA ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 let agendaItems = [];
 const AG_TYPES = {
-  reunion:'📋 Reunión', llamada:'📞 Llamada',
-  visita:'🏪 Visita', capacitacion:'📚 Capacitación', otro:'📌 Otro'
+  reunion:'ð ReuniÃ³n', llamada:'ð Llamada',
+  visita:'ðª Visita', capacitacion:'ð CapacitaciÃ³n', otro:'ð Otro'
 };
 const AG_COLORS = {
   reunion:'rgba(77,158,255,.2)', llamada:'rgba(0,255,136,.15)',
@@ -814,7 +842,7 @@ function renderAgendaList(){
   const el = document.getElementById('agendaList');
   const today = new Date().toISOString().slice(0,10);
   const upcoming = agendaItems.filter(a=>a.date>=today).slice(0,20);
-  if(!upcoming.length){el.innerHTML='<div class="empty">// sin eventos próximos</div>';return;}
+  if(!upcoming.length){el.innerHTML='<div class="empty">// sin eventos prÃ³ximos</div>';return;}
 
   // Agrupar por fecha
   const byDate = {};
@@ -835,7 +863,7 @@ function renderAgendaList(){
               <span style="font-size:13px;font-weight:600;color:var(--text)">${a.title}</span>
               <span style="font-size:9px;font-family:var(--mono);background:${AG_COLORS[a.type]||AG_COLORS.otro};color:var(--text2);padding:1px 6px;border-radius:2px;">${AG_TYPES[a.type]||'OTRO'}</span>
             </div>
-            <div style="font-size:11px;color:var(--text3);font-family:var(--mono);">${a.time?'⏰ '+a.time+' · ':''} 👤 ${a.author}${a.description?' · '+a.description:''}</div>
+            <div style="font-size:11px;color:var(--text3);font-family:var(--mono);">${a.time?'â° '+a.time+' Â· ':''} ð¤ ${a.author}${a.description?' Â· '+a.description:''}</div>
           </div>
           <button onclick="delAgenda(${a.id})" class="del">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
@@ -851,10 +879,10 @@ async function addAgenda(){
   const date=document.getElementById('agDate').value;
   const time=document.getElementById('agTime').value;
   const description=document.getElementById('agDesc').value.trim();
-  if(!title||!date){showToast('// error: título y fecha requeridos');return;}
+  if(!title||!date){showToast('// error: tÃ­tulo y fecha requeridos');return;}
   await fetch(API+'/api/agenda',{method:'POST',headers:authHeaders(),body:JSON.stringify({title,type,date,time,description})});
   document.getElementById('agTitle').value='';document.getElementById('agDesc').value='';document.getElementById('agTime').value='';
-  showToast('// evento agendado → supervisores notificados');
+  showToast('// evento agendado â supervisores notificados');
   await loadAgenda();
 }
 
@@ -891,7 +919,7 @@ async function toggleNotifications(){
     if(perm!=='granted'){showToast('// permiso denegado');return;}
     pushSub=await swReg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToU8(key)});
     await fetch(API+'/api/subscribe',{method:'POST',headers:authHeaders(),body:JSON.stringify({subscription:pushSub.toJSON()})});
-    updateNotifBtn();showToast('// alertas activadas → OK');
+    updateNotifBtn();showToast('// alertas activadas â OK');
   }catch(e){showToast('// error: '+e.message);}
 }
 
@@ -910,5 +938,37 @@ const params=new URLSearchParams(location.search);
 if(params.get('tab')==='notas')document.querySelectorAll('.tab')[1].click();
 if(params.get('tab')==='recordatorios')document.querySelectorAll('.tab')[2].click();
 </script>
-</body>
+
+<script>
+(function(){
+  const PCOLS=['#f0c040','#22c55e','#3b82f6','#a855f7','#ef4444','#06b6d4','#f97316','#ec4899','#84cc16','#14b8a6'];
+  function pavColor(n){let h=0;for(let c of n)h=(h*31+c.charCodeAt(0))%PCOLS.length;return PCOLS[Math.abs(h)];}
+  function pavInit(n){const p=n.trim().split(/\s+/);return p.length>=2?(p[0][0]+p[1][0]).toUpperCase():n.substring(0,2).toUpperCase();}
+  function renderAvatars(users){
+    const el=document.getElementById('presenceAvatars');
+    if(!el)return;
+    const me=(document.getElementById('userInfo')||{}).textContent||'';
+    const myName=me.replace('👤','').trim();
+    // Poner al usuario actual primero
+    const sorted=[...users.filter(u=>u.user===myName),...users.filter(u=>u.user!==myName)];
+    el.innerHTML=sorted.map(u=>{
+      const col=pavColor(u.user);const ini=pavInit(u.user);const isSelf=u.user===myName;
+      return '<div class="pav'+(isSelf?' self':'')+'" style="background:'+col+';color:#0d1117">'+ini+'<div class="pav-dot"></div><div class="pav-tip">'+u.user+(isSelf?' (tú)':'')+'</div></div>';
+    }).join('');
+  }
+  let _es=null;
+  function startPresence(){
+    const ui=document.getElementById('userInfo');
+    if(!ui){setTimeout(startPresence,1000);return;}
+    const name=ui.textContent.replace('👤','').trim();
+    if(!name||name==='undefined'){setTimeout(startPresence,1200);return;}
+    if(_es){_es.close();}
+    _es=new EventSource('/presence/stream?user='+encodeURIComponent(name));
+    _es.onmessage=e=>{try{renderAvatars(JSON.parse(e.data));}catch(x){}};
+    _es.onerror=()=>setTimeout(startPresence,5000);
+    window.addEventListener('beforeunload',()=>{if(_es)_es.close();});
+  }
+  setTimeout(startPresence,1500);
+})();
+<\/script></body>
 </html>
