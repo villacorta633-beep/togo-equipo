@@ -78,12 +78,12 @@ async function initDB() {
   if (!rows.length) {
     const hash = crypto.createHash('sha256').update('togo2026').digest('hex');
     await pool.query("INSERT INTO users (username, password_hash, role) VALUES ('admin', $1, 'admin')", [hash]);
-    console.log('[DB] Usuario admin creado — password: togo2026');
+    console.log('[DB] Usuario admin creado â password: togo2026');
   }
   console.log('[DB] Tablas listas');
 }
 
-// ── Auth helpers ──────────────────────────────────────────────────────────────
+// ââ Auth helpers ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function hashPassword(pass) {
   return crypto.createHash('sha256').update(pass).digest('hex');
 }
@@ -94,7 +94,7 @@ async function requireAuth(req, res, next) {
   const token = req.headers['x-auth-token'];
   if (!token) return res.status(401).json({ error: 'No autenticado' });
   const { rows } = await pool.query('SELECT * FROM sessions WHERE token=$1', [token]);
-  if (!rows.length) return res.status(401).json({ error: 'Sesión inválida' });
+  if (!rows.length) return res.status(401).json({ error: 'SesiÃ³n invÃ¡lida' });
   req.user = rows[0];
   next();
 }
@@ -105,7 +105,7 @@ async function requireAdmin(req, res, next) {
   });
 }
 
-// ── Web Push ──────────────────────────────────────────────────────────────────
+// ââ Web Push ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 webpush.setVapidDetails(
   'mailto:' + (process.env.VAPID_EMAIL || 'admin@togo.bo'),
   process.env.VAPID_PUBLIC_KEY,
@@ -136,7 +136,7 @@ async function checkMonthlyReset() {
     await pool.query('DELETE FROM events');
     await pool.query('DELETE FROM notes');
     await pool.query("UPDATE config SET value=$1 WHERE key='last_reset'", [currentMonth]);
-    sendPushToAll({ title:'🔄 Reset mensual TOGO', body:`Nuevo mes ${currentMonth}.`, tag:'reset', data:{tab:'calendario'} });
+    sendPushToAll({ title:'ð Reset mensual TOGO', body:`Nuevo mes ${currentMonth}.`, tag:'reset', data:{tab:'calendario'} });
   }
 }
 
@@ -144,19 +144,19 @@ async function checkReminders() {
   const now = Date.now();
   const { rows } = await pool.query('SELECT * FROM reminders WHERE notified=false AND due_ts<=$1', [now]);
   for (const r of rows) {
-    await sendPushToAll({ title:`⏰ Recordatorio vencido: ${r.title}`, body: r.text||'El plazo llegó.', tag:'reminder-'+r.id, data:{tab:'recordatorios'} });
+    await sendPushToAll({ title:`â° Recordatorio vencido: ${r.title}`, body: r.text||'El plazo llegÃ³.', tag:'reminder-'+r.id, data:{tab:'recordatorios'} });
     await pool.query('UPDATE reminders SET notified=true WHERE id=$1', [r.id]);
   }
 }
 setInterval(checkReminders, 60000);
 
-// ── AUTH ROUTES ───────────────────────────────────────────────────────────────
+// ââ AUTH ROUTES âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Faltan datos' });
   const hash = hashPassword(password);
   const { rows } = await pool.query('SELECT * FROM users WHERE username=$1 AND password_hash=$2', [username, hash]);
-  if (!rows.length) return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
+  if (!rows.length) return res.status(401).json({ error: 'Usuario o contraseÃ±a incorrectos' });
   const token = generateToken();
   await pool.query('INSERT INTO sessions (token, user_id, username, role) VALUES ($1,$2,$3,$4)',
     [token, rows[0].id, rows[0].username, rows[0].role]);
@@ -173,7 +173,7 @@ app.get('/api/me', requireAuth, (req, res) => {
   res.json({ username: req.user.username, role: req.user.role });
 });
 
-// ── USER MANAGEMENT (solo admin) ──────────────────────────────────────────────
+// ââ USER MANAGEMENT (solo admin) ââââââââââââââââââââââââââââââââââââââââââââââ
 app.get('/api/users', requireAdmin, async (req, res) => {
   const { rows } = await pool.query('SELECT id, username, role, created_at FROM users ORDER BY id');
   res.json(rows);
@@ -181,7 +181,7 @@ app.get('/api/users', requireAdmin, async (req, res) => {
 
 app.post('/api/users', requireAdmin, async (req, res) => {
   const { username, password, role } = req.body;
-  if (!username || !password) return res.status(400).json({ error: 'Usuario y contraseña requeridos' });
+  if (!username || !password) return res.status(400).json({ error: 'Usuario y contraseÃ±a requeridos' });
   const hash = hashPassword(password);
   try {
     await pool.query('INSERT INTO users (username, password_hash, role) VALUES ($1,$2,$3)',
@@ -202,16 +202,16 @@ app.delete('/api/users/:id', requireAdmin, async (req, res) => {
 
 app.put('/api/users/:id/password', requireAdmin, async (req, res) => {
   const { password } = req.body;
-  if (!password) return res.status(400).json({ error: 'Contraseña requerida' });
+  if (!password) return res.status(400).json({ error: 'ContraseÃ±a requerida' });
   const hash = hashPassword(password);
   await pool.query('UPDATE users SET password_hash=$1 WHERE id=$2', [hash, req.params.id]);
   res.json({ ok: true });
 });
 
-// ── VAPID ─────────────────────────────────────────────────────────────────────
+// ââ VAPID âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 app.get('/api/vapid-public-key', (req, res) => res.json({ key: process.env.VAPID_PUBLIC_KEY }));
 
-// ── Suscripciones ─────────────────────────────────────────────────────────────
+// ââ Suscripciones âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 app.post('/api/subscribe', requireAuth, async (req, res) => {
   const { subscription } = req.body;
   if (!subscription?.endpoint) return res.status(400).json({ error: 'Invalida' });
@@ -225,7 +225,7 @@ app.delete('/api/subscribe', async (req, res) => {
   res.json({ ok: true });
 });
 
-// ── Eventos ───────────────────────────────────────────────────────────────────
+// ââ Eventos âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 app.get('/api/events', requireAuth, async (req, res) => {
   await checkMonthlyReset();
   const { rows } = await pool.query('SELECT * FROM events ORDER BY start_date ASC');
@@ -241,7 +241,7 @@ app.post('/api/events', requireAuth, async (req, res) => {
   await pool.query('INSERT INTO events (id,type,title,start_date,end_date,created_month) VALUES($1,$2,$3,$4,$5,$6)',
     [id, type, title, start_date, end_date||start_date, month]);
   const LABELS = { vac:'Vacaciones', sol:'Solicitud', otro:'Otro' };
-  sendPushToAll({ title:'📅 Nuevo evento', body:`${LABELS[type]||type}: ${title} (${start_date})`, tag:'evento-'+id, data:{tab:'calendario'} });
+  sendPushToAll({ title:'ð Nuevo evento', body:`${LABELS[type]||type}: ${title} (${start_date})`, tag:'evento-'+id, data:{tab:'calendario'} });
   res.json({ id, ok: true });
 });
 app.delete('/api/events/:id', requireAuth, async (req, res) => {
@@ -249,7 +249,7 @@ app.delete('/api/events/:id', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
-// ── Notas ─────────────────────────────────────────────────────────────────────
+// ââ Notas âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 app.get('/api/notes', requireAuth, async (req, res) => {
   await checkMonthlyReset();
   const { rows } = await pool.query('SELECT * FROM notes ORDER BY pinned DESC, created_ts DESC');
@@ -266,8 +266,8 @@ app.post('/api/notes', requireAuth, async (req, res) => {
   const author = req.user.username;
   await pool.query('INSERT INTO notes (id,text,author,pinned,priority,created_at,created_ts,created_month) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',
     [id, text, author, !!pinned, priority||'normal', created_at, id, month]);
-  const PL = { normal:'Normal', importante:'Importante', urgente:'🚨 URGENTE' };
-  sendPushToAll({ title:`📝 Nueva nota ${PL[priority]||''} de ${author}`, body:text.slice(0,80), tag:'nota-'+id, data:{tab:'notas'} });
+  const PL = { normal:'Normal', importante:'Importante', urgente:'ð¨ URGENTE' };
+  sendPushToAll({ title:`ð Nueva nota ${PL[priority]||''} de ${author}`, body:text.slice(0,80), tag:'nota-'+id, data:{tab:'notas'} });
   res.json({ id, ok: true });
 });
 app.delete('/api/notes/:id', requireAuth, async (req, res) => {
@@ -275,7 +275,7 @@ app.delete('/api/notes/:id', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
-// ── Recordatorios ─────────────────────────────────────────────────────────────
+// ââ Recordatorios âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 app.get('/api/reminders', requireAuth, async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM reminders ORDER BY due_ts ASC');
   res.json(rows);
@@ -290,7 +290,7 @@ app.post('/api/reminders', requireAuth, async (req, res) => {
   const author = req.user.username;
   await pool.query('INSERT INTO reminders (id,title,text,author,due_date,due_ts,created_at,notified) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',
     [id, title, text||'', author, due_date, due_ts, created_at, due_ts<=Date.now()]);
-  sendPushToAll({ title:`📌 Recordatorio: ${title}`, body:`Vence el ${due_date}`, tag:'reminder-new-'+id, data:{tab:'recordatorios'} });
+  sendPushToAll({ title:`ð Recordatorio: ${title}`, body:`Vence el ${due_date}`, tag:'reminder-new-'+id, data:{tab:'recordatorios'} });
   res.json({ id, ok: true });
 });
 app.delete('/api/reminders/:id', requireAuth, async (req, res) => {
@@ -298,19 +298,19 @@ app.delete('/api/reminders/:id', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
-// ── Info & Test ───────────────────────────────────────────────────────────────
+// ââ Info & Test âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 app.get('/api/info', requireAuth, async (req, res) => {
   await checkMonthlyReset();
   const { rows } = await pool.query("SELECT value FROM config WHERE key='last_reset'");
   res.json({ last_reset: rows[0]?.value || '' });
 });
 app.post('/api/test-push', requireAuth, async (req, res) => {
-  await sendPushToAll({ title:'🔔 Prueba TOGO', body:`Test de ${req.user.username}`, tag:'test-push', data:{tab:'notas'} });
+  await sendPushToAll({ title:'ð Prueba TOGO', body:`Test de ${req.user.username}`, tag:'test-push', data:{tab:'notas'} });
   const { rows } = await pool.query('SELECT COUNT(*) FROM subscriptions');
   res.json({ ok: true, sent_to: parseInt(rows[0].count) });
 });
 
-// ── Chat ──────────────────────────────────────────────────────────────────────
+// ââ Chat ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 app.get('/api/chat', requireAuth, async (req, res) => {
   const limit = parseInt(req.query.limit) || 50;
   const before = req.query.before;
@@ -335,7 +335,7 @@ app.post('/api/chat', requireAuth, async (req, res) => {
   );
   // Push a todos
   sendPushToAll({
-    title: `💬 ${req.user.username}`,
+    title: `ð¬ ${req.user.username}`,
     body: text.trim().slice(0, 80),
     tag: 'chat-' + id,
     data: { tab: 'chat' }
@@ -348,7 +348,7 @@ app.delete('/api/chat/:id', requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
-// ── Agenda ────────────────────────────────────────────────────────────────────
+// ââ Agenda ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 app.get('/api/agenda', requireAuth, async (req, res) => {
   const date = req.query.date; // YYYY-MM-DD
   let q = 'SELECT * FROM agenda_items';
@@ -361,7 +361,7 @@ app.get('/api/agenda', requireAuth, async (req, res) => {
 
 app.post('/api/agenda', requireAuth, async (req, res) => {
   const { title, description, date, time, type } = req.body;
-  if (!title || !date) return res.status(400).json({ error: 'Título y fecha requeridos' });
+  if (!title || !date) return res.status(400).json({ error: 'TÃ­tulo y fecha requeridos' });
   const id = Date.now();
   const now = new Date();
   const created_at = now.toISOString().slice(0,16).replace('T',' ');
@@ -370,8 +370,8 @@ app.post('/api/agenda', requireAuth, async (req, res) => {
     [id, title, description||'', date, time||null, type||'reunion', req.user.username, created_at]
   );
   sendPushToAll({
-    title: `📋 Nueva agenda: ${title}`,
-    body: `${date}${time ? ' · ' + time : ''} — ${req.user.username}`,
+    title: `ð Nueva agenda: ${title}`,
+    body: `${date}${time ? ' Â· ' + time : ''} â ${req.user.username}`,
     tag: 'agenda-' + id,
     data: { tab: 'agenda' }
   });
@@ -381,6 +381,38 @@ app.post('/api/agenda', requireAuth, async (req, res) => {
 app.delete('/api/agenda/:id', requireAuth, async (req, res) => {
   await pool.query('DELETE FROM agenda_items WHERE id=$1', [req.params.id]);
   res.json({ ok: true });
+});
+
+
+// ── Presencia en tiempo real (SSE) ───────────────────────────────────────────
+const presenceClients = new Map();
+
+function broadcastPresence() {
+  const users = Array.from(presenceClients.values()).map(c => ({ user: c.user, since: c.since }));
+  const data = 'data: ' + JSON.stringify(users) + '\n\n';
+  for (const [id, client] of presenceClients) {
+    try { client.res.write(data); } catch(e) { presenceClients.delete(id); }
+  }
+}
+
+app.get('/presence/stream', (req, res) => {
+  const user = req.query.user || 'Anónimo';
+  const id = Date.now() + '-' + Math.random().toString(36).slice(2);
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.flushHeaders();
+  presenceClients.set(id, { res, user, since: Date.now() });
+  broadcastPresence();
+  const hb = setInterval(() => {
+    try { res.write(': hb\n\n'); } catch(e) { clearInterval(hb); presenceClients.delete(id); broadcastPresence(); }
+  }, 25000);
+  req.on('close', () => {
+    clearInterval(hb);
+    presenceClients.delete(id);
+    broadcastPresence();
+  });
 });
 
 app.listen(PORT, async () => {
