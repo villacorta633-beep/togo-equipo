@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOGO · Panel SLA</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0D0D0D;--bg2:#141414;--bg3:#1A1A1A;--bg4:#222;
+  --border:#2A2A2A;--border2:#333;
+  --amber:#F5A623;--amber2:#FFBE47;--amber-dim:#F5A6231a;
+  --text:#E8E8E8;--text2:#999;--text3:#666;
+  --green:#00C851;--green-dim:#00C85120;
+  --red:#FF4444;--red-dim:#FF444420;
+  --blue:#4A9EFF;--blue-dim:#4A9EFF15;
+  --font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;}
+
+/* HEADER */
+.header{
+  display:flex;align-items:center;gap:16px;
+  padding:0 24px;height:52px;
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+}
+.logo{
+  background:var(--amber);color:#000;font-weight:700;font-size:13px;
+  padding:4px 10px;border-radius:4px;letter-spacing:1px;font-family:var(--mono);
+}
+.header-title{font-size:13px;color:var(--text2);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;}
+.header-sep{flex:1;}
+.last-update{font-size:11px;color:var(--text3);font-family:var(--mono);}
+.last-update span{color:var(--amber);}
+
+/* TOOLBAR */
+.toolbar{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 24px;border-bottom:1px solid var(--border);
+  background:var(--bg2);
+}
+.turno-group{display:flex;gap:4px;}
+.turno-btn{
+  padding:6px 14px;font-size:11px;font-family:var(--mono);font-weight:500;
+  border:1px solid var(--border2);background:transparent;color:var(--text2);
+  border-radius:4px;cursor:pointer;transition:all .15s;letter-spacing:.5px;text-transform:uppercase;
+}
+.turno-btn:hover{border-color:var(--amber);color:var(--amber);}
+.turno-btn.active{background:var(--amber-dim);border-color:var(--amber);color:var(--amber);}
+.toolbar-sep{flex:1;}
+.refresh-btn{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 16px;font-size:11px;font-family:var(--mono);font-weight:600;
+  background:var(--amber);color:#000;border:none;border-radius:4px;
+  cursor:pointer;transition:all .15s;letter-spacing:.5px;text-transform:uppercase;
+}
+.refresh-btn:hover{background:var(--amber2);}
+.refresh-btn.spinning svg{animation:spin .6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.refresh-icon{width:13px;height:13px;}
+
+/* RESUMEN TOP */
+.resumen{
+  display:flex;gap:1px;background:var(--border);
+  border-bottom:1px solid var(--border);
+}
+.resumen-item{
+  flex:1;background:var(--bg2);padding:14px 20px;
+  display:flex;flex-direction:column;gap:3px;
+}
+.resumen-label{font-size:10px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.8px;}
+.resumen-val{font-size:22px;font-weight:700;font-family:var(--mono);color:var(--text);}
+.resumen-val.ok{color:var(--green);}
+.resumen-val.warn{color:var(--amber);}
+.resumen-val.bad{color:var(--red);}
+.resumen-sub{font-size:10px;color:var(--text3);}
+
+/* GRID SLA */
+.sla-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;background:var(--border);
+  padding:0;margin:24px;border:1px solid var(--border);border-radius:8px;overflow:hidden;
+}
+.sla-grid .last-row{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);}
+
+.sla-card{
+  background:var(--bg2);padding:20px;
+  display:flex;flex-direction:column;gap:14px;
+  transition:background .15s;
+}
+.sla-card:hover{background:var(--bg3);}
+
+.card-head{display:flex;align-items:flex-start;gap:10px;}
+.card-icon{font-size:18px;margin-top:1px;}
+.card-info{flex:1;}
+.card-etapa{font-size:10px;font-family:var(--mono);color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;}
+.card-title{font-size:13px;font-weight:600;color:var(--text);}
+.card-sla{font-size:10px;color:var(--text3);margin-top:2px;}
+.card-sla em{color:var(--amber);font-style:normal;font-family:var(--mono);}
+
+.card-tiempo{
+  text-align:center;padding:10px 0 6px;
+}
+.tiempo-val{font-size:42px;font-weight:700;font-family:var(--mono);line-height:1;}
+.tiempo-val.ok{color:var(--green);}
+.tiempo-val.warn{color:var(--amber);}
+.tiempo-val.bad{color:var(--red);}
+.tiempo-unit{font-size:13px;color:var(--text2);margin-left:4px;font-family:var(--mono);}
+
+/* BARRA */
+.barra-wrap{display:flex;flex-direction:column;gap:6px;}
+.barra{
+  display:flex;height:20px;border-radius:3px;overflow:hidden;
+  background:var(--bg4);border:1px solid var(--border);
+}
+.barra-ok{background:var(--green);display:flex;align-items:center;justify-content:center;}
+.barra-no{background:var(--red);display:flex;align-items:center;justify-content:center;}
+.barra-pct{font-size:10px;font-weight:700;font-family:var(--mono);color:#fff;padding:0 6px;}
+.barra-pct.dark{color:#000;}
+
+.barra-legend{display:flex;gap:8px;}
+.legend-item{
+  flex:1;display:flex;align-items:center;gap:6px;
+  padding:7px 10px;border-radius:4px;font-size:11px;font-family:var(--mono);
+}
+.legend-item.ok-item{background:var(--green-dim);color:var(--green);}
+.legend-item.no-item{background:var(--red-dim);color:var(--red);}
+.legend-dot{font-size:13px;}
+
+/* ESPERA INFO (etapa 4) */
+.espera-row{
+  display:flex;gap:8px;margin-top:4px;
+}
+.espera-box{
+  flex:1;background:var(--bg4);border:1px solid var(--border2);border-radius:4px;
+  padding:10px;text-align:center;
+}
+.espera-box-label{font-size:9px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.espera-box-val{font-size:18px;font-weight:700;font-family:var(--mono);color:var(--amber);}
+.espera-box-unit{font-size:10px;color:var(--text3);}
+
+/* FOOTER INFO */
+.footer-note{
+  text-align:center;padding:16px 24px 24px;
+  font-size:10px;color:var(--text3);font-family:var(--mono);
+}
+.footer-note span{color:var(--amber);}
+
+/* RESPONSIVO */
+@media(max-width:768px){
+  .sla-grid{grid-template-columns:1fr 1fr;margin:12px;}
+  .resumen{flex-wrap:wrap;}
+  .resumen-item{min-width:50%;}
+}
+@media(max-width:480px){
+  .sla-grid{grid-template-columns:1fr;}
+  .sla-grid .last-row{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">TOGO</div>
+  <div class="header-title">Panel SLA · Entregas</div>
+  <div class="header-sep"></div>
+  <div class="last-update">Última sync: <span id="sync-time">—</span></div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="turno-group">
+    <button class="turno-btn active" onclick="setTurno('general',this)">General</button>
+    <button class="turno-btn" onclick="setTurno('mañana',this)">Mañana</button>
+    <button class="turno-btn" onclick="setTurno('tarde',this)">Tarde</button>
+    <button class="turno-btn" onclick="setTurno('noche',this)">Noche</button>
+  </div>
+  <div class="toolbar-sep"></div>
+  <button class="refresh-btn" id="refresh-btn" onclick="refresh()">
+    <svg class="refresh-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5c1.8 0 3.4.87 4.4 2.2"/>
+      <polyline points="14,1 14,5 10,5"/>
+    </svg>
+    Actualizar
+  </button>
+</div>
+
+<!-- RESUMEN TOP -->
+<div class="resumen" id="resumen-bar">
+  <div class="resumen-item">
+    <div class="resumen-label">Pedidos hoy</div>
+    <div class="resumen-val" id="res-pedidos">—</div>
+    <div class="resumen-sub">órdenes procesadas</div>
+  </div>
+  <div class="resumen-item">
+    <div class="resumen-label">SLA Global</div>
+    <div class="resumen-val" id="res-sla">—</div>
+    <div class="resumen-sub">cumplimiento total</div>
+  </div>
+  <div class="resumen-item">
+    <div class="resumen-label">Tiempo Total</div>
+    <div class="resumen-val" id="res-tiempo">—</div>
+    <div class="resumen-sub">promedio end-to-end</div>
+  </div>
+  <div class="resumen-item">
+    <div class="resumen-label">Etapa Crítica</div>
+    <div class="resumen-val bad" id="res-critica">—</div>
+    <div class="resumen-sub" id="res-critica-sub">mayor desviación SLA</div>
+  </div>
+</div>
+
+<!-- GRID SLA -->
+<div class="sla-grid">
+  <!-- E1 Preparación -->
+  <div class="sla-card" id="card-e1">
+    <div class="card-head">
+      <div class="card-icon">📦</div>
+      <div class="card-info">
+        <div class="card-etapa">Etapa 1</div>
+        <div class="card-title">Preparación</div>
+        <div class="card-sla">SLA: <em id="sla-e1">≤ 18 min</em> · Responsable: Negocio</div>
+      </div>
+    </div>
+    <div class="card-tiempo">
+      <span class="tiempo-val" id="val-e1">—</span><span class="tiempo-unit">min</span>
+    </div>
+    <div class="barra-wrap">
+      <div class="barra">
+        <div class="barra-ok" id="bar-ok-e1" style="width:0%"><span class="barra-pct" id="pct-ok-e1"></span></div>
+        <div class="barra-no" id="bar-no-e1" style="width:100%"><span class="barra-pct" id="pct-no-e1">—</span></div>
+      </div>
+      <div class="barra-legend">
+        <div class="legend-item ok-item"><span class="legend-dot">✓</span><span id="leg-ok-e1">—% Cumplen</span></div>
+        <div class="legend-item no-item"><span class="legend-dot">✗</span><span id="leg-no-e1">—% No Cumplen</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- E2 Facturación -->
+  <div class="sla-card" id="card-e2">
+    <div class="card-head">
+      <div class="card-icon">🧾</div>
+      <div class="card-info">
+        <div class="card-etapa">Etapa 2</div>
+        <div class="card-title">Facturación</div>
+        <div class="card-sla">SLA: <em id="sla-e2">≤ 5 min</em> · Responsable: Negocio</div>
+      </div>
+    </div>
+    <div class="card-tiempo">
+      <span class="tiempo-val" id="val-e2">—</span><span class="tiempo-unit">min</span>
+    </div>
+    <div class="barra-wrap">
+      <div class="barra">
+        <div class="barra-ok" id="bar-ok-e2" style="width:0%"><span class="barra-pct" id="pct-ok-e2"></span></div>
+        <div class="barra-no" id="bar-no-e2" style="width:100%"><span class="barra-pct" id="pct-no-e2">—</span></div>
+      </div>
+      <div class="barra-legend">
+        <div class="legend-item ok-item"><span class="legend-dot">✓</span><span id="leg-ok-e2">—% Cumplen</span></div>
+        <div class="legend-item no-item"><span class="legend-dot">✗</span><span id="leg-no-e2">—% No Cumplen</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- E3 Ruta Sucursal -->
+  <div class="sla-card" id="card-e3">
+    <div class="card-head">
+      <div class="card-icon">🚗</div>
+      <div class="card-info">
+        <div class="card-etapa">Etapa 3</div>
+        <div class="card-title">Ruta Sucursal</div>
+        <div class="card-sla">SLA: <em id="sla-e3">≤ 18 min</em> · Responsable: TOGO</div>
+      </div>
+    </div>
+    <div class="card-tiempo">
+      <span class="tiempo-val" id="val-e3">—</span><span class="tiempo-unit">min</span>
+    </div>
+    <div class="barra-wrap">
+      <div class="barra">
+        <div class="barra-ok" id="bar-ok-e3" style="width:0%"><span class="barra-pct" id="pct-ok-e3"></span></div>
+        <div class="barra-no" id="bar-no-e3" style="width:100%"><span class="barra-pct" id="pct-no-e3">—</span></div>
+      </div>
+      <div class="barra-legend">
+        <div class="legend-item ok-item"><span class="legend-dot">✓</span><span id="leg-ok-e3">—% Cumplen</span></div>
+        <div class="legend-item no-item"><span class="legend-dot">✗</span><span id="leg-no-e3">—% No Cumplen</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILA INFERIOR -->
+  <div class="last-row">
+    <!-- E4 Transferencia -->
+    <div class="sla-card" id="card-e4">
+      <div class="card-head">
+        <div class="card-icon">🔄</div>
+        <div class="card-info">
+          <div class="card-etapa">Etapa 4</div>
+          <div class="card-title">Transferencia</div>
+          <div class="card-sla">SLA: <em id="sla-e4">≤ 5 min</em> · Responsable: Negocio</div>
+        </div>
+      </div>
+      <div class="card-tiempo">
+        <span class="tiempo-val" id="val-e4">—</span><span class="tiempo-unit">min</span>
+      </div>
+      <div class="barra-wrap">
+        <div class="barra">
+          <div class="barra-ok" id="bar-ok-e4" style="width:0%"><span class="barra-pct" id="pct-ok-e4"></span></div>
+          <div class="barra-no" id="bar-no-e4" style="width:100%"><span class="barra-pct" id="pct-no-e4">—</span></div>
+        </div>
+        <div class="barra-legend">
+          <div class="legend-item ok-item"><span class="legend-dot">✓</span><span id="leg-ok-e4">—% Cumplen</span></div>
+          <div class="legend-item no-item"><span class="legend-dot">✗</span><span id="leg-no-e4">—% No Cumplen</span></div>
+        </div>
+      </div>
+      <div class="espera-row">
+        <div class="espera-box">
+          <div class="espera-box-label">Espera Driver</div>
+          <div class="espera-box-val" id="espera-driver">—</div>
+          <div class="espera-box-unit">min</div>
+        </div>
+        <div class="espera-box">
+          <div class="espera-box-label">Espera Picker</div>
+          <div class="espera-box-val" id="espera-picker">—</div>
+          <div class="espera-box-unit">min</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- E5 Ruta Destino -->
+    <div class="sla-card" id="card-e5">
+      <div class="card-head">
+        <div class="card-icon">📍</div>
+        <div class="card-info">
+          <div class="card-etapa">Etapa 5</div>
+          <div class="card-title">Ruta Destino</div>
+          <div class="card-sla">SLA: <em id="sla-e5">≤ 14 min</em> · Responsable: TOGO</div>
+        </div>
+      </div>
+      <div class="card-tiempo">
+        <span class="tiempo-val" id="val-e5">—</span><span class="tiempo-unit">min</span>
+      </div>
+      <div class="barra-wrap">
+        <div class="barra">
+          <div class="barra-ok" id="bar-ok-e5" style="width:0%"><span class="barra-pct" id="pct-ok-e5"></span></div>
+          <div class="barra-no" id="bar-no-e5" style="width:100%"><span class="barra-pct" id="pct-no-e5">—</span></div>
+        </div>
+        <div class="barra-legend">
+          <div class="legend-item ok-item"><span class="legend-dot">✓</span><span id="leg-ok-e5">—% Cumplen</span></div>
+          <div class="legend-item no-item"><span class="legend-dot">✗</span><span id="leg-no-e5">—% No Cumplen</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer-note">
+  Panel SLA · TOGO Delivery · <span>Datos de ejemplo</span> · Conectar API Instaleap / Shopify para datos reales
+</div>
+
+<script>
+// ─── DATOS POR TURNO (ejemplo — reemplazar con API real) ─────────────────────
+const DATA = {
+  general: {
+    pedidos: 312, slaGlobal: 44, tiempoTotal: 120,
+    etapas: [
+      { min: 30, ok: 48.1, sla: 18 },
+      { min: 228, ok: 0,    sla: 5  },
+      { min: 37,  ok: 25.9, sla: 18 },
+      { min: 7,   ok: 74.9, sla: 5, driver: 7, picker: 40 },
+      { min: 18,  ok: 70.6, sla: 14 },
+    ]
+  },
+  mañana: {
+    pedidos: 89, slaGlobal: 61, tiempoTotal: 98,
+    etapas: [
+      { min: 22, ok: 65, sla: 18 },
+      { min: 180, ok: 5, sla: 5 },
+      { min: 28, ok: 52, sla: 18 },
+      { min: 5,  ok: 88, sla: 5, driver: 4, picker: 22 },
+      { min: 14, ok: 78, sla: 14 },
+    ]
+  },
+  tarde: {
+    pedidos: 134, slaGlobal: 38, tiempoTotal: 135,
+    etapas: [
+      { min: 35, ok: 40, sla: 18 },
+      { min: 260, ok: 0, sla: 5 },
+      { min: 42, ok: 18, sla: 18 },
+      { min: 9,  ok: 68, sla: 5, driver: 9, picker: 52 },
+      { min: 22, ok: 61, sla: 14 },
+    ]
+  },
+  noche: {
+    pedidos: 89, slaGlobal: 52, tiempoTotal: 108,
+    etapas: [
+      { min: 28, ok: 55, sla: 18 },
+      { min: 195, ok: 2, sla: 5 },
+      { min: 32, ok: 38, sla: 18 },
+      { min: 6,  ok: 80, sla: 5, driver: 5, picker: 31 },
+      { min: 16, ok: 74, sla: 14 },
+    ]
+  }
+};
+
+let turnoActual = 'general';
+
+function setTurno(t, btn) {
+  turnoActual = t;
+  document.querySelectorAll('.turno-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderData();
+}
+
+function getColor(min, sla) {
+  const ratio = min / sla;
+  if (ratio <= 1) return 'ok';
+  if (ratio <= 1.5) return 'warn';
+  return 'bad';
+}
+
+function renderData() {
+  const d = DATA[turnoActual];
+  const etapas = d.etapas;
+  const slaNames = ['e1','e2','e3','e4','e5'];
+
+  // Resumen
+  document.getElementById('res-pedidos').textContent = d.pedidos;
+  const slaEl = document.getElementById('res-sla');
+  slaEl.textContent = d.slaGlobal + '%';
+  slaEl.className = 'resumen-val ' + (d.slaGlobal >= 70 ? 'ok' : d.slaGlobal >= 50 ? 'warn' : 'bad');
+  document.getElementById('res-tiempo').textContent = d.tiempoTotal + ' min';
+
+  // Etapa más crítica
+  let maxRatio = 0, critIdx = 0;
+  etapas.forEach((e,i) => { const r = e.min/e.sla; if(r > maxRatio){ maxRatio=r; critIdx=i; } });
+  const critNames = ['Preparación','Facturación','Ruta Sucursal','Transferencia','Ruta Destino'];
+  document.getElementById('res-critica').textContent = 'E' + (critIdx+1);
+  document.getElementById('res-critica-sub').textContent = critNames[critIdx];
+
+  // Tarjetas
+  etapas.forEach((e, i) => {
+    const id = slaNames[i];
+    const no = parseFloat((100 - e.ok).toFixed(1));
+    const color = getColor(e.min, e.sla);
+
+    const valEl = document.getElementById('val-' + id);
+    valEl.textContent = e.min;
+    valEl.className = 'tiempo-val ' + color;
+
+    document.getElementById('bar-ok-' + id).style.width = e.ok + '%';
+    document.getElementById('bar-no-' + id).style.width = no + '%';
+
+    const okPct = document.getElementById('pct-ok-' + id);
+    const noPct = document.getElementById('pct-no-' + id);
+    okPct.textContent = e.ok > 8 ? e.ok + '%' : '';
+    noPct.textContent = no > 8 ? no + '%' : '';
+
+    document.getElementById('leg-ok-' + id).textContent = e.ok + '% Cumplen';
+    document.getElementById('leg-no-' + id).textContent = no + '% No Cumplen';
+  });
+
+  // Espera E4
+  if (etapas[3].driver !== undefined) {
+    document.getElementById('espera-driver').textContent = etapas[3].driver;
+    document.getElementById('espera-picker').textContent = etapas[3].picker;
+  }
+
+  // Sync time
+  const now = new Date();
+  document.getElementById('sync-time').textContent =
+    now.toLocaleTimeString('es-BO', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+
+function refresh() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  btn.disabled = true;
+  setTimeout(() => {
+    renderData();
+    btn.classList.remove('spinning');
+    btn.disabled = false;
+  }, 800);
+}
+
+// Init
+renderData();
+</script>
+</body>
+</html>
