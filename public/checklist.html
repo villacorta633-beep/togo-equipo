@@ -331,7 +331,32 @@ const CATS={
   veh:{name:'Vehículo',items:['Contenedor limpio','SOAT vigente','Licencia de conducir','Vehículo limpio','Placa visible']}
 };
 let SC={uni:{},img:{},equ:{},veh:{}};
-let DB=JSON.parse(localStorage.getItem('togo_cl')||'[]');
+let DB=[];
+// Load from server on startup
+function loadDB(){
+  fetch('/api/checklist')
+  .then(function(r){return r.json();})
+  .then(function(rows){
+    DB=rows.map(function(r){
+      return {
+        id:r.id, driver:r.driver, fecha:r.fecha,
+        total:parseFloat(r.total),
+        uni:r.uni?parseFloat(r.uni):null,
+        img:r.img?parseFloat(r.img):null,
+        equ:r.equ?parseFloat(r.equ):null,
+        veh:r.veh?parseFloat(r.veh):null,
+        detalles:r.detalles||{}
+      };
+    });
+    updateBadge();
+    addLog('Registros cargados: '+DB.length,'#10B981');
+  })
+  .catch(function(){
+    // Fallback localStorage
+    try{DB=JSON.parse(localStorage.getItem('togo_cl')||'[]');}catch(e){DB=[];}
+    addLog('Modo offline','#F59E0B');
+  });
+}
 
 /* ══ NAV ══ */
 function showPage(id){
@@ -457,17 +482,45 @@ function guardarRegistro(){
       veh:Object.assign({},SC.veh)
     }
   };
-  try {
-    DB.push(reg);
-    localStorage.setItem('togo_cl',JSON.stringify(DB));
-    updateBadge();
-    showMsg('✓ Guardado: '+nm+' — '+total.toFixed(2),'ok');
-    addLog('Guardado: '+nm+' ('+total.toFixed(2)+')','#10B981');
-    limpiarForm();
-  } catch(err) {
-    showMsg('Error al guardar: '+err.message,'err');
-    console.error('guardar error:',err);
-  }
+  // Show saving indicator
+  showMsg('Guardando...','ok');
+  const btn=document.getElementById('save-top');
+  if(btn){btn.textContent='Guardando...';btn.disabled=true;}
+  // Save to server API
+  fetch('/api/checklist',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(reg)
+  })
+  .then(function(r){return r.json();})
+  .then(function(data){
+    if(data.ok){
+      DB.push(reg);
+      updateBadge();
+      showMsg('✓ Guardado: '+nm+' — '+total.toFixed(2),'ok');
+      addLog('Guardado: '+nm+' ('+total.toFixed(2)+')','#10B981');
+      limpiarForm();
+    } else {
+      showMsg('Error del servidor: '+(data.error||'desconocido'),'err');
+    }
+  })
+  .catch(function(err){
+    // Fallback to localStorage if offline
+    try{
+      DB.push(reg);
+      localStorage.setItem('togo_cl',JSON.stringify(DB));
+      updateBadge();
+      showMsg('✓ Guardado localmente (sin conexión)','ok');
+      addLog('Guardado local: '+nm,'#F59E0B');
+      limpiarForm();
+    }catch(e){
+      showMsg('Error al guardar: '+e.message,'err');
+    }
+  })
+  .finally(function(){
+    const btn=document.getElementById('save-top');
+    if(btn){btn.textContent='◆ Guardar';btn.disabled=false;}
+  });
 }
 function limpiarForm(){SC={uni:{},img:{},equ:{},veh:{}};document.querySelectorAll('.sb').forEach(b=>b.className='sb');document.getElementById('drv-name').value='';tgt3d=4;update3DColors(4);recalc();}
 function showMsg(txt,type){const el=document.getElementById('msg-reg');el.textContent=txt;el.className='msg-box msg-'+type;el.style.display='block';setTimeout(()=>el.style.display='none',3000);}
@@ -923,6 +976,7 @@ function drvSelect(name){
 
 /* ══ INIT ══ */
 buildChecklist();
+loadDB();
 document.getElementById('drv-fecha').value=new Date().toISOString().split('T')[0];
 updateBadge();
 addLog('Sistema TOGO listo','#E8B84B');
