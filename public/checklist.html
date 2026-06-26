@@ -253,10 +253,9 @@ body{display:flex;flex-direction:column}
       </div>
       <div class="fields-row">
         <div class="fl"><label>Nombre del driver</label>
-<div style="position:relative">
-  <input class="rpg-input" id="drv-name" type="text" placeholder="Buscar driver..." autocomplete="off" oninput="filterDrivers()" onfocus="showDropdown()" onblur="setTimeout(hideDropdown,200)" maxlength="60">
-  <div id="drv-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#111118;border:1px solid #3a3a5a;border-top:none;max-height:200px;overflow-y:auto;z-index:999;border-radius:0 0 6px 6px">
-  </div>
+<div style="position:relative" id="drv-wrap">
+  <input class="rpg-input" id="drv-name" type="text" placeholder="Buscar driver..." autocomplete="off" oninput="drvFilter(this.value)" onfocus="drvOpen()" maxlength="80">
+  <div id="drv-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:#111118;border:1px solid #3a3a5a;border-top:none;max-height:210px;overflow-y:auto;z-index:9999;border-radius:0 0 6px 6px;box-shadow:0 8px 24px rgba(0,0,0,.6)"></div>
 </div></div>
         <div class="fl"><label>Fecha</label><input class="rpg-input" id="drv-fecha" type="date"></div>
       </div>
@@ -865,36 +864,34 @@ function loop3D(){
 
 const DRIVERS = ["ADOLFO DEL ALCAZAR FARMACORP", "ADRIAN CABRERA ROJAS INDEPENDIENTE", "ALEJANDRO DELIVERY FAST HURTADO", "ALEXANDER MONTENEGRO DELIVERY FAST", "ALEXANDER SERVICIO CAPOBIANCO", "ALEXANDER SERVICIO MONTENEGRO", "Alejandro Loayza (Mariela)", "CARMELO DELIVERY FAST ARREDONDO", "CRISTHIAN CRISTOFEN CABRERA SERVICIO", "CRISTIAN LEONCIO GILDRES FAST", "Carmelo Arredondo Cortez Servicio", "DANIEL CAMACHO DELIVERY FAST", "DANIEL ROMERO LARA", "DANIEL SERVICIO ARGOTE", "DARIO INDEPENDIENTE CESPEDES", "DAVID MIGUEL COLQUE DELIVERY FAST", "DAVID SERVICIO VEIZAGA GALVEZ", "DEIVID MARCELO CASTAÑO DELIVERY FAST", "DENIS CUELLAR (APOYO)", "Denilson Moreno Farmacorp", "Denis Servicio Cuellar", "ELIAZAR LUQUE (APOYO)", "ELIAZAR SERVICIO LUQUE SANCHEZ", "EMERSON TIMOTEO CHIPANA DELIVERY FAST", "ERICK JAVIER BARRETO MARANDIPI DELIVERY FAST", "ERWIN GARZON FARMACORP", "ERWIN MARCA DELIVERY FAST", "ERWIN SERVICIO GUZMAN HURTADO", "ESTEBAN SERVICIO ARIMENDANO", "FABRI DELIVERY FAST GIL", "FABRICIO SERVICIO GIL VACA", "FERNANDO RIPLEY DELIVERY FAST", "FERNANDO TORREZ ROJAS SERVICIO", "GERSON MONTAÑO FARMACORP", "GRECIA ARTEAGA", "HERMAN FELIPE INDEPENDIENTE SOLIZ AGUILERA", "IVER TOLEDO SERVICIO SALAZAR", "JAN UBANO FLORES FARMACORP", "JAVIER MONTENEGRO DELIVERY FAST", "JHONN WILLIAMS CALLE AGUILAR DELIVERY FAST", "JOEL SERVICIO BARAO PEREZ", "JORGE LUIS INDEPENDIENTE ARAUZ GUATIA", "JORGE LUIS SERVICIO ARAUZ", "JOSE DANIEL ARGOTE DELIVERY FAST", "JOSE FARMACORP PAZ", "JOSE MARIA DELGADO TERAN DELIVERY FAST", "JOSE MARIA FARMACORP DELGADO", "JOSE MARIA REICHE DELIVERY FAST", "JOSE MIGUEL RAMOS FAST", "JOSE MIGUEL RAMOS MENDOZA SERVICIO", "JUAN DAVID INDEPENDIENTE HUAYHUA CAMPOS", "JUAN ENRIQUE PRADO DELIVERY FAST", "JUAN PABLO FARMACORP JUSTINIANO", "JUAN RODRIGO", "JULIAN CHAVEZ SERVICIO CUELLAR", "JULIAN SERVICIO MENDOZA ANTELO", "KEVIN CRUZ", "KEVIN FARMACORP CRUZ JUSTINIANO", "LEONARDO SILVA GUZMAN INDEPENDIENTE", "LEOVANY INDEPENDIENTE GONZALEZ OROPESA", "LIYINA DELIVERY FAST MORALES", "LORENZO INDEPENDIENTE RIVERO", "LUCAS GUTIERREZ ESPINOZA INDEPENDIENTE", "LUIS FERNANDO DELIVERY FAST ESTREMADOIRO", "LUIS FERNANDO SERVICIO TACACHIRA RODRIGUEZ", "MAICKOL VACA LOAYZA DELIVERY FAST", "MARIANA ANDREA DELIVERY FAST ARAUZ", "MARIO RONALD ALVIS LAZO SERVICIO", "MAURICIO MIRANDA DELIVERY FAST", "MIGUEL ANGEL CARDENAS ARGOTE", "MIGUEL ANGEL INDEPENDIENTE BRUNO", "MIGUEL ANGEL INDEPENDIENTE MENDOZA", "MILTON INDEPENDIENTE TARQUI", "MILTON SERVICIO TARQUI", "MOISES AMURRIO VAZQUES", "PAOLO ANDRES DELGADO DELIVERY FAST", "PEDRO HUMBERTO MERCADO MIRANDA", "PEDRO LUIS LOPEZ DELIVERY FAST", "RANDY VARGAS", "ROBERTO JUNIOR DELIVERY FAST ORTIZ CUELLAR", "RODOLFO INDEPENDIENTE VACARREZA", "RODOLFO VACARREZA MERIDA SERVICIO", "RODRIGO CLAROS", "RODRIGO DELIVERY FAST CLAROS", "RODRIGO DELIVERY FAST MERCADO", "ROGER PADILLA DELIVERY FAST", "ROGER SERVICIO PADILLA", "ROMULO RIVERO SERVICIO", "RUBEN DELIVERY FAST ARANA", "SEBASTIAN FLORES SERVICIO", "SEBASTIAN MONTENEGRO DELIVERY FAST", "STOJAN JESUS MEDINA PARDO", "WILLIAM JARED SERVICIO BANZER SEMO", "YERI PADILLA SERVICIO", "YOEL CALLIZAYA FERNANDEZ SERVICIO", "YONY INDEPENDIENTE MOLINA", "YUSTHIN CALDERON CONDORI DELIVERY FAST", "ZANYK MORENO MOSCOS"];
 
-function filterDrivers(){
-  const q = document.getElementById('drv-name').value.toLowerCase();
-  const dd = document.getElementById('drv-dropdown');
-  const filtered = q.length===0 ? DRIVERS : DRIVERS.filter(d=>d.toLowerCase().includes(q));
-  if(!filtered.length){dd.style.display='none';return;}
-  dd.innerHTML = filtered.slice(0,20).map(d=>
-    `<div onclick="selectDriver('${d.replace(/'/g,"\'")}')"`+
-    ` style="padding:9px 12px;cursor:pointer;font-size:12px;font-weight:600;color:#C0A070;border-bottom:1px solid #2a2a3a"`+
-    ` onmouseover="this.style.background='#1a1a2e'" onmouseout="this.style.background=''">${d}</div>`
-  ).join('');
+function drvRender(list){
+  const dd = document.getElementById('drv-dd');
+  if(!list.length){dd.style.display='none';return;}
+  dd.innerHTML='';
+  list.slice(0,30).forEach((name,i)=>{
+    const d=document.createElement('div');
+    d.textContent=name;
+    d.style.cssText='padding:10px 12px;cursor:pointer;font-size:12px;font-weight:600;color:#C0A070;border-bottom:1px solid rgba(42,42,58,.5)';
+    d.onmousedown=function(e){e.preventDefault();drvSelect(name);};
+    d.onmouseover=function(){this.style.background='#1a1a2e';};
+    d.onmouseout=function(){this.style.background='';};
+    dd.appendChild(d);
+  });
   dd.style.display='block';
 }
-function selectDriver(name){
+function drvOpen(){
+  const q=document.getElementById('drv-name').value;
+  const list=q?DRIVERS.filter(d=>d.toLowerCase().includes(q.toLowerCase())):DRIVERS;
+  drvRender(list);
+  document.getElementById('drv-name').onblur=function(){setTimeout(()=>{document.getElementById('drv-dd').style.display='none';},250);};
+}
+function drvFilter(q){
+  const list=q?DRIVERS.filter(d=>d.toLowerCase().includes(q.toLowerCase())):DRIVERS;
+  drvRender(list);
+}
+function drvSelect(name){
   document.getElementById('drv-name').value=name;
-  document.getElementById('drv-dropdown').style.display='none';
-}
-function showDropdown(){
-  const q = document.getElementById('drv-name').value;
-  if(q.length===0){
-    const dd = document.getElementById('drv-dropdown');
-    dd.innerHTML = DRIVERS.slice(0,20).map(d=>
-      `<div onclick="selectDriver('${d.replace(/'/g,"\'")}')"`+
-      ` style="padding:9px 12px;cursor:pointer;font-size:12px;font-weight:600;color:#C0A070;border-bottom:1px solid #2a2a3a"`+
-      ` onmouseover="this.style.background='#1a1a2e'" onmouseout="this.style.background=''">${d}</div>`
-    ).join('');
-    dd.style.display='block';
-  } else filterDrivers();
-}
-function hideDropdown(){
-  document.getElementById('drv-dropdown').style.display='none';
+  document.getElementById('drv-dd').style.display='none';
 }
 
 /* ══ INIT ══ */
