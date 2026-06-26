@@ -259,6 +259,24 @@ body{display:flex;flex-direction:column}
 </div></div>
         <div class="fl"><label>Fecha</label><input class="rpg-input" id="drv-fecha" type="date"></div>
       </div>
+      <div class="fields-row">
+        <div class="fl"><label>Evaluador</label>
+          <select class="rpg-input" id="drv-evaluador">
+            <option value="">Seleccionar...</option>
+            <option value="Juan Villacorta">Juan Villacorta</option>
+            <option value="Supervisor Isuto">Supervisor Isuto</option>
+            <option value="Supervisor Escuadrón">Supervisor Escuadrón</option>
+          </select>
+        </div>
+        <div class="fl"><label>Turno</label>
+          <select class="rpg-input" id="drv-turno">
+            <option value="">Seleccionar...</option>
+            <option value="Mañana">🌅 Mañana</option>
+            <option value="Tarde">☀️ Tarde</option>
+            <option value="Nocturno">🌙 Nocturno</option>
+          </select>
+        </div>
+      </div>
       <div class="msg-box" id="msg-reg"></div>
       <div id="items-col"></div>
       <div class="log-panel"><div class="log-title">◎ ACTIVIDAD</div><div id="log-area" style="display:flex;flex-direction:column;gap:2px;min-height:40px"></div></div>
@@ -269,9 +287,21 @@ body{display:flex;flex-direction:column}
   <!-- HISTORIAL -->
   <div id="page-historial" class="page">
     <div class="page-title">◎ Historial por Driver</div>
-    <div class="filters">
+    <div class="filters" style="flex-wrap:wrap;gap:6px">
       <select class="fsel" id="hist-drv-f" onchange="renderHistorial()"><option value="">Todos los drivers</option></select>
       <select class="fsel" id="hist-mon-f" onchange="renderHistorial()"><option value="">Todos los meses</option></select>
+      <select class="fsel" id="hist-turno-f" onchange="renderHistorial()" style="flex:none;width:auto">
+        <option value="">Todos los turnos</option>
+        <option value="Mañana">🌅 Mañana</option>
+        <option value="Tarde">☀️ Tarde</option>
+        <option value="Nocturno">🌙 Nocturno</option>
+      </select>
+      <select class="fsel" id="hist-eval-f" onchange="renderHistorial()" style="flex:none;width:auto">
+        <option value="">Todos los evaluadores</option>
+        <option value="Juan Villacorta">Juan Villacorta</option>
+        <option value="Supervisor Isuto">Supervisor Isuto</option>
+        <option value="Supervisor Escuadrón">Supervisor Escuadrón</option>
+      </select>
     </div>
     <div id="hist-cards"><div class="empty-state">◇ Sin registros aún ◇</div></div>
   </div>
@@ -340,6 +370,7 @@ function loadDB(){
     DB=rows.map(function(r){
       return {
         id:r.id, driver:r.driver, fecha:r.fecha,
+        evaluador:r.evaluador||'', turno:r.turno||'',
         total:parseFloat(r.total),
         uni:r.uni?parseFloat(r.uni):null,
         img:r.img?parseFloat(r.img):null,
@@ -456,8 +487,12 @@ function addLog(msg,col){
 function guardarRegistro(){
   const nm=(document.getElementById('drv-name').value||'').trim();
   const fecha=document.getElementById('drv-fecha').value;
+  const evaluador=(document.getElementById('drv-evaluador').value||'').trim();
+  const turno=(document.getElementById('drv-turno').value||'').trim();
   if(!nm){showMsg('Ingresa el nombre del driver','err');return;}
   if(!fecha){showMsg('Selecciona la fecha','err');return;}
+  if(!evaluador){showMsg('Selecciona el evaluador','err');return;}
+  if(!turno){showMsg('Selecciona el turno','err');return;}
   const tots=[],catData={};
   ['uni','img','equ','veh'].forEach(function(cat){
     const a=catAvg(cat);
@@ -470,6 +505,8 @@ function guardarRegistro(){
     id:Date.now(),
     driver:nm,
     fecha:fecha,
+    evaluador:evaluador,
+    turno:turno,
     total:total,
     uni:catData.uni,
     img:catData.img,
@@ -522,7 +559,14 @@ function guardarRegistro(){
     if(btn){btn.textContent='◆ Guardar';btn.disabled=false;}
   });
 }
-function limpiarForm(){SC={uni:{},img:{},equ:{},veh:{}};document.querySelectorAll('.sb').forEach(b=>b.className='sb');document.getElementById('drv-name').value='';tgt3d=4;update3DColors(4);recalc();}
+function limpiarForm(){
+  SC={uni:{},img:{},equ:{},veh:{}};
+  document.querySelectorAll('.sb').forEach(b=>b.className='sb');
+  document.getElementById('drv-name').value='';
+  document.getElementById('drv-evaluador').value='';
+  document.getElementById('drv-turno').value='';
+  tgt3d=4;update3DColors(4);recalc();
+}
 function showMsg(txt,type){const el=document.getElementById('msg-reg');el.textContent=txt;el.className='msg-box msg-'+type;el.style.display='block';setTimeout(()=>el.style.display='none',3000);}
 
 /* ══ HISTORIAL ══ */
@@ -532,7 +576,14 @@ function renderHistorial(){
   const mons=[...new Set(DB.map(r=>r.fecha.slice(0,7)))].sort().reverse();
   document.getElementById('hist-drv-f').innerHTML='<option value="">Todos los drivers</option>'+drvs.map(d=>`<option value="${d}"${d===df?'selected':''}>${d}</option>`).join('');
   document.getElementById('hist-mon-f').innerHTML='<option value="">Todos los meses</option>'+mons.map(m=>`<option value="${m}"${m===mf?'selected':''}>${fmtMonth(m)}</option>`).join('');
-  let data=DB.filter(r=>(!df||r.driver===df)&&(!mf||r.fecha.startsWith(mf)));data.sort((a,b)=>a.fecha<b.fecha?-1:1);
+  const tf=document.getElementById('hist-turno-f')?.value||'';
+  const ef=document.getElementById('hist-eval-f')?.value||'';
+  let data=DB.filter(r=>
+    (!df||r.driver===df)&&
+    (!mf||r.fecha.startsWith(mf))&&
+    (!tf||r.turno===tf)&&
+    (!ef||r.evaluador===ef)
+  );data.sort((a,b)=>a.fecha<b.fecha?-1:1);
   const byDrv={};data.forEach(r=>{if(!byDrv[r.driver])byDrv[r.driver]=[];byDrv[r.driver].push(r);});
   const cards=document.getElementById('hist-cards');
   if(!Object.keys(byDrv).length){cards.innerHTML='<div class="empty-state">◇ Sin registros ◇</div>';return;}
@@ -541,8 +592,18 @@ function renderHistorial(){
     const rows=recs.map((r,i)=>{
       const prev=recs[i-1],t=!prev?'—':r.total>prev.total?'▲':r.total<prev.total?'▼':'—';
       const tc=t==='▲'?'tu':t==='▼'?'td':'te';
-      const bars=['uni','img','equ','veh'].map(c=>`<div class="mini-bar"><div class="mini-fill" style="width:${r[c]?r[c]/5*100:0}%;background:${c==='uni'?'#E8B84B':c==='img'?'#10B981':c==='equ'?'#4A8FD4':'#EF4444'}"></div></div>`).join('');
-      return`<div class="hist-rec"><span class="hist-date">${fmtDate(r.fecha)}</span><div class="mini-bars">${bars}</div><span class="hist-tot" style="color:${rColor(r.total)}">${r.total.toFixed(2)}</span><span class="hist-badge ${rClass(r.total)}">${rLabel(r.total)}</span><span class="${tc}">${t}</span></div>`;
+      const bars=['uni','img','equ','veh'].map(cat=>`<div class="mini-bar"><div class="mini-fill" style="width:${r[cat]?r[cat]/5*100:0}%;background:${cat==='uni'?'#E8B84B':cat==='img'?'#10B981':cat==='equ'?'#4A8FD4':'#EF4444'}"></div></div>`).join('');
+      const turnoIcon=r.turno==='Mañana'?'🌅':r.turno==='Tarde'?'☀️':r.turno==='Nocturno'?'🌙':'';
+      const evalTag=r.evaluador?`<span style="font-size:9px;color:#7B5CF0;font-weight:700">${r.evaluador}</span>`:'';
+      return`<div class="hist-rec" style="grid-template-columns:75px 1fr auto auto auto auto;gap:5px">
+        <span class="hist-date">${fmtDate(r.fecha)}</span>
+        <div class="mini-bars">${bars}</div>
+        <span style="font-size:11px">${turnoIcon}</span>
+        <span class="hist-tot" style="color:${rColor(r.total)}">${r.total.toFixed(2)}</span>
+        <span class="hist-badge ${rClass(r.total)}">${rLabel(r.total)}</span>
+        <span class="${tc}">${t}</span>
+      </div>
+      ${evalTag?'<div style="padding:0 6px 4px;font-size:9px;color:#7B5CF0">👤 '+r.evaluador+'</div>':''}`;
     }).join('');
     return`<div class="hist-card"><div class="hist-hdr"><span class="hist-name">◆ ${drv}</span><span class="hist-avg" style="color:${rColor(gavg)}">${gavg.toFixed(2)}</span><span class="hist-badge ${rClass(gavg)}">${rLabel(gavg)}</span></div><div class="hist-recs">${rows}</div></div>`;
   }).join('');
@@ -561,7 +622,7 @@ function renderComparativa(){
     <div class="metric-card"><div class="metric-title">Excelentes</div><div class="metric-val" style="color:#E8B84B">${excel}</div><div class="metric-sub">Promedio › 4.0</div></div>
     <div class="metric-card"><div class="metric-title">Críticos</div><div class="metric-val" style="color:#EF4444">${crit}</div><div class="metric-sub">Promedio ≤ 2.0</div></div>`;
   const rows=da.map((d,i)=>`<div class="rt-row"><span class="rt-pos">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</span><span class="rt-name">${d.driver}</span><span class="rt-num" style="color:#E8B84B">${d.uni?d.uni.toFixed(1):'—'}</span><span class="rt-num" style="color:#10B981">${d.avg?d.avg.toFixed(2):'—'}</span><span class="rt-total" style="color:${rColor(d.avg)}">${d.avg.toFixed(2)} <span class="rt-badge ${rClass(d.avg)}">${rLabel(d.avg)}</span></span></div>`).join('');
-  document.getElementById('rank-table').innerHTML=`<div class="rt-hdr"><span>#</span><span>Driver</span><span>Uni</span><span>Prom</span><span>Total</span></div><div>${rows}</div>`;
+  document.getElementById('rank-table').innerHTML=`<div class="rt-hdr"><span>#</span><span>Driver</span><span>Evals</span><span>Prom</span><span>Total</span></div><div>${rows}</div>`;
 }
 
 /* ══ ALERTAS ══ */
