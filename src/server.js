@@ -71,6 +71,19 @@ async function initDB() {
       author TEXT NOT NULL,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS checklist_registros (
+      id BIGINT PRIMARY KEY,
+      driver TEXT NOT NULL,
+      fecha TEXT NOT NULL,
+      total NUMERIC(4,2),
+      uni NUMERIC(4,2),
+      img NUMERIC(4,2),
+      equ NUMERIC(4,2),
+      veh NUMERIC(4,2),
+      detalles JSONB,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
   `);
 
   // Crear admin por defecto si no existe
@@ -413,6 +426,46 @@ app.get('/presence/stream', (req, res) => {
     presenceClients.delete(id);
     broadcastPresence();
   });
+});
+
+
+// ══ CHECKLIST API ══
+app.get('/api/checklist', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT * FROM checklist_registros ORDER BY fecha DESC, created_at DESC LIMIT 500'
+    );
+    res.json(rows);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/checklist', async (req, res) => {
+  try {
+    const { id, driver, fecha, total, uni, img, equ, veh, detalles } = req.body;
+    await pool.query(
+      `INSERT INTO checklist_registros (id, driver, fecha, total, uni, img, equ, veh, detalles)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       ON CONFLICT (id) DO UPDATE SET
+         driver=EXCLUDED.driver, fecha=EXCLUDED.fecha, total=EXCLUDED.total,
+         uni=EXCLUDED.uni, img=EXCLUDED.img, equ=EXCLUDED.equ, veh=EXCLUDED.veh,
+         detalles=EXCLUDED.detalles`,
+      [id, driver, fecha, total, uni||null, img||null, equ||null, veh||null, JSON.stringify(detalles||{})]
+    );
+    res.json({ ok: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete('/api/checklist/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM checklist_registros WHERE id=$1', [req.params.id]);
+    res.json({ ok: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.listen(PORT, async () => {
