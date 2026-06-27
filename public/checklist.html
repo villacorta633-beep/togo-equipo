@@ -361,6 +361,88 @@ body{display:flex;flex-direction:column}
     <div id="det-driver-detail" style="display:none"></div>
   </div>
 
+  <!-- RENTABILIDAD -->
+  <div id="page-rentabilidad" class="page">
+    <div class="page-title">💰 Costo x Boleta — Drivers Servicio</div>
+
+    <!-- Periodo y remuneracion -->
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+        <div class="fl"><label>Desde</label><input class="rpg-input" id="rent-desde" type="date"></div>
+        <div class="fl"><label>Hasta</label><input class="rpg-input" id="rent-hasta" type="date"></div>
+        <div class="fl"><label>Remun. Bs</label><input class="rpg-input" id="rent-remun" type="number" value="5000" min="1000" max="20000" style="text-align:center"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">
+        <div class="fl" style="gap:2px"><label style="font-size:8px">Normal ×</label><input class="rpg-input" id="w-normal" type="number" value="1" step="0.5" style="text-align:center;padding:6px"></div>
+        <div class="fl" style="gap:2px"><label style="font-size:8px">VPM ×</label><input class="rpg-input" id="w-vpm" type="number" value="4" step="0.5" style="text-align:center;padding:6px"></div>
+        <div class="fl" style="gap:2px"><label style="font-size:8px">Amarket ×</label><input class="rpg-input" id="w-amarket" type="number" value="2" step="0.5" style="text-align:center;padding:6px"></div>
+        <div class="fl" style="gap:2px"><label style="font-size:8px">Pizza ×</label><input class="rpg-input" id="w-pizza" type="number" value="2" step="0.5" style="text-align:center;padding:6px"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="fl" style="gap:2px;flex:1"><label style="font-size:8px">Umbral rentable Bs</label><input class="rpg-input" id="rent-umbral" type="number" value="13" step="0.5" style="text-align:center;padding:6px"></div>
+        <div class="fl" style="gap:2px;flex:1"><label style="font-size:8px">Zona límite Bs</label><input class="rpg-input" id="rent-limite" type="number" value="17" step="0.5" style="text-align:center;padding:6px"></div>
+        <button onclick="calcRentabilidad()" style="flex:1;background:#7B5CF0;border:none;color:#fff;font-family:Rajdhani,sans-serif;font-size:13px;font-weight:700;padding:10px;border-radius:6px;cursor:pointer;margin-top:14px">▶ Calcular</button>
+      </div>
+    </div>
+
+    <!-- Resumen semáforo -->
+    <div id="rent-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px"></div>
+
+    <!-- Tabla de drivers -->
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:10px">
+      <div style="display:grid;grid-template-columns:24px 1fr 70px 70px 60px;gap:4px;padding:8px 10px;background:#1a1a2e;border-bottom:1px solid var(--border)">
+        <span style="font-size:9px;color:#A78BFA;font-weight:700">#</span>
+        <span style="font-size:9px;color:#A78BFA;font-weight:700">DRIVER</span>
+        <span style="font-size:9px;color:#A78BFA;font-weight:700;text-align:center">Bs/BOL<br>NORMAL</span>
+        <span style="font-size:9px;color:#A78BFA;font-weight:700;text-align:center">Bs/BOL<br>POND.</span>
+        <span style="font-size:9px;color:#A78BFA;font-weight:700;text-align:center">GAP<br>META</span>
+      </div>
+      <div id="rent-table"></div>
+    </div>
+
+    <!-- Drivers a agregar / quitar -->
+    <div id="rent-acciones" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div style="background:rgba(16,185,129,.08);border:1px solid #10B981;border-radius:8px;padding:10px">
+          <div style="font-size:9px;color:#10B981;letter-spacing:2px;font-weight:700;margin-bottom:6px">✓ RENTABLES — MANTENER</div>
+          <div id="rent-list-ok" style="font-size:11px;color:#C0A070"></div>
+        </div>
+        <div style="background:rgba(239,68,68,.08);border:1px solid #EF4444;border-radius:8px;padding:10px">
+          <div style="font-size:9px;color:#EF4444;letter-spacing:2px;font-weight:700;margin-bottom:6px">✗ NO RENTABLES — REVISAR</div>
+          <div id="rent-list-bad" style="font-size:11px;color:#C0A070"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ingreso manual de datos -->
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">
+      <div class="page-title" style="font-size:10px;margin-bottom:8px">➕ AGREGAR DRIVER MANUALMENTE</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+        <div class="fl"><label>Nombre</label><input class="rpg-input" id="rm-nombre" placeholder="Nombre driver" maxlength="50"></div>
+        <div class="fl"><label>Sucursal</label>
+          <select class="rpg-input" id="rm-sucursal">
+            <option value="Isuto">Isuto</option>
+            <option value="Escuadron">Escuadrón</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:6px">
+        <div class="fl" style="gap:2px"><label style="font-size:8px">Pedidos</label><input class="rpg-input" id="rm-ped" type="number" value="0" min="0" style="padding:6px;text-align:center"></div>
+        <div class="fl" style="gap:2px"><label style="font-size:8px">S/Instaleap</label><input class="rpg-input" id="rm-si" type="number" value="0" min="0" style="padding:6px;text-align:center"></div>
+        <div class="fl" style="gap:2px"><label style="font-size:8px">Efectuadas</label><input class="rpg-input" id="rm-ef" type="number" value="0" min="0" style="padding:6px;text-align:center"></div>
+        <div class="fl" style="gap:2px"><label style="font-size:8px">Traspasos</label><input class="rpg-input" id="rm-tr" type="number" value="0" min="0" style="padding:6px;text-align:center"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:8px">
+        <div class="fl" style="gap:2px"><label style="font-size:8px">VPM</label><input class="rpg-input" id="rm-vpm" type="number" value="0" min="0" style="padding:6px;text-align:center"></div>
+        <div class="fl" style="gap:2px"><label style="font-size:8px">Redis</label><input class="rpg-input" id="rm-red" type="number" value="0" min="0" style="padding:6px;text-align:center"></div>
+        <div class="fl" style="gap:2px"><label style="font-size:8px">Amarket</label><input class="rpg-input" id="rm-am" type="number" value="0" min="0" style="padding:6px;text-align:center"></div>
+        <div class="fl" style="gap:2px"><label style="font-size:8px">Pizza</label><input class="rpg-input" id="rm-pi" type="number" value="0" min="0" style="padding:6px;text-align:center"></div>
+      </div>
+      <button onclick="addDriverManual()" style="width:100%;background:#10B981;border:none;color:#fff;font-family:Rajdhani,sans-serif;font-size:13px;font-weight:700;padding:10px;border-radius:6px;cursor:pointer">+ Agregar a la planilla</button>
+    </div>
+
+  </div>
+
   <!-- ALERTAS -->
   <div id="page-alertas" class="page">
     <div class="page-title">⚠ Alertas Críticas</div>
@@ -375,6 +457,7 @@ body{display:flex;flex-direction:column}
   <button class="tb" onclick="showPage('historial')"><span class="tb-icon">◎</span>Historial</button>
   <button class="tb" onclick="showPage('comparativa')"><span class="tb-icon">⬡</span>Ranking</button>
   <button class="tb" onclick="showPage('detalle')"><span class="tb-icon">◉</span>Detalle</button>
+  <button class="tb" onclick="showPage('rentabilidad')"><span class="tb-icon">💰</span>Costo</button>
   <button class="tb" onclick="showPage('alertas')"><span class="tb-icon">⚠</span>Alertas<span class="badge" id="alert-badge">0</span></button>
 </div>
 
@@ -443,13 +526,14 @@ function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tb').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  ['registro','historial','comparativa','detalle','alertas'].forEach((n,i)=>{if(n===id)document.querySelectorAll('.tb')[i].classList.add('active');});
+  ['registro','historial','comparativa','detalle','rentabilidad','alertas'].forEach((n,i)=>{if(n===id)document.querySelectorAll('.tb')[i].classList.add('active');});
   document.getElementById('content').scrollTop=0;
   document.getElementById('save-top').style.display=id==='registro'?'':'none';
   if(id==='historial')renderHistorial();
   if(id==='comparativa')renderComparativa();
   if(id==='alertas')renderAlertas();
   if(id==='detalle')renderDetalle();
+  if(id==='rentabilidad')calcRentabilidad();
 }
 
 /* ══ CHECKLIST ══ */
@@ -1223,6 +1307,129 @@ function showDriverDetail(driver, fi, ff){
   document.getElementById('content').scrollTop=0;
 }
 
+
+/* ══ RENTABILIDAD ══ */
+let RENT_DATA = [{"categoria": "Servicio", "driver": "FERNANDO TORREZ ROJAS SERVICIO", "sucursal": "Escuadron", "pedidos": 97.0, "sin_instaleap": 6.0, "efectuadas": 75.0, "traspasos": 65.0, "vpm": 32.0, "redis": 23.0, "amarket": 15.0, "pizza": 0, "otros": 0, "total": 313.0, "ponderado": 447.0, "costo_normal": 15.97, "costo_pond": 11.19, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -72.0, "gap_pond": 62.0}, {"categoria": "Servicio", "driver": "JOEL SERVICIO BARAO PEREZ", "sucursal": "Isuto", "pedidos": 139.0, "sin_instaleap": 6.0, "efectuadas": 187.0, "traspasos": 16.0, "vpm": 0, "redis": 18.0, "amarket": 19.0, "pizza": 6.0, "otros": 0, "total": 391.0, "ponderado": 434.0, "costo_normal": 12.79, "costo_pond": 11.52, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": 6.0, "gap_pond": 49.0}, {"categoria": "Servicio", "driver": "JULIAN SERVICIO MENDOZA ANTELO", "sucursal": "Isuto", "pedidos": 168.0, "sin_instaleap": 12.0, "efectuadas": 71.0, "traspasos": 41.0, "vpm": 0, "redis": 13.0, "amarket": 17.0, "pizza": 23.0, "otros": 0, "total": 345.0, "ponderado": 398.0, "costo_normal": 14.49, "costo_pond": 12.56, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -40.0, "gap_pond": 13.0}, {"categoria": "Servicio", "driver": "IVER TOLEDO SERVICIO SALAZAR", "sucursal": "Escuadron", "pedidos": 92.0, "sin_instaleap": 13.0, "efectuadas": 50.0, "traspasos": 61.0, "vpm": 30.0, "redis": 5.0, "amarket": 12.0, "pizza": 3.0, "otros": 0, "total": 266.0, "ponderado": 376.0, "costo_normal": 18.8, "costo_pond": 13.3, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -119.0, "gap_pond": -9.0}, {"categoria": "Servicio", "driver": "ALEXANDER SERVICIO MONTENEGRO", "sucursal": "Escuadron", "pedidos": 97.0, "sin_instaleap": 7.0, "efectuadas": 37.0, "traspasos": 78.0, "vpm": 34.0, "redis": 0, "amarket": 10.0, "pizza": 0, "otros": 0, "total": 263.0, "ponderado": 375.0, "costo_normal": 19.01, "costo_pond": 13.33, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -122.0, "gap_pond": -10.0}, {"categoria": "Servicio", "driver": "YERI PADILLA SERVICIO QUINTELLA", "sucursal": "Isuto", "pedidos": 174.0, "sin_instaleap": 6.0, "efectuadas": 18.0, "traspasos": 34.0, "vpm": 0, "redis": 1.0, "amarket": 15.0, "pizza": 45.0, "otros": 0, "total": 293.0, "ponderado": 354.0, "costo_normal": 17.06, "costo_pond": 14.12, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -92.0, "gap_pond": -31.0}, {"categoria": "Servicio", "driver": "JOSE MIGUEL RAMOS SERVICIO", "sucursal": "Escuadron", "pedidos": 140.0, "sin_instaleap": 11.0, "efectuadas": 1.0, "traspasos": 42.0, "vpm": 14.0, "redis": 0, "amarket": 18.0, "pizza": 32.0, "otros": 0, "total": 258.0, "ponderado": 350.0, "costo_normal": 19.38, "costo_pond": 14.29, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -127.0, "gap_pond": -35.0}, {"categoria": "Servicio", "driver": "MIGUEL SERVICIO MENDOZA", "sucursal": "Escuadron", "pedidos": 142.0, "sin_instaleap": 7.0, "efectuadas": 0, "traspasos": 36.0, "vpm": 16.0, "redis": 6.0, "amarket": 19.0, "pizza": 20.0, "otros": 0, "total": 246.0, "ponderado": 339.0, "costo_normal": 20.33, "costo_pond": 14.75, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -139.0, "gap_pond": -46.0}, {"categoria": "Servicio", "driver": "YOEL FERNANDEZ SERVICIO", "sucursal": "Isuto", "pedidos": 175.0, "sin_instaleap": 10.0, "efectuadas": 49.0, "traspasos": 40.0, "vpm": 0, "redis": 0, "amarket": 20.0, "pizza": 12.0, "otros": 0, "total": 306.0, "ponderado": 338.0, "costo_normal": 16.34, "costo_pond": 14.79, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -79.0, "gap_pond": -47.0}, {"categoria": "Servicio", "driver": "Denis Servicio Cuellar", "sucursal": "Escuadron", "pedidos": 231.0, "sin_instaleap": 4.0, "efectuadas": 0, "traspasos": 31.0, "vpm": 0, "redis": 2.0, "amarket": 18.0, "pizza": 15.0, "otros": 0, "total": 301.0, "ponderado": 336.0, "costo_normal": 16.61, "costo_pond": 14.88, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -84.0, "gap_pond": -49.0}, {"categoria": "Servicio", "driver": "ROGER SERVICIO PADILLA", "sucursal": "Escuadron", "pedidos": 149.0, "sin_instaleap": 6.0, "efectuadas": 3.0, "traspasos": 53.0, "vpm": 10.0, "redis": 1.0, "amarket": 19.0, "pizza": 20.0, "otros": 0, "total": 261.0, "ponderado": 331.0, "costo_normal": 19.16, "costo_pond": 15.11, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -124.0, "gap_pond": -54.0}, {"categoria": "Servicio", "driver": "Daniel Argote Servicio", "sucursal": "Escuadron", "pedidos": 158.0, "sin_instaleap": 9.0, "efectuadas": 1.0, "traspasos": 41.0, "vpm": 7.0, "redis": 8.0, "amarket": 13.0, "pizza": 23.0, "otros": 0, "total": 260.0, "ponderado": 325.0, "costo_normal": 19.23, "costo_pond": 15.38, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -125.0, "gap_pond": -60.0}, {"categoria": "Servicio", "driver": "MARIO RONALD ALVIS LAZO SERVICIO", "sucursal": "Isuto", "pedidos": 100.0, "sin_instaleap": 5.0, "efectuadas": 119.0, "traspasos": 32.0, "vpm": 1.0, "redis": 1.0, "amarket": 20.0, "pizza": 11.0, "otros": 0, "total": 289.0, "ponderado": 324.0, "costo_normal": 17.3, "costo_pond": 15.43, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -96.0, "gap_pond": -61.0}, {"categoria": "Servicio", "driver": "RODOLFO VACARREZA MERIDA SERVICIO", "sucursal": "Isuto", "pedidos": 183.0, "sin_instaleap": 12.0, "efectuadas": 10.0, "traspasos": 48.0, "vpm": 0, "redis": 0, "amarket": 23.0, "pizza": 7.0, "otros": 0, "total": 283.0, "ponderado": 313.0, "costo_normal": 17.67, "costo_pond": 15.97, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -102.0, "gap_pond": -72.0}, {"categoria": "Servicio", "driver": "ROMULO RIVERO SERVICIO", "sucursal": "Isuto", "pedidos": 199.0, "sin_instaleap": 7.0, "efectuadas": 0, "traspasos": 37.0, "vpm": 0, "redis": 0, "amarket": 22.0, "pizza": 12.0, "otros": 0, "total": 277.0, "ponderado": 311.0, "costo_normal": 18.05, "costo_pond": 16.08, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -108.0, "gap_pond": -74.0}, {"categoria": "Servicio", "driver": "DAVID SERVICIO VEIZAGA GALVEZ", "sucursal": "Isuto", "pedidos": 169.0, "sin_instaleap": 5.0, "efectuadas": 0, "traspasos": 40.0, "vpm": 0, "redis": 0, "amarket": 30.0, "pizza": 7.0, "otros": 0, "total": 251.0, "ponderado": 288.0, "costo_normal": 19.92, "costo_pond": 17.36, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -134.0, "gap_pond": -97.0}, {"categoria": "Servicio", "driver": "SEBASTIAN SERVICIO FLORES BEIZAGA", "sucursal": "Escuadron", "pedidos": 139.0, "sin_instaleap": 2.0, "efectuadas": 0, "traspasos": 18.0, "vpm": 0, "redis": 1.0, "amarket": 17.0, "pizza": 45.0, "otros": 0, "total": 222.0, "ponderado": 285.0, "costo_normal": 22.52, "costo_pond": 17.54, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -163.0, "gap_pond": -100.0}, {"categoria": "Servicio", "driver": "JULIAN CHAVEZ SERVICIO CUELLAR", "sucursal": "Isuto", "pedidos": 136.0, "sin_instaleap": 6.0, "efectuadas": 0, "traspasos": 33.0, "vpm": 0, "redis": 2.0, "amarket": 12.0, "pizza": 36.0, "otros": 0, "total": 225.0, "ponderado": 275.0, "costo_normal": 22.22, "costo_pond": 18.18, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -160.0, "gap_pond": -110.0}, {"categoria": "Servicio", "driver": "ESTEBAN SERVICIO ARIMENDANO", "sucursal": "Isuto", "pedidos": 142.0, "sin_instaleap": 3.0, "efectuadas": 3.0, "traspasos": 35.0, "vpm": 0, "redis": 1.0, "amarket": 16.0, "pizza": 27.0, "otros": 0, "total": 227.0, "ponderado": 271.0, "costo_normal": 22.03, "costo_pond": 18.45, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -158.0, "gap_pond": -114.0}, {"categoria": "Servicio", "driver": "Daniel Servicio Romero Lara", "sucursal": "Escuadron", "pedidos": 147.0, "sin_instaleap": 3.0, "efectuadas": 4.0, "traspasos": 41.0, "vpm": 6.0, "redis": 5.0, "amarket": 11.0, "pizza": 8.0, "otros": 0, "total": 225.0, "ponderado": 267.0, "costo_normal": 22.22, "costo_pond": 18.73, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -160.0, "gap_pond": -118.0}, {"categoria": "Servicio", "driver": "ELIAZAR SERVICIO LUQUE SANCHEZ", "sucursal": "Isuto", "pedidos": 95.0, "sin_instaleap": 5.0, "efectuadas": 5.0, "traspasos": 17.0, "vpm": 0, "redis": 20.0, "amarket": 10.0, "pizza": 41.0, "otros": 0, "total": 193.0, "ponderado": 264.0, "costo_normal": 25.91, "costo_pond": 18.94, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -192.0, "gap_pond": -121.0}, {"categoria": "Servicio", "driver": "FABRICIO SERVICIO GIL VACA", "sucursal": "Isuto", "pedidos": 106.0, "sin_instaleap": 1.0, "efectuadas": 4.0, "traspasos": 31.0, "vpm": 1.0, "redis": 24.0, "amarket": 12.0, "pizza": 18.0, "otros": 0, "total": 197.0, "ponderado": 254.0, "costo_normal": 25.38, "costo_pond": 19.69, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -188.0, "gap_pond": -131.0}, {"categoria": "Servicio", "driver": "ERWIN SERVICIO GUZMAN HURTADO", "sucursal": "Escuadron", "pedidos": 146.0, "sin_instaleap": 6.0, "efectuadas": 0, "traspasos": 34.0, "vpm": 6.0, "redis": 0, "amarket": 5.0, "pizza": 12.0, "otros": 0, "total": 209.0, "ponderado": 244.0, "costo_normal": 23.92, "costo_pond": 20.49, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -176.0, "gap_pond": -141.0}, {"categoria": "Servicio", "driver": "LUIS FERNANDO SERVICIO TACACHIRA RODRIGUEZ", "sucursal": "Escuadron", "pedidos": 101.0, "sin_instaleap": 4.0, "efectuadas": 0, "traspasos": 25.0, "vpm": 7.0, "redis": 1.0, "amarket": 4.0, "pizza": 12.0, "otros": 0, "total": 154.0, "ponderado": 192.0, "costo_normal": 32.47, "costo_pond": 26.04, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -231.0, "gap_pond": -193.0}, {"categoria": "Servicio", "driver": "ALEXANDER SERVICIO CAPOBIANCO", "sucursal": "Isuto", "pedidos": 66.0, "sin_instaleap": 2.0, "efectuadas": 11.0, "traspasos": 22.0, "vpm": 2.0, "redis": 3.0, "amarket": 15.0, "pizza": 23.0, "otros": 0, "total": 144.0, "ponderado": 191.0, "costo_normal": 34.72, "costo_pond": 26.18, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -241.0, "gap_pond": -194.0}, {"categoria": "Servicio", "driver": "Carmelo Arredondo Cortez Servicio", "sucursal": "Isuto", "pedidos": 115.0, "sin_instaleap": 2.0, "efectuadas": 2.0, "traspasos": 11.0, "vpm": 0, "redis": 0, "amarket": 13.0, "pizza": 4.0, "otros": 0, "total": 147.0, "ponderado": 164.0, "costo_normal": 34.01, "costo_pond": 30.49, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -238.0, "gap_pond": -221.0}, {"categoria": "Servicio", "driver": "WILLIAM JARED SERVICIO BANZER SEMO", "sucursal": "Isuto", "pedidos": 77.0, "sin_instaleap": 0, "efectuadas": 4.0, "traspasos": 21.0, "vpm": 0, "redis": 1.0, "amarket": 13.0, "pizza": 16.0, "otros": 0, "total": 132.0, "ponderado": 162.0, "costo_normal": 37.88, "costo_pond": 30.86, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -253.0, "gap_pond": -223.0}, {"categoria": "Servicio", "driver": "JOSE MARIA FARMACORP DELGADO", "sucursal": "Isuto", "pedidos": 16.0, "sin_instaleap": 1.0, "efectuadas": 3.0, "traspasos": 11.0, "vpm": 17.0, "redis": 6.0, "amarket": 1.0, "pizza": 0, "otros": 0, "total": 55.0, "ponderado": 113.0, "costo_normal": 90.91, "costo_pond": 44.25, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -330.0, "gap_pond": -272.0}, {"categoria": "Servicio", "driver": "DOUGLAS MOSQUEIRA SERVICIO", "sucursal": "Isuto", "pedidos": 18.0, "sin_instaleap": 0, "efectuadas": 14.0, "traspasos": 4.0, "vpm": 0, "redis": 2.0, "amarket": 4.0, "pizza": 1.0, "otros": 0, "total": 43.0, "ponderado": 50.0, "costo_normal": 116.28, "costo_pond": 100.0, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -342.0, "gap_pond": -335.0}, {"categoria": "Servicio", "driver": "YORDDY SENO CAMACHO SERVICIO", "sucursal": "Isuto", "pedidos": 23.0, "sin_instaleap": 0, "efectuadas": 0, "traspasos": 0, "vpm": 0, "redis": 0, "amarket": 0, "pizza": 0, "otros": 0, "total": 23.0, "ponderado": 23.0, "costo_normal": 217.39, "costo_pond": 217.39, "meta_normal": 385.0, "meta_pond": 385.0, "gap_normal": -362.0, "gap_pond": -362.0}];
+let RENT_CUSTOM = []; // manually added drivers
+
+function gv(id){ return parseFloat(document.getElementById(id)?.value||0)||0; }
+
+function calcPonderado(d, wNormal, wVpm, wAmarket, wPizza){
+  const base = (d.pedidos||0)+(d.sin_instaleap||0)+(d.efectuadas||0)+(d.traspasos||0)+(d.redis||0);
+  return base*wNormal + (d.vpm||0)*wVpm + (d.amarket||0)*wAmarket + (d.pizza||0)*wPizza;
+}
+
+function calcRentabilidad(){
+  const remun  = gv('rent-remun') || 5000;
+  const umbral = gv('rent-umbral') || 13;
+  const limite = gv('rent-limite') || 17;
+  const wN = gv('w-normal')||1;
+  const wV = gv('w-vpm')||4;
+  const wA = gv('w-amarket')||2;
+  const wP = gv('w-pizza')||2;
+
+  const allDrivers = [...RENT_DATA, ...RENT_CUSTOM];
+
+  const results = allDrivers.map(function(d){
+    const total   = d.total || 0;
+    const pond    = calcPonderado(d, wN, wV, wA, wP);
+    const costoN  = total > 0 ? remun/total : 9999;
+    const costoP  = pond  > 0 ? remun/pond  : 9999;
+    const gap     = Math.round(pond - remun/umbral);
+    return { ...d, pond_calc:Math.round(pond), costo_normal:costoN, costo_pond:costoP, gap };
+  }).sort((a,b)=>a.costo_pond-b.costo_pond);
+
+  // Summary
+  const ok    = results.filter(r=>r.costo_pond<umbral);
+  const medio = results.filter(r=>r.costo_pond>=umbral&&r.costo_pond<limite);
+  const malo  = results.filter(r=>r.costo_pond>=limite);
+
+  document.getElementById('rent-summary').innerHTML = `
+    <div style="background:rgba(16,185,129,.1);border:1px solid #10B981;border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:28px;font-weight:900;color:#10B981">${ok.length}</div>
+      <div style="font-size:9px;color:#10B981;letter-spacing:1px;font-weight:700">🟢 RENTABLES</div>
+      <div style="font-size:9px;color:#888">Costo &lt; Bs${umbral}</div>
+    </div>
+    <div style="background:rgba(245,158,11,.1);border:1px solid #F59E0B;border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:28px;font-weight:900;color:#F59E0B">${medio.length}</div>
+      <div style="font-size:9px;color:#F59E0B;letter-spacing:1px;font-weight:700">🟡 EN LÍMITE</div>
+      <div style="font-size:9px;color:#888">Bs${umbral}–${limite}</div>
+    </div>
+    <div style="background:rgba(239,68,68,.1);border:1px solid #EF4444;border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:28px;font-weight:900;color:#EF4444">${malo.length}</div>
+      <div style="font-size:9px;color:#EF4444;letter-spacing:1px;font-weight:700">🔴 NO RENTABLES</div>
+      <div style="font-size:9px;color:#888">Costo &gt; Bs${limite}</div>
+    </div>`;
+
+  // Table
+  const metaPond = Math.round(remun/umbral);
+  const rows = results.map(function(r,i){
+    const colN = r.costo_normal<umbral?'#10B981':r.costo_normal<limite?'#F59E0B':'#EF4444';
+    const colP = r.costo_pond<umbral?'#10B981':r.costo_pond<limite?'#F59E0B':'#EF4444';
+    const icon = r.costo_pond<umbral?'🟢':r.costo_pond<limite?'🟡':'🔴';
+    const gapCol = r.gap>=0?'#10B981':'#EF4444';
+    const gapStr = (r.gap>=0?'+':'')+r.gap;
+    // Short name: remove SERVICIO word
+    const nm = r.driver.replace(/SERVICIO|Servicio/g,'').replace(/\s+/g,' ').trim();
+    const suc = r.sucursal==='Isuto'?'🔵':'🟠';
+    return `<div style="display:grid;grid-template-columns:24px 1fr 70px 70px 60px;gap:4px;padding:9px 10px;border-bottom:1px solid rgba(42,42,58,.5);align-items:center">
+      <span style="font-size:11px;text-align:center">${icon}</span>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#E8B84B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nm}</div>
+        <div style="font-size:9px;color:#555;margin-top:1px">${suc} ${r.sucursal} · Total:${r.total|0} · Pond:${r.pond_calc}</div>
+        <div style="height:3px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:3px;overflow:hidden">
+          <div style="height:100%;width:${Math.min(100,r.pond_calc/metaPond*100).toFixed(0)}%;background:${colP};border-radius:2px;transition:width .5s"></div>
+        </div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:13px;font-weight:800;color:${colN}">Bs${r.costo_normal.toFixed(1)}</div>
+        <div style="font-size:8px;color:#555">${r.total|0} bol.</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:13px;font-weight:800;color:${colP}">Bs${r.costo_pond.toFixed(1)}</div>
+        <div style="font-size:8px;color:#555">${r.pond_calc} pond.</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:12px;font-weight:800;color:${gapCol}">${gapStr}</div>
+        <div style="font-size:8px;color:#555">vs meta</div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('rent-table').innerHTML = rows;
+
+  // Acciones
+  document.getElementById('rent-acciones').style.display='block';
+  document.getElementById('rent-list-ok').innerHTML =
+    ok.map(r=>`<div style="padding:3px 0;border-bottom:1px solid rgba(16,185,129,.15)">✓ ${r.driver.replace(/SERVICIO|Servicio/g,'').trim()}<span style="float:right;color:#10B981;font-weight:700">Bs${r.costo_pond.toFixed(1)}</span></div>`).join('');
+  document.getElementById('rent-list-bad').innerHTML =
+    [...medio,...malo].map(r=>`<div style="padding:3px 0;border-bottom:1px solid rgba(239,68,68,.15)">✗ ${r.driver.replace(/SERVICIO|Servicio/g,'').trim()}<span style="float:right;color:${r.costo_pond>=limite?'#EF4444':'#F59E0B'};font-weight:700">Bs${r.costo_pond.toFixed(1)}</span></div>`).join('');
+}
+
+function addDriverManual(){
+  const nombre = document.getElementById('rm-nombre').value.trim();
+  if(!nombre){ alert('Ingresa el nombre del driver'); return; }
+  const d = {
+    driver: nombre + ' Servicio',
+    sucursal: document.getElementById('rm-sucursal').value,
+    pedidos: gv('rm-ped'),
+    sin_instaleap: gv('rm-si'),
+    efectuadas: gv('rm-ef'),
+    traspasos: gv('rm-tr'),
+    vpm: gv('rm-vpm'),
+    redis: gv('rm-red'),
+    amarket: gv('rm-am'),
+    pizza: gv('rm-pi'),
+    total: gv('rm-ped')+gv('rm-si')+gv('rm-ef')+gv('rm-tr')+gv('rm-vpm')+gv('rm-red')+gv('rm-am')+gv('rm-pi'),
+  };
+  RENT_CUSTOM.push(d);
+  // Clear fields
+  ['rm-nombre','rm-ped','rm-si','rm-ef','rm-tr','rm-vpm','rm-red','rm-am','rm-pi'].forEach(function(id){
+    const el=document.getElementById(id); if(el)el.value=el.type==='number'?0:'';
+  });
+  calcRentabilidad();
+  addLog('Driver añadido: '+nombre,'#10B981');
+}
+
 /* ══ INIT ══ */
 buildChecklist();
 loadDB();
@@ -1230,6 +1437,9 @@ document.getElementById('drv-fecha').value=new Date().toISOString().split('T')[0
 const _today=new Date(),_d30=new Date();_d30.setDate(_today.getDate()-30);
 document.getElementById('det-fecha-ini').value=_d30.toISOString().split('T')[0];
 document.getElementById('det-fecha-fin').value=_today.toISOString().split('T')[0];
+// Default rent period: 26/05 - 25/06
+document.getElementById('rent-desde').value='2026-05-26';
+document.getElementById('rent-hasta').value='2026-06-25';
 updateBadge();
 addLog('Sistema TOGO listo','#E8B84B');
 
