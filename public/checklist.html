@@ -179,6 +179,38 @@ body{display:flex;flex-direction:column}
 
 .clr-btn{width:100%;background:transparent;border:1px solid var(--border);color:var(--gray);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;padding:10px;cursor:pointer;margin-bottom:16px;border-radius:6px}
 .clr-btn:active{border-color:#EF4444;color:#EF4444}
+.det-drv-card{background:var(--panel);border:1px solid var(--border);padding:12px 14px;margin-bottom:6px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:border-color .2s}
+.det-drv-card:active{border-color:#7B5CF0}
+.det-drv-name{font-size:13px;font-weight:700;color:#E8B84B}
+.det-drv-meta{font-size:10px;color:#888;margin-top:2px}
+.det-drv-avg{font-size:22px;font-weight:900;text-align:right}
+.det-drv-evals{font-size:10px;color:#555;text-align:right;margin-top:1px}
+.det-chevron{font-size:16px;color:#3a3a5a;margin-left:8px}
+.det-detail-wrap{background:var(--panel);border:1px solid #7B5CF0;border-radius:10px;padding:14px;margin-bottom:12px}
+.det-detail-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.det-detail-title{font-size:14px;font-weight:800;color:#E8B84B}
+.det-back{background:transparent;border:1px solid #3a3a5a;color:#888;font-family:Rajdhani,sans-serif;font-size:11px;font-weight:700;padding:5px 12px;border-radius:5px;cursor:pointer}
+.det-back:active{border-color:#7B5CF0;color:#A78BFA}
+.det-eval-row{background:#1a1a2e;border-radius:8px;padding:10px 12px;margin-bottom:8px;border:1px solid rgba(42,42,58,.8)}
+.det-eval-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.det-eval-fecha{font-size:11px;color:#888;font-weight:600}
+.det-eval-turno{font-size:11px;font-weight:700}
+.det-eval-evaluador{font-size:10px;color:#7B5CF0;font-weight:700;margin-left:auto}
+.det-eval-total{font-size:16px;font-weight:900}
+.det-cats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+.det-cat{background:rgba(0,0,0,.2);border-radius:6px;padding:8px 10px}
+.det-cat-name{font-size:9px;color:#888;letter-spacing:1px;font-weight:700;margin-bottom:4px}
+.det-cat-score{font-size:14px;font-weight:800}
+.det-cat-bar{height:4px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:4px;overflow:hidden}
+.det-cat-fill{height:100%;border-radius:2px;transition:width .5s}
+.det-items{margin-top:6px}
+.det-item{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(42,42,58,.4);font-size:11px}
+.det-item:last-child{border:none}
+.det-item-name{color:#A08060;font-weight:600;flex:1}
+.det-item-score{font-weight:800;min-width:28px;text-align:right}
+.det-item-bar{height:3px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:3px;overflow:hidden}
+.det-item-fill{height:100%;border-radius:2px}
+.clr-btn:active{border-color:#EF4444;color:#EF4444}
 </style>
 </head>
 <body>
@@ -317,6 +349,18 @@ body{display:flex;flex-direction:column}
     <div class="rank-table" id="rank-table"><div class="empty-state">◇ Sin registros aún ◇</div></div>
   </div>
 
+  <!-- DETALLE -->
+  <div id="page-detalle" class="page">
+    <div class="page-title">◉ Detalle por Driver</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <input class="rpg-input" id="det-fecha-ini" type="date" style="flex:1;min-width:130px">
+      <input class="rpg-input" id="det-fecha-fin" type="date" style="flex:1;min-width:130px">
+      <button onclick="renderDetalle()" style="background:#7B5CF0;border:none;color:#fff;font-family:Rajdhani,sans-serif;font-size:13px;font-weight:700;padding:8px 18px;border-radius:6px;cursor:pointer">Filtrar</button>
+    </div>
+    <div id="det-drivers-list"></div>
+    <div id="det-driver-detail" style="display:none"></div>
+  </div>
+
   <!-- ALERTAS -->
   <div id="page-alertas" class="page">
     <div class="page-title">⚠ Alertas Críticas</div>
@@ -330,6 +374,7 @@ body{display:flex;flex-direction:column}
   <button class="tb active" onclick="showPage('registro')"><span class="tb-icon">◈</span>Registro</button>
   <button class="tb" onclick="showPage('historial')"><span class="tb-icon">◎</span>Historial</button>
   <button class="tb" onclick="showPage('comparativa')"><span class="tb-icon">⬡</span>Ranking</button>
+  <button class="tb" onclick="showPage('detalle')"><span class="tb-icon">◉</span>Detalle</button>
   <button class="tb" onclick="showPage('alertas')"><span class="tb-icon">⚠</span>Alertas<span class="badge" id="alert-badge">0</span></button>
 </div>
 
@@ -398,12 +443,13 @@ function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tb').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  ['registro','historial','comparativa','alertas'].forEach((n,i)=>{if(n===id)document.querySelectorAll('.tb')[i].classList.add('active');});
+  ['registro','historial','comparativa','detalle','alertas'].forEach((n,i)=>{if(n===id)document.querySelectorAll('.tb')[i].classList.add('active');});
   document.getElementById('content').scrollTop=0;
   document.getElementById('save-top').style.display=id==='registro'?'':'none';
   if(id==='historial')renderHistorial();
   if(id==='comparativa')renderComparativa();
   if(id==='alertas')renderAlertas();
+  if(id==='detalle')renderDetalle();
 }
 
 /* ══ CHECKLIST ══ */
@@ -1039,10 +1085,151 @@ function drvSelect(name){
   document.getElementById('drv-dd').style.display='none';
 }
 
+
+/* ══ DETALLE POR DRIVER ══ */
+function renderDetalle(){
+  const fi=document.getElementById('det-fecha-ini').value;
+  const ff=document.getElementById('det-fecha-fin').value;
+  // Reset detail view
+  document.getElementById('det-driver-detail').style.display='none';
+  document.getElementById('det-drivers-list').style.display='block';
+  // Filter DB
+  let data=DB.filter(r=>(!fi||r.fecha>=fi)&&(!ff||r.fecha<=ff));
+  // Group by driver
+  const byDrv={};
+  data.forEach(r=>{
+    if(!byDrv[r.driver])byDrv[r.driver]=[];
+    byDrv[r.driver].push(r);
+  });
+  const list=document.getElementById('det-drivers-list');
+  if(!Object.keys(byDrv).length){
+    list.innerHTML='<div class="empty-state">◇ Sin registros en este período ◇</div>';return;
+  }
+  // Sort by avg desc
+  const sorted=Object.keys(byDrv).map(d=>{
+    const recs=byDrv[d];
+    const avg=recs.reduce((s,r)=>s+r.total,0)/recs.length;
+    return{driver:d,recs,avg};
+  }).sort((a,b)=>b.avg-a.avg);
+
+  list.innerHTML=sorted.map((dr,i)=>`
+    <div class="det-drv-card" onclick="showDriverDetail('${dr.driver.replace(/'/g,"\'")}','${fi}','${ff}')">
+      <div style="flex:1">
+        <div class="det-drv-name">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'◆'} ${dr.driver}</div>
+        <div class="det-drv-meta">${dr.recs.length} evaluación${dr.recs.length!==1?'es':''} · Último: ${fmtDate(dr.recs[dr.recs.length-1].fecha)}</div>
+      </div>
+      <div>
+        <div class="det-drv-avg" style="color:${rColor(dr.avg)}">${dr.avg.toFixed(2)}</div>
+        <div class="det-drv-evals" style="color:${rColor(dr.avg)}">${rLabel(dr.avg)}</div>
+      </div>
+      <div class="det-chevron">›</div>
+    </div>`).join('');
+}
+
+function showDriverDetail(driver, fi, ff){
+  let recs=DB.filter(r=>r.driver===driver&&(!fi||r.fecha>=fi)&&(!ff||r.fecha<=ff));
+  recs.sort((a,b)=>b.fecha>a.fecha?1:-1);
+  document.getElementById('det-drivers-list').style.display='none';
+  const wrap=document.getElementById('det-driver-detail');
+  wrap.style.display='block';
+
+  const avg=recs.reduce((s,r)=>s+r.total,0)/recs.length;
+
+  // Cat averages
+  const catAvgs={};
+  ['uni','img','equ','veh'].forEach(function(cat){
+    const vals=recs.filter(r=>r[cat]!=null).map(r=>parseFloat(r[cat]));
+    catAvgs[cat]=vals.length?vals.reduce((s,n)=>s+n,0)/vals.length:null;
+  });
+
+  const catNames={uni:'Uniforme',img:'Imagen',equ:'Equipo',veh:'Vehículo'};
+  const catColors={uni:'#E8B84B',img:'#10B981',equ:'#4A8FD4',veh:'#EF4444'};
+
+  const evalsHTML=recs.map(r=>{
+    const turnoIcon=r.turno==='Mañana'?'🌅':r.turno==='Tarde'?'☀️':r.turno==='Nocturno'?'🌙':'';
+    // Category bars
+    const catsHTML=['uni','img','equ','veh'].map(cat=>{
+      const sc=r[cat];
+      const pct=sc?sc/5*100:0;
+      const col=sc?rColor(sc):'#333';
+      return`<div class="det-cat">
+        <div class="det-cat-name">${catNames[cat]}</div>
+        <div class="det-cat-score" style="color:${col}">${sc?sc.toFixed(1):'—'}</div>
+        <div class="det-cat-bar"><div class="det-cat-fill" style="width:${pct}%;background:${catColors[cat]}"></div></div>
+      </div>`;
+    }).join('');
+
+    // Individual items
+    const det=r.detalles||{};
+    const itemsHTML=Object.keys(CATS).map(cat=>{
+      const items=CATS[cat].items;
+      const catDet=det[cat]||{};
+      if(!Object.keys(catDet).length)return'';
+      const rows=items.map((nm,i)=>{
+        const sc=catDet[i];
+        if(sc===undefined||sc===null||sc===0)return'';
+        const col=sc<=2?'#EF4444':sc<=3?'#F59E0B':sc<=4?'#10B981':'#7B5CF0';
+        const pct=sc/5*100;
+        const warn=sc<=2?' ⚠':'';
+        return`<div class="det-item">
+          <div style="flex:1">
+            <div class="det-item-name">${nm}${warn}</div>
+            <div class="det-item-bar"><div class="det-item-fill" style="width:${pct}%;background:${col}"></div></div>
+          </div>
+          <div class="det-item-score" style="color:${col}">${sc}/5</div>
+        </div>`;
+      }).join('');
+      if(!rows.trim())return'';
+      return`<div style="margin-top:8px">
+        <div style="font-size:9px;color:${catColors[cat]};letter-spacing:1px;font-weight:700;margin-bottom:4px">${catNames[cat].toUpperCase()}</div>
+        ${rows}
+      </div>`;
+    }).join('');
+
+    return`<div class="det-eval-row">
+      <div class="det-eval-hdr">
+        <span class="det-eval-fecha">📅 ${fmtDate(r.fecha)}</span>
+        <span class="det-eval-turno">${turnoIcon} ${r.turno||''}</span>
+        <span class="det-eval-evaluador">👤 ${r.evaluador||'—'}</span>
+        <span class="det-eval-total" style="color:${rColor(r.total)}">${r.total.toFixed(2)}</span>
+      </div>
+      <div class="det-cats">${catsHTML}</div>
+      <div class="det-items">${itemsHTML}</div>
+    </div>`;
+  }).join('');
+
+  wrap.innerHTML=`
+    <div class="det-detail-wrap">
+      <div class="det-detail-hdr">
+        <div>
+          <div class="det-detail-title">◆ ${driver}</div>
+          <div style="font-size:10px;color:#888;margin-top:2px">${recs.length} evaluación${recs.length!==1?'es':''} · Promedio: <span style="color:${rColor(avg)};font-weight:700">${avg.toFixed(2)}</span></div>
+        </div>
+        <button class="det-back" onclick="renderDetalle()">‹ Volver</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
+        ${['uni','img','equ','veh'].map(cat=>{
+          const a=catAvgs[cat];
+          return`<div class="det-cat">
+            <div class="det-cat-name">${catNames[cat].toUpperCase()}</div>
+            <div class="det-cat-score" style="color:${a?rColor(a):'#333'}">${a?a.toFixed(2):'—'}</div>
+            <div class="det-cat-bar"><div class="det-cat-fill" style="width:${a?a/5*100:0}%;background:${catColors[cat]}"></div></div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="font-size:9px;color:#7B5CF0;letter-spacing:2px;font-weight:700;margin-bottom:8px">EVALUACIONES INDIVIDUALES</div>
+      ${evalsHTML}
+    </div>`;
+  document.getElementById('content').scrollTop=0;
+}
+
 /* ══ INIT ══ */
 buildChecklist();
 loadDB();
 document.getElementById('drv-fecha').value=new Date().toISOString().split('T')[0];
+const _today=new Date(),_d30=new Date();_d30.setDate(_today.getDate()-30);
+document.getElementById('det-fecha-ini').value=_d30.toISOString().split('T')[0];
+document.getElementById('det-fecha-fin').value=_today.toISOString().split('T')[0];
 updateBadge();
 addLog('Sistema TOGO listo','#E8B84B');
 
