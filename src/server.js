@@ -88,6 +88,7 @@ async function initDB() {
     );
     ALTER TABLE checklist_registros ADD COLUMN IF NOT EXISTS evaluador TEXT DEFAULT '';
     ALTER TABLE checklist_registros ADD COLUMN IF NOT EXISTS turno TEXT DEFAULT '';
+    ALTER TABLE checklist_registros ADD COLUMN IF NOT EXISTS hora TEXT DEFAULT '';
   `);
 
   // Crear admin por defecto si no existe
@@ -447,16 +448,16 @@ app.get('/api/checklist', async (req, res) => {
 
 app.post('/api/checklist', async (req, res) => {
   try {
-    const { id, driver, fecha, evaluador, turno, total, uni, img, equ, veh, detalles } = req.body;
+    const { id, driver, fecha, evaluador, turno, hora, total, uni, img, equ, veh, detalles } = req.body;
     await pool.query(
-      `INSERT INTO checklist_registros (id, driver, fecha, evaluador, turno, total, uni, img, equ, veh, detalles)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      `INSERT INTO checklist_registros (id, driver, fecha, evaluador, turno, hora, total, uni, img, equ, veh, detalles)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
        ON CONFLICT (id) DO UPDATE SET
          driver=EXCLUDED.driver, fecha=EXCLUDED.fecha, evaluador=EXCLUDED.evaluador,
-         turno=EXCLUDED.turno, total=EXCLUDED.total,
+         turno=EXCLUDED.turno, hora=EXCLUDED.hora, total=EXCLUDED.total,
          uni=EXCLUDED.uni, img=EXCLUDED.img, equ=EXCLUDED.equ, veh=EXCLUDED.veh,
          detalles=EXCLUDED.detalles`,
-      [id, driver, fecha, evaluador||'', turno||'', total, uni||null, img||null, equ||null, veh||null, JSON.stringify(detalles||{})]
+      [id, driver, fecha, evaluador||'', turno||'', hora||'', total, uni||null, img||null, equ||null, veh||null, JSON.stringify(detalles||{})]
     );
     res.json({ ok: true });
   } catch(e) {
