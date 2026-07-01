@@ -179,6 +179,13 @@ body{display:flex;flex-direction:column}
 
 .clr-btn{width:100%;background:transparent;border:1px solid var(--border);color:var(--gray);font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;padding:10px;cursor:pointer;margin-bottom:16px;border-radius:6px}
 .clr-btn:active{border-color:#EF4444;color:#EF4444}
+.tc-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+.tc-driver{font-size:12px;font-weight:700;color:#E8B84B;flex:1}
+.tc-meta{font-size:10px;color:#888;margin-top:2px}
+.tc-score{font-size:16px;font-weight:900;text-align:right;min-width:45px}
+.tc-hora{font-size:10px;color:#7B5CF0;font-weight:700;text-align:right}
+.tc-pending{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px 12px;margin-bottom:5px;display:flex;align-items:center;gap:10px}
+.tc-pending-name{font-size:11px;color:#EF4444;font-weight:700;flex:1}
 .det-drv-card{background:var(--panel);border:1px solid var(--border);padding:12px 14px;margin-bottom:6px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:border-color .2s}
 .det-drv-card:active{border-color:#7B5CF0}
 .det-drv-name{font-size:13px;font-weight:700;color:#E8B84B}
@@ -211,6 +218,13 @@ body{display:flex;flex-direction:column}
 .det-item-bar{height:3px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:3px;overflow:hidden}
 .det-item-fill{height:100%;border-radius:2px}
 .clr-btn:active{border-color:#EF4444;color:#EF4444}
+.tc-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+.tc-driver{font-size:12px;font-weight:700;color:#E8B84B;flex:1}
+.tc-meta{font-size:10px;color:#888;margin-top:2px}
+.tc-score{font-size:16px;font-weight:900;text-align:right;min-width:45px}
+.tc-hora{font-size:10px;color:#7B5CF0;font-weight:700;text-align:right}
+.tc-pending{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px 12px;margin-bottom:5px;display:flex;align-items:center;gap:10px}
+.tc-pending-name{font-size:11px;color:#EF4444;font-weight:700;flex:1}
 </style>
 </head>
 <body>
@@ -443,6 +457,36 @@ body{display:flex;flex-direction:column}
 
   </div>
 
+  <!-- TURNOCHECK -->
+  <div id="page-turnocheck" class="page">
+    <div class="page-title">🕐 Control de Revisiones por Turno</div>
+
+    <!-- Filtro fecha + turno -->
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div class="fl"><label>Fecha</label><input class="rpg-input" id="tc-fecha" type="date"></div>
+        <div class="fl"><label>Turno</label>
+          <select class="rpg-input" id="tc-turno">
+            <option value="">Todos los turnos</option>
+            <option value="Mañana">🌅 Mañana</option>
+            <option value="Tarde">☀️ Tarde</option>
+            <option value="Nocturno">🌙 Nocturno</option>
+          </select>
+        </div>
+      </div>
+      <button onclick="renderTurnoCheck()" style="width:100%;background:#7B5CF0;border:none;color:#fff;font-family:Rajdhani,sans-serif;font-size:13px;font-weight:700;padding:8px;border-radius:6px;cursor:pointer">🔍 Buscar</button>
+    </div>
+
+    <!-- Resumen del turno -->
+    <div id="tc-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px"></div>
+
+    <!-- Lista de evaluaciones realizadas -->
+    <div id="tc-realizadas" style="margin-bottom:10px"></div>
+
+    <!-- Drivers SIN revisión -->
+    <div id="tc-pendientes"></div>
+  </div>
+
   <!-- ALERTAS -->
   <div id="page-alertas" class="page">
     <div class="page-title">⚠ Alertas Críticas</div>
@@ -458,6 +502,7 @@ body{display:flex;flex-direction:column}
   <button class="tb" onclick="showPage('comparativa')"><span class="tb-icon">⬡</span>Ranking</button>
   <button class="tb" onclick="showPage('detalle')"><span class="tb-icon">◉</span>Detalle</button>
   <button class="tb" onclick="showPage('rentabilidad')"><span class="tb-icon">💰</span>Costo</button>
+  <button class="tb" onclick="showPage('turnocheck')"><span class="tb-icon">🕐</span>Turnos</button>
   <button class="tb" onclick="showPage('alertas')"><span class="tb-icon">⚠</span>Alertas<span class="badge" id="alert-badge">0</span></button>
 </div>
 
@@ -502,6 +547,7 @@ function loadDB(){
     DB=rows.map(function(r){
       return {
         id:r.id, driver:r.driver, fecha:r.fecha,
+        hora:r.hora||'',
         evaluador:r.evaluador||'', turno:r.turno||'',
         total:parseFloat(r.total),
         uni:r.uni?parseFloat(r.uni):null,
@@ -526,7 +572,7 @@ function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tb').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  ['registro','historial','comparativa','detalle','rentabilidad','alertas'].forEach((n,i)=>{if(n===id)document.querySelectorAll('.tb')[i].classList.add('active');});
+  ['registro','historial','comparativa','detalle','rentabilidad','turnocheck','alertas'].forEach((n,i)=>{if(n===id)document.querySelectorAll('.tb')[i].classList.add('active');});
   document.getElementById('content').scrollTop=0;
   document.getElementById('save-top').style.display=id==='registro'?'':'none';
   if(id==='historial')renderHistorial();
@@ -534,6 +580,7 @@ function showPage(id){
   if(id==='alertas')renderAlertas();
   if(id==='detalle')renderDetalle();
   if(id==='rentabilidad')calcRentabilidad();
+  if(id==='turnocheck')renderTurnoCheck();
 }
 
 /* ══ CHECKLIST ══ */
@@ -635,8 +682,11 @@ function guardarRegistro(){
   });
   if(!tots.length){showMsg('Califica al menos un ítem para guardar','err');return;}
   const total=parseFloat((tots.reduce((a,b)=>a+b,0)/tots.length).toFixed(2));
+  const ahora = new Date();
+  const hora = ahora.toLocaleTimeString('es-BO', {hour:'2-digit',minute:'2-digit',hour12:false});
   const reg={
     id:Date.now(),
+    hora:hora,
     driver:nm,
     fecha:fecha,
     evaluador:evaluador,
@@ -730,7 +780,7 @@ function renderHistorial(){
       const turnoIcon=r.turno==='Mañana'?'🌅':r.turno==='Tarde'?'☀️':r.turno==='Nocturno'?'🌙':'';
       const evalTag=r.evaluador?`<span style="font-size:9px;color:#7B5CF0;font-weight:700">${r.evaluador}</span>`:'';
       return`<div class="hist-rec" style="grid-template-columns:75px 1fr auto auto auto auto;gap:5px">
-        <span class="hist-date">${fmtDate(r.fecha)}</span>
+        <span class="hist-date">${fmtDate(r.fecha)}${r.hora?' '+r.hora:''}</span>
         <div class="mini-bars">${bars}</div>
         <span style="font-size:11px">${turnoIcon}</span>
         <span class="hist-tot" style="color:${rColor(r.total)}">${r.total.toFixed(2)}</span>
@@ -1430,11 +1480,106 @@ function addDriverManual(){
   addLog('Driver añadido: '+nombre,'#10B981');
 }
 
+
+/* ══ TURNO CHECK ══ */
+const ALL_DRIVERS = ["ADOLFO DEL ALCAZAR FARMACORP", "ADRIAN CABRERA ROJAS INDEPENDIENTE", "ALEJANDRO DELIVERY FAST HURTADO", "ALEXANDER MONTENEGRO DELIVERY FAST", "ALEXANDER SERVICIO CAPOBIANCO", "ALEXANDER SERVICIO MONTENEGRO", "Alejandro Loayza (Mariela)", "CARMELO DELIVERY FAST ARREDONDO", "CRISTHIAN CRISTOFEN CABRERA SERVICIO", "CRISTIAN LEONCIO GILDRES FAST", "Carmelo Arredondo Cortez Servicio", "DANIEL CAMACHO DELIVERY FAST", "DANIEL ROMERO LARA", "DANIEL SERVICIO ARGOTE", "DARIO INDEPENDIENTE CESPEDES", "DAVID MIGUEL COLQUE DELIVERY FAST", "DAVID SERVICIO VEIZAGA GALVEZ", "DEIVID MARCELO CASTAÑO DELIVERY FAST", "DENIS CUELLAR (APOYO)", "Denilson Moreno Farmacorp", "Denis Servicio Cuellar", "ELIAZAR LUQUE (APOYO)", "ELIAZAR SERVICIO LUQUE SANCHEZ", "EMERSON TIMOTEO CHIPANA DELIVERY FAST", "ERICK JAVIER BARRETO MARANDIPI DELIVERY FAST", "ERWIN GARZON FARMACORP", "ERWIN MARCA DELIVERY FAST", "ERWIN SERVICIO GUZMAN HURTADO", "ESTEBAN SERVICIO ARIMENDANO", "FABRI DELIVERY FAST GIL", "FABRICIO SERVICIO GIL VACA", "FERNANDO RIPLEY DELIVERY FAST", "FERNANDO TORREZ ROJAS SERVICIO", "GERSON MONTAÑO FARMACORP", "GRECIA ARTEAGA", "HERMAN FELIPE INDEPENDIENTE SOLIZ AGUILERA", "IVER TOLEDO SERVICIO SALAZAR", "JAN UBANO FLORES FARMACORP", "JAVIER MONTENEGRO DELIVERY FAST", "JHONN WILLIAMS CALLE AGUILAR DELIVERY FAST", "JOEL SERVICIO BARAO PEREZ", "JORGE LUIS INDEPENDIENTE ARAUZ GUATIA", "JORGE LUIS SERVICIO ARAUZ", "JOSE DANIEL ARGOTE DELIVERY FAST", "JOSE FARMACORP PAZ", "JOSE MARIA DELGADO TERAN DELIVERY FAST", "JOSE MARIA FARMACORP DELGADO", "JOSE MARIA REICHE DELIVERY FAST", "JOSE MIGUEL RAMOS FAST", "JOSE MIGUEL RAMOS MENDOZA SERVICIO", "JUAN DAVID INDEPENDIENTE HUAYHUA CAMPOS", "JUAN ENRIQUE PRADO DELIVERY FAST", "JUAN PABLO FARMACORP JUSTINIANO", "JUAN RODRIGO", "JULIAN CHAVEZ SERVICIO CUELLAR", "JULIAN SERVICIO MENDOZA ANTELO", "KEVIN CRUZ", "KEVIN FARMACORP CRUZ JUSTINIANO", "LEONARDO SILVA GUZMAN INDEPENDIENTE", "LEOVANY INDEPENDIENTE GONZALEZ OROPESA", "LIYINA DELIVERY FAST MORALES", "LORENZO INDEPENDIENTE RIVERO", "LUCAS GUTIERREZ ESPINOZA INDEPENDIENTE", "LUIS FERNANDO DELIVERY FAST ESTREMADOIRO", "LUIS FERNANDO SERVICIO TACACHIRA RODRIGUEZ", "MAICKOL VACA LOAYZA DELIVERY FAST", "MARIANA ANDREA DELIVERY FAST ARAUZ", "MARIO RONALD ALVIS LAZO SERVICIO", "MAURICIO MIRANDA DELIVERY FAST", "MIGUEL ANGEL CARDENAS ARGOTE", "MIGUEL ANGEL INDEPENDIENTE BRUNO", "MIGUEL ANGEL INDEPENDIENTE MENDOZA", "MILTON INDEPENDIENTE TARQUI", "MILTON SERVICIO TARQUI", "MOISES AMURRIO VAZQUES", "PAOLO ANDRES DELGADO DELIVERY FAST", "PEDRO HUMBERTO MERCADO MIRANDA", "PEDRO LUIS LOPEZ DELIVERY FAST", "RANDY VARGAS", "ROBERTO JUNIOR DELIVERY FAST ORTIZ CUELLAR", "RODOLFO INDEPENDIENTE VACARREZA", "RODOLFO VACARREZA MERIDA SERVICIO", "RODRIGO CLAROS", "RODRIGO DELIVERY FAST CLAROS", "RODRIGO DELIVERY FAST MERCADO", "ROGER PADILLA DELIVERY FAST", "ROGER SERVICIO PADILLA", "ROMULO RIVERO SERVICIO", "RUBEN DELIVERY FAST ARANA", "SEBASTIAN FLORES SERVICIO", "SEBASTIAN MONTENEGRO DELIVERY FAST", "STOJAN JESUS MEDINA PARDO", "WILLIAM JARED SERVICIO BANZER SEMO", "YERI PADILLA SERVICIO", "YOEL CALLIZAYA FERNANDEZ SERVICIO", "YONY INDEPENDIENTE MOLINA", "YUSTHIN CALDERON CONDORI DELIVERY FAST", "ZANYK MORENO MOSCOS"];
+
+function renderTurnoCheck(){
+  const fecha = document.getElementById('tc-fecha').value;
+  const turno = document.getElementById('tc-turno').value;
+
+  if(!fecha){ showMsg && showMsg('Selecciona una fecha','err'); return; }
+
+  // Filtrar registros del día/turno
+  let regs = DB.filter(r => r.fecha === fecha && (!turno || r.turno === turno));
+
+  // Drivers revisados
+  const revisados = regs.map(r => r.driver);
+
+  // Drivers NO revisados — buscar por nombre aproximado
+  const noRevisados = ALL_DRIVERS.filter(function(d){
+    const dn = d.toLowerCase().replace(/servicio|delivery fast|farmacorp|independiente/gi,'').trim();
+    return !revisados.some(function(rev){
+      const rn = rev.toLowerCase().replace(/servicio|delivery fast|farmacorp|independiente/gi,'').trim();
+      return rn.includes(dn.slice(0,8)) || dn.includes(rn.slice(0,8));
+    });
+  });
+
+  // Summary cards
+  const turnoLabel = turno || 'Todos los turnos';
+  const turnos = turno ? [turno] : ['Mañana','Tarde','Nocturno'];
+  const countPorTurno = {};
+  turnos.forEach(t => countPorTurno[t] = regs.filter(r=>r.turno===t).length);
+
+  document.getElementById('tc-summary').innerHTML = `
+    <div style="background:rgba(123,92,240,.12);border:1px solid #7B5CF0;border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:26px;font-weight:900;color:#7B5CF0">${regs.length}</div>
+      <div style="font-size:9px;color:#7B5CF0;font-weight:700;letter-spacing:1px">✅ REVISADOS</div>
+      <div style="font-size:9px;color:#555">${fecha}</div>
+    </div>
+    <div style="background:rgba(239,68,68,.08);border:1px solid #EF4444;border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:26px;font-weight:900;color:#EF4444">${noRevisados.length}</div>
+      <div style="font-size:9px;color:#EF4444;font-weight:700;letter-spacing:1px">⏳ PENDIENTES</div>
+      <div style="font-size:9px;color:#555">Sin revisión</div>
+    </div>
+    <div style="background:rgba(16,185,129,.08);border:1px solid #10B981;border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:26px;font-weight:900;color:#10B981">${regs.length?((regs.reduce((s,r)=>s+r.total,0)/regs.length).toFixed(1)):'-'}</div>
+      <div style="font-size:9px;color:#10B981;font-weight:700;letter-spacing:1px">📊 PROM DÍA</div>
+      <div style="font-size:9px;color:#555">Calificación</div>
+    </div>`;
+
+  // Evaluaciones realizadas
+  const realizadasHTML = regs.length ? `
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:10px">
+      <div style="background:#1a1a2e;padding:8px 12px;font-size:9px;color:#7B5CF0;letter-spacing:2px;font-weight:700">
+        ✅ REVISIONES REALIZADAS — ${turnoLabel}
+      </div>
+      ${regs.sort((a,b)=>(a.hora||'').localeCompare(b.hora||'')).map(r => {
+        const turnoIcon = r.turno==='Mañana'?'🌅':r.turno==='Tarde'?'☀️':r.turno==='Nocturno'?'🌙':'⏱';
+        const col = r.total>=4?'#10B981':r.total>=3?'#F59E0B':'#EF4444';
+        return `<div class="tc-card">
+          <div style="flex:1">
+            <div class="tc-driver">◆ ${r.driver.replace(/SERVICIO|Servicio/g,'').trim()}</div>
+            <div class="tc-meta">${turnoIcon} ${r.turno||'—'} &nbsp;|&nbsp; 👤 ${r.evaluador||'—'}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="tc-score" style="color:${col}">${r.total.toFixed(1)}</div>
+            <div class="tc-hora">🕐 ${r.hora||'—'}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>` : `<div class="empty-state">◇ Sin revisiones para esta fecha/turno ◇</div>`;
+
+  document.getElementById('tc-realizadas').innerHTML = realizadasHTML;
+
+  // Drivers NO revisados
+  const pendientesHTML = noRevisados.length ? `
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden">
+      <div style="background:#1a1a2e;padding:8px 12px;font-size:9px;color:#EF4444;letter-spacing:2px;font-weight:700">
+        ⏳ DRIVERS SIN REVISIÓN HOY (${noRevisados.length})
+      </div>
+      <div style="padding:8px">
+        ${noRevisados.map(d => `
+          <div class="tc-pending">
+            <span style="font-size:16px">⚠</span>
+            <span class="tc-pending-name">${d}</span>
+          </div>`).join('')}
+      </div>
+    </div>` : `
+    <div style="background:rgba(16,185,129,.08);border:1px solid #10B981;border-radius:8px;padding:14px;text-align:center">
+      <div style="font-size:24px;margin-bottom:4px">🎉</div>
+      <div style="font-size:13px;color:#10B981;font-weight:700">¡Todos los drivers revisados!</div>
+    </div>`;
+
+  document.getElementById('tc-pendientes').innerHTML = pendientesHTML;
+}
+
 /* ══ INIT ══ */
 buildChecklist();
 loadDB();
 document.getElementById('drv-fecha').value=new Date().toISOString().split('T')[0];
 const _today=new Date(),_d30=new Date();_d30.setDate(_today.getDate()-30);
+document.getElementById('tc-fecha').value=_today.toISOString().split('T')[0];
 document.getElementById('det-fecha-ini').value=_d30.toISOString().split('T')[0];
 document.getElementById('det-fecha-fin').value=_today.toISOString().split('T')[0];
 // Default rent period: 26/05 - 25/06
