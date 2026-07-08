@@ -334,7 +334,13 @@ body{display:flex;flex-direction:column}
 
   <!-- HISTORIAL -->
   <div id="page-historial" class="page">
-    <div class="page-title">◎ Historial por Driver</div>
+    <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <span>◎ Historial por Driver</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="db-count" style="font-size:11px;color:var(--gray)"></span>
+        <button onclick="recoverLocalStorage()" style="background:#1a2a1a;border:1px solid #10B981;color:#10B981;padding:6px 12px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer">⬆ Recuperar datos locales</button>
+      </div>
+    </div>
     <div class="filters" style="flex-wrap:wrap;gap:6px">
       <select class="fsel" id="hist-drv-f" onchange="renderHistorial()"><option value="">Todos los drivers</option></select>
       <select class="fsel" id="hist-mon-f" onchange="renderHistorial()"><option value="">Todos los meses</option></select>
@@ -1571,9 +1577,45 @@ function renderTurnoCheck(){
   document.getElementById('tc-pendientes').innerHTML = pendientesHTML;
 }
 
+/* ══ RECOVERY ══ */
+function recoverLocalStorage(){
+  let local = [];
+  try { local = JSON.parse(localStorage.getItem('togo_cl')||'[]'); } catch(e){}
+  if(!local.length){
+    showMsg('No hay datos locales para recuperar','err');
+    return;
+  }
+  if(!confirm('Se encontraron '+local.length+' registros en este dispositivo. ¿Subirlos a la base de datos compartida?')) return;
+  showMsg('Subiendo '+local.length+' registros...','ok');
+  fetch('/api/checklist/bulk',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({registros:local})
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.ok){
+      showMsg('✅ Recuperados: '+d.imported+' nuevos, '+d.skipped+' ya existían','ok');
+      loadDB();
+    } else {
+      showMsg('Error: '+(d.error||'desconocido'),'err');
+    }
+  })
+  .catch(function(e){ showMsg('Error de conexión: '+e.message,'err'); });
+}
+function checkDBCount(){
+  fetch('/api/checklist/count')
+  .then(function(r){return r.json();})
+  .then(function(d){
+    const el=document.getElementById('db-count');
+    if(el && d.total) el.textContent = d.total+' registros ('+d.desde+' → '+d.hasta+')';
+  }).catch(function(){});
+}
+
 /* ══ INIT ══ */
 buildChecklist();
 loadDB();
+checkDBCount();
 document.getElementById('drv-fecha').value=new Date().toISOString().split('T')[0];
 const _today=new Date(),_d30=new Date();_d30.setDate(_today.getDate()-30);
 document.getElementById('tc-fecha').value=_today.toISOString().split('T')[0];
