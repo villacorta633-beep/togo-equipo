@@ -542,7 +542,7 @@ let DB=[];
 // Load from server on startup
 function loadDB(){
   fetch('/api/checklist')
-  .then(function(r){return r.json();})
+  .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
   .then(function(rows){
     DB=rows.map(function(r){
       return {
@@ -560,10 +560,11 @@ function loadDB(){
     updateBadge();
     addLog('Registros cargados: '+DB.length,'#10B981');
   })
-  .catch(function(){
-    // Fallback localStorage
-    try{DB=JSON.parse(localStorage.getItem('togo_cl')||'[]');}catch(e){DB=[];}
-    addLog('Modo offline','#F59E0B');
+  .catch(function(err){
+    addLog('⚠ Sin conexión al servidor','#EF4444');
+    console.error('loadDB error:',err);
+    DB=[];
+    updateBadge();
   });
 }
 
@@ -707,40 +708,36 @@ function guardarRegistro(){
   showMsg('Guardando...','ok');
   const btn=document.getElementById('save-top');
   if(btn){btn.textContent='Guardando...';btn.disabled=true;}
-  // Save to server API
+    // Save to server API (shared database)
+  const btnSave = document.getElementById('save-top');
+  if(btnSave){btnSave.textContent='⏳ Guardando...';btnSave.disabled=true;}
   fetch('/api/checklist',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify(reg)
   })
-  .then(function(r){return r.json();})
+  .then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  })
   .then(function(data){
+    if(btnSave){btnSave.textContent='💾 Guardar';btnSave.disabled=false;}
     if(data.ok){
       DB.push(reg);
       updateBadge();
       showMsg('✓ Guardado: '+nm+' — '+total.toFixed(2),'ok');
-      addLog('Guardado: '+nm+' ('+total.toFixed(2)+')','#10B981');
+      addLog('✓ '+nm+' ('+total.toFixed(2)+')','#10B981');
       limpiarForm();
     } else {
-      showMsg('Error del servidor: '+(data.error||'desconocido'),'err');
+      showMsg('❌ Error: '+(data.error||'respuesta inválida'),'err');
+      addLog('Error guardando: '+nm,'#EF4444');
     }
   })
   .catch(function(err){
-    // Fallback to localStorage if offline
-    try{
-      DB.push(reg);
-      localStorage.setItem('togo_cl',JSON.stringify(DB));
-      updateBadge();
-      showMsg('✓ Guardado localmente (sin conexión)','ok');
-      addLog('Guardado local: '+nm,'#F59E0B');
-      limpiarForm();
-    }catch(e){
-      showMsg('Error al guardar: '+e.message,'err');
-    }
-  })
-  .finally(function(){
-    const btn=document.getElementById('save-top');
-    if(btn){btn.textContent='◆ Guardar';btn.disabled=false;}
+    if(btnSave){btnSave.textContent='💾 Guardar';btnSave.disabled=false;}
+    showMsg('❌ Sin conexión al servidor: '+err.message,'err');
+    addLog('Sin conexión: '+err.message,'#EF4444');
+    console.error('Checklist save error:', err, reg);
   });
 }
 function limpiarForm(){
