@@ -474,6 +474,40 @@ app.delete('/api/checklist/:id', async (req, res) => {
   }
 });
 
+// Bulk import from localStorage recovery
+app.post('/api/checklist/bulk', async (req, res) => {
+  try {
+    const { registros } = req.body;
+    if(!Array.isArray(registros)) return res.status(400).json({ error: 'registros must be array' });
+    let imported = 0, skipped = 0;
+    for(const reg of registros) {
+      try {
+        await pool.query(
+          `INSERT INTO checklist_registros (id, driver, fecha, evaluador, turno, hora, total, uni, img, equ, veh, detalles)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+           ON CONFLICT (id) DO NOTHING`,
+          [reg.id, reg.driver, reg.fecha, reg.evaluador||'', reg.turno||'', reg.hora||'', reg.total||0,
+           reg.uni||null, reg.img||null, reg.equ||null, reg.veh||null, JSON.stringify(reg.detalles||{})]
+        );
+        imported++;
+      } catch(e2) { skipped++; }
+    }
+    res.json({ ok: true, imported, skipped });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Count records
+app.get('/api/checklist/count', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT COUNT(*) as total, MIN(fecha) as desde, MAX(fecha) as hasta FROM checklist_registros');
+    res.json(rows[0]);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
