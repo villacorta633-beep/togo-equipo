@@ -474,13 +474,11 @@ app.delete('/api/checklist/:id', async (req, res) => {
   }
 });
 
-app.// Health check endpoint - responde inmediato antes de inicializar DB
-app.get('/health', (req, res) => res.json({ status: 'ok', ts: Date.now() }));
+// Health check
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// Iniciar servidor primero, luego DB en background
-const server = app.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`Servidor TOGO en http://localhost:${PORT}`);
-  // Inicializar DB después de que el servidor ya escucha
   initDB()
     .then(() => checkMonthlyReset())
     .then(() => { checkReminders(); console.log('DB lista ✅'); })
