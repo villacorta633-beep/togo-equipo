@@ -564,6 +564,8 @@ function loadDB(){
       };
     });
     updateBadge();
+    renderHistorial();
+    renderComparativa();
     addLog('Registros cargados: '+DB.length,'#10B981');
   })
   .catch(function(err){
