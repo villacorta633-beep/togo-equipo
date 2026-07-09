@@ -359,6 +359,10 @@ body{display:flex;flex-direction:column}
         <option value="Despacho Nocturno">Despacho Nocturno</option>
       </select>
     </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <button onclick="exportarMes()" style="background:#1a1f2e;border:1px solid #4A8FD4;color:#4A8FD4;padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer">📥 Exportar mes seleccionado</button>
+      <button onclick="exportarTodo()" style="background:#1a2a1a;border:1px solid #10B981;color:#10B981;padding:7px 14px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer">📥 Exportar TODO</button>
+    </div>
     <div id="hist-cards"><div class="empty-state">◇ Sin registros aún ◇</div></div>
   </div>
 
@@ -1577,6 +1581,35 @@ function renderTurnoCheck(){
     </div>`;
 
   document.getElementById('tc-pendientes').innerHTML = pendientesHTML;
+}
+
+/* ══ EXPORT ══ */
+function exportarMes(){
+  const mes = document.getElementById('hist-mon-f').value;
+  const data = mes ? DB.filter(r=>r.fecha.startsWith(mes)) : DB;
+  if(!data.length){alert('No hay registros para exportar');return;}
+  const label = mes || 'completo';
+  exportCSV(data, 'Checklist_TOGO_'+label+'.csv');
+}
+function exportarTodo(){
+  if(!DB.length){alert('No hay registros');return;}
+  exportCSV(DB, 'Checklist_TOGO_todo_'+new Date().toISOString().slice(0,10)+'.csv');
+}
+function exportCSV(data, filename){
+  const cols = ['fecha','driver','evaluador','turno','hora','total','uni','img','equ','veh'];
+  const headers = ['Fecha','Driver','Evaluador','Turno','Hora','Calificacion','Uniforme','Imagen','Equipo','Vehiculo'];
+  const rows = data.map(r => cols.map(k => {
+    const v = r[k]===null||r[k]===undefined?'':r[k];
+    return '"'+String(v).replace(/"/g,'""')+'"';
+  }).join(','));
+  const bom = '\uFEFF'; // UTF-8 BOM para Excel
+  const csv = bom + headers.join(',')+'\n'+rows.join('\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=filename; a.click();
+  URL.revokeObjectURL(url);
+  addLog('Exportado: '+filename+' ('+data.length+' registros)','#4A8FD4');
 }
 
 /* ══ RECOVERY ══ */
