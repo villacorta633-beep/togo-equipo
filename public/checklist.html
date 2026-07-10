@@ -966,8 +966,19 @@ function drawDriver2D(state){
     cv.beginPath();cv.ellipse(0,-20,18,22,0,0,Math.PI*2);cv.fill();cv.restore();
     // messy hair
     cv.fillStyle='#1a0a02';
-    [[-12,-38],[-6,-42],[0,-40],[6,-38],[12,-36],[-8,-34],[8,-34]].forEach(([hx,hy])=>{
-      cv.beginPath();cv.ellipse(hx,hy,5,8,Math.random()*.4-.2,0,Math.PI*2);cv.fill();
+    [[-14,-36],[-10,-42],[-5,-44],[0,-41],[5,-43],[10,-40],[14,-37],[-12,-32],[12,-33],[-7,-46],[7,-45]].forEach(([hx,hy],hi)=>{
+      const hAngle=(hi%3-.5)*.8+Math.sin(fr3d*.03+hi)*.3;
+      cv.save();cv.translate(hx,hy);cv.rotate(hAngle);
+      cv.beginPath();cv.ellipse(0,0,4+hi%3,9+hi%2,0,0,Math.PI*2);cv.fill();
+      cv.restore();
+    });
+    // Extra wild strands
+    cv.strokeStyle='#1a0a02';cv.lineWidth=2;
+    [[-10,-44,[-16,-52]],[-2,-45,[4,-54]],[8,-42],[14,-53]].forEach((strand)=>{
+      if(!Array.isArray(strand[2])) return;
+      cv.beginPath();cv.moveTo(strand[0],strand[1]);
+      cv.quadraticCurveTo(strand[0]+Math.sin(fr3d*.04)*4,strand[1]-6,strand[2][0],strand[2][1]);
+      cv.stroke();
     });
     // closed/sad eye
     cv.strokeStyle='#5a3010';cv.lineWidth=2;
@@ -1289,7 +1300,78 @@ function drawDriver2D(state){
       cv.fillStyle=ecol;cv.beginPath();cv.arc(CX+egx,eHY+egy+3,2.5,0,Math.PI*2);cv.fill();
     });
   }
+
+  // ══ ELITE BG: aura + rays (drawn before body) ══
+  if(isE){
+    const eFly=Math.sin(fr3d*.07)*8;
+    const eGlow=Math.abs(Math.sin(fr3d*.04));
+    // Aura rings
+    for(let er=0;er<4;er++){
+      const eAlpha=(.15-er*.03)*(0.5+eGlow*.5);
+      const eRad=65+er*20+Math.sin(fr3d*.05)*6;
+      const eAG=cv.createRadialGradient(CX,GY-120+eFly+bob,0,CX,GY-120+eFly+bob,eRad);
+      eAG.addColorStop(0,`rgba(180,130,255,${eAlpha})`);
+      eAG.addColorStop(.5,`rgba(123,92,240,${eAlpha*.5})`);
+      eAG.addColorStop(1,'rgba(0,0,0,0)');
+      cv.fillStyle=eAG;cv.beginPath();cv.ellipse(CX,GY-120+eFly+bob,eRad,eRad*.5,0,0,Math.PI*2);cv.fill();
+    }
+    // Star rays behind body
+    cv.save();cv.translate(CX,GY-120+eFly+bob);
+    for(let es=0;es<12;es++){
+      const eSA=(es/12)*Math.PI*2+fr3d*.01;
+      const eLen=(es%2?30:50)*(0.8+eGlow*.3);
+      cv.strokeStyle=`rgba(255,220,100,${.10+eGlow*.15})`;
+      cv.lineWidth=1.5;
+      cv.beginPath();cv.moveTo(0,0);cv.lineTo(Math.cos(eSA)*eLen,Math.sin(eSA)*eLen);cv.stroke();
+    }
+    cv.restore();
+  }
+
+  // ══ ELITE FG: cape + crown + particles (drawn after body) ══
+  if(isE){
+    const eFly2=Math.sin(fr3d*.07)*8;
+    const eGlow2=Math.abs(Math.sin(fr3d*.04));
+    const eCW=Math.sin(fr3d*.06)*10;
+    // Cape behind+side of body
+    cv.save();
+    const eCapeG=cv.createLinearGradient(CX-15,GY-155+eFly2+bob,CX-50,GY-70+eFly2+bob);
+    eCapeG.addColorStop(0,'rgba(100,50,200,.95)');
+    eCapeG.addColorStop(.5,'rgba(70,25,160,.75)');
+    eCapeG.addColorStop(1,'rgba(40,10,100,.3)');
+    cv.fillStyle=eCapeG;
+    cv.beginPath();
+    cv.moveTo(CX-12,GY-158+eFly2+bob);
+    cv.bezierCurveTo(CX-35,GY-135+eFly2+bob,CX-65+eCW,GY-95+eFly2+bob,CX-55+eCW,GY-55+eFly2+bob);
+    cv.lineTo(CX-18+eCW*.4,GY-58+eFly2+bob);
+    cv.bezierCurveTo(CX-8,GY-88+eFly2+bob,CX+2,GY-125+eFly2+bob,CX+8,GY-153+eFly2+bob);
+    cv.closePath();cv.fill();cv.restore();
+    // Orbiting particles
+    for(let ep=0;ep<6;ep++){
+      const eAng=fr3d*.04+(ep/6)*Math.PI*2;
+      const ePa=.6+Math.sin(fr3d*.06+ep)*.3;
+      cv.fillStyle=`rgba(230,190,255,${ePa})`;
+      cv.beginPath();cv.arc(CX+Math.cos(eAng)*50,GY-120+eFly2+bob+Math.sin(eAng)*22,2.5,0,Math.PI*2);cv.fill();
+    }
+    // Floating shadow
+    cv.fillStyle='rgba(0,0,0,.08)';
+    cv.beginPath();cv.ellipse(CX,GY+3,25,4,0,0,Math.PI*2);cv.fill();
+    // Crown
+    const eHY=GY-205+eFly2+bob;
+    cv.fillStyle='#F59E0B';
+    cv.beginPath();cv.moveTo(CX-14,eHY);
+    [[-10,-13],[-5,-5],[0,-17],[5,-5],[10,-13],[14,0]].forEach(([px,py])=>cv.lineTo(CX+px,eHY+py));
+    cv.lineTo(CX+14,eHY);cv.closePath();cv.fill();
+    // Crown shine
+    cv.fillStyle='rgba(255,245,160,.6)';
+    cv.beginPath();cv.moveTo(CX-12,eHY);cv.lineTo(CX-8,eHY-11);cv.lineTo(CX-4,eHY-4);cv.closePath();cv.fill();
+    // Crown gems
+    [[0,-17,'#EF4444'],[-10,-13,'#60A5FA'],[10,-13,'#34D399']].forEach(([egx,egy,ecol])=>{
+      cv.fillStyle=ecol;cv.beginPath();cv.arc(CX+egx,eHY+egy+3,2.5,0,Math.PI*2);cv.fill();
+      cv.fillStyle='rgba(255,255,255,.7)';cv.beginPath();cv.arc(CX+egx-0.7,eHY+egy+1.5,1,0,Math.PI*2);cv.fill();
+    });
+  }
 }
+
 
 function update3DColors(score){
   // Just update target, loop handles visuals
