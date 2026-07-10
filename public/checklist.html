@@ -646,10 +646,10 @@ function recalc(){
     const col=rColor(t);
     document.getElementById('total-num').textContent=t.toFixed(2);document.getElementById('total-num').style.color=col;
     document.getElementById('total-stars').textContent=stars(t);document.getElementById('total-stars').style.color=col;
-    const lk=t<=1.5?'VAGABUNDO':t<=2.5?'DESCUIDADO':t<=3.5?'REGULAR':t<=4.5?'BUEN RIDER':'RIDER ELITE ★';
+    const lk=t<=1.5?'VAGABUNDO':t<3.0?'MENDIGO':t<=3.5?'REGULAR':t<=4.5?'BUEN RIDER':'RIDER ELITE ★';
     document.getElementById('total-label').textContent=lk;document.getElementById('total-label').style.color=col;
     const ml=document.getElementById('moodLabel');
-    ml.textContent=t<=1.5?'💀 VAGABUNDO — Todo roto':t<=2.5?'😰 DESCUIDADO — Imagen deficiente':t<=3.5?'😐 REGULAR — Puede mejorar':t<=4.5?'✓ BUEN RIDER — Casi perfecto':'⭐ RIDER ELITE — Imagen impecable';
+    ml.textContent=t<=1.5?'💀 VAGABUNDO — Todo roto':t<3.0?'🤮 MENDIGO — Inaceptable':t<=3.5?'😐 REGULAR — Puede mejorar':t<=4.5?'✓ BUEN RIDER — Casi perfecto':'⭐ RIDER ELITE — Imagen impecable';
     ml.style.color=col;
     document.getElementById('tbFill').style.width=((t-1)/4*100)+'%';
     // Update 3D driver
@@ -843,7 +843,7 @@ function shade3(hex,p){
   return'#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
 }
 function getSt(s){
-  if(s<=0)return'bueno';if(s<=1.5)return'vagabundo';if(s<=2.5)return'descuidado';
+  if(s<=0)return'bueno';if(s<=1.5)return'vagabundo';if(s<=2.4)return'mendigo';if(s<=3.0)return'descuidado';
   if(s<=3.5)return'regular';if(s<=4.5)return'bueno';return'elite';
 }
 
@@ -914,15 +914,15 @@ function limb(x1,y1,x2,y2,r,base,light,dark){
 function drawDriver2D(state){
   const c=dCtx,W=drvCv.width,H=drvCv.height;
   const CX=W/2,GY=H-52;
-  const isV=state==='vagabundo',isD=state==='descuidado',isR=state==='regular',isB=state==='bueno',isE=state==='elite';
-  const bob=isV?Math.sin(fr3d*.04)*2:Math.sin(fr3d*.08)*4;
-  const legSw=Math.sin(fr3d*.08)*6*(isV?.25:1);
-  const armSw=Math.sin(fr3d*.08+Math.PI)*8*(isV?.25:1);
+  const isV=state==='vagabundo',isM=state==='mendigo',isD=state==='descuidado',isR=state==='regular',isB=state==='bueno',isE=state==='elite';
+  const bob=(isV||isM)?Math.sin(fr3d*.04)*2:Math.sin(fr3d*.08)*4;
+  const legSw=Math.sin(fr3d*.08)*6*((isV||isM)?.2:1);
+  const armSw=Math.sin(fr3d*.08+Math.PI)*8*((isV||isM)?.2:1);
 
-  const Y=isV?'#8a7012':isD?'#C47A0A':'#F59E0B';
-  const YL=isV?'#aa9022':isD?'#E89A18':'#FDE68A';
-  const YD=isV?'#5a4808':isD?'#8a5005':'#B45309';
-  const YLL=isV?'#c0a834':isD?'#FFB830':'#FEF3C7';
+  const Y=(isV||isM)?'#5a4a2a':isD?'#C47A0A':'#F59E0B';
+  const YL=(isV||isM)?'#7a6a3a':isD?'#E89A18':'#FDE68A';
+  const YD=(isV||isM)?'#3a2a10':isD?'#8a5005':'#B45309';
+  const YLL=(isV||isM)?'#8a7a4a':isD?'#FFB830':'#FEF3C7';
   const JN='#2D4E8A',JL='#5878C8',JD='#1A3060';
   const SK='#D4956A',SKL='#EBB88A',SKD='#A0612A';
   const BT='#1A100A',BTH='#3A2418';
