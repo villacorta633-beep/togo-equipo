@@ -629,9 +629,9 @@ function setScore(cat,idx,val){
 
 function catAvg(cat){const vals=Object.values(SC[cat]);return vals.length?vals.reduce((s,n)=>s+n,0)/vals.length:null;}
 function totalAvg(){const v=['uni','img','equ','veh'].map(c=>catAvg(c)).filter(x=>x!==null);return v.length?v.reduce((a,b)=>a+b,0)/v.length:0;}
-function rColor(t){return t<1.5?'#7f0000':t<2.5?'#DC2626':t<3.0?'#F97316':t<3.5?'#F59E0B':t<4.5?'#10B981':'#7B5CF0';}
-function rLabel(t){return t<1.5?'MENDIGO':t<2.5?'VAGABUNDO':t<3.0?'DESCUIDADO':t<3.5?'REGULAR':t<4.5?'BUENO':'EXCELENTE';}
-function rClass(t){return t<1.5?'b-mendigo':t<2.5?'b-vagabundo':t<3.0?'b-malo':t<3.5?'b-regular':t<4.5?'b-bueno':'b-excel';}
+function rColor(t){return t<3.0?'#7f0000':t<3.5?'#F59E0B':t<4.5?'#10B981':'#7B5CF0';}
+function rLabel(t){return t<3.0?'MENDIGO':t<3.5?'REGULAR':t<4.5?'BUENO':'EXCELENTE';}
+function rClass(t){return t<3.0?'b-mendigo':t<3.5?'b-regular':t<4.5?'b-bueno':'b-excel';}
 function stars(n){const f=Math.round(n);return Array(5).fill(0).map((_,i)=>i<f?'◆':'◇').join(' ');}
 
 function recalc(){
@@ -646,10 +646,10 @@ function recalc(){
     const col=rColor(t);
     document.getElementById('total-num').textContent=t.toFixed(2);document.getElementById('total-num').style.color=col;
     document.getElementById('total-stars').textContent=stars(t);document.getElementById('total-stars').style.color=col;
-    const lk=t<=1.5?'MENDIGO':t<=2.4?'VAGABUNDO':t<=3.0?'DESCUIDADO':t<=3.5?'REGULAR':t<=4.5?'BUEN RIDER':'RIDER ELITE ★';
+    const lk=t<3.0?'MENDIGO':t<=3.5?'REGULAR':t<=4.5?'BUEN RIDER':'RIDER ELITE ★';
     document.getElementById('total-label').textContent=lk;document.getElementById('total-label').style.color=col;
     const ml=document.getElementById('moodLabel');
-    ml.textContent=t<=1.5?'🤮 MENDIGO — Lo peor':t<=2.4?'💀 VAGABUNDO — Todo roto':t<=3.0?'😰 DESCUIDADO — Imagen deficiente':t<=3.5?'😐 REGULAR — Puede mejorar':t<=4.5?'✓ BUEN RIDER — Casi perfecto':'⭐ RIDER ELITE — Imagen impecable';
+    ml.textContent=t<3.0?'🤮 MENDIGO — Inaceptable':t<=3.5?'😐 REGULAR — Puede mejorar':t<=4.5?'✓ BUEN RIDER — Casi perfecto':'⭐ RIDER ELITE — Imagen impecable';
     ml.style.color=col;
     document.getElementById('tbFill').style.width=((t-1)/4*100)+'%';
     // Update 3D driver
@@ -843,8 +843,7 @@ function shade3(hex,p){
   return'#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
 }
 function getSt(s){
-  if(s<=0)return'bueno';if(s<=1.5)return'mendigo';if(s<=2.4)return'vagabundo';if(s<=3.0)return'descuidado';
-  if(s<=3.5)return'regular';if(s<=4.5)return'bueno';return'elite';
+  if(s<=0)return'bueno';if(s<3.0)return'mendigo';if(s<=3.5)return'regular';if(s<=4.5)return'bueno';return'elite';
 }
 
 function drawBg2D(){
