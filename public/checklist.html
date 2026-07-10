@@ -912,17 +912,99 @@ function limb(x1,y1,x2,y2,r,base,light,dark){
 }
 
 function drawDriver2D(state){
-  const c=dCtx,W=drvCv.width,H=drvCv.height;
+  const cv=dCtx,W=drvCv.width,H=drvCv.height;
   const CX=W/2,GY=H-52;
   const isV=state==='vagabundo',isM=state==='mendigo',isD=state==='descuidado',isR=state==='regular',isB=state==='bueno',isE=state==='elite';
-  const bob=(isV||isM)?Math.sin(fr3d*.04)*2:Math.sin(fr3d*.08)*4;
-  const legSw=Math.sin(fr3d*.08)*6*((isV||isM)?.2:1);
-  const armSw=Math.sin(fr3d*.08+Math.PI)*8*((isV||isM)?.2:1);
 
-  const Y=(isV||isM)?'#5a4a2a':isD?'#C47A0A':'#F59E0B';
-  const YL=(isV||isM)?'#7a6a3a':isD?'#E89A18':'#FDE68A';
-  const YD=(isV||isM)?'#3a2a10':isD?'#8a5005':'#B45309';
-  const YLL=(isV||isM)?'#8a7a4a':isD?'#FFB830':'#FEF3C7';
+  // MENDIGO — dibujado aparte: tirado en el suelo, haraposo
+  if(isM){
+    // Ground shadow
+    cv.fillStyle='rgba(0,0,0,.5)';cv.beginPath();cv.ellipse(CX,GY+4,70,10,0,0,Math.PI*2);cv.fill();
+    // Body lying down (rotated)
+    const t=fr3d*.03;
+    // torso lying flat
+    const tG=cv.createLinearGradient(CX-60,GY-30,CX+20,GY-10);
+    tG.addColorStop(0,'#2a1a08');tG.addColorStop(.4,'#3d2510');tG.addColorStop(1,'#1a0a02');
+    cv.fillStyle=tG;cv.save();
+    cv.translate(CX-10,GY-18+Math.sin(t)*1.5);cv.rotate(-.08+Math.sin(t*.5)*.02);
+    cv.beginPath();cv.roundRect(-55,-14,90,28,[8]);cv.fill();
+    // ripped patches on torso
+    cv.fillStyle='rgba(0,0,0,.4)';cv.beginPath();cv.ellipse(-20,-5,18,10,.3,0,Math.PI*2);cv.fill();
+    cv.beginPath();cv.ellipse(15,4,12,7,-.2,0,Math.PI*2);cv.fill();
+    // torn fabric lines
+    cv.strokeStyle='rgba(80,40,0,.6)';cv.lineWidth=1.5;
+    [[-40,-8,-25,2],[-10,-12,5,-2],[20,-6,35,6]].forEach(([x1,y1,x2,y2])=>{
+      cv.beginPath();cv.moveTo(x1,y1);cv.lineTo(x2,y2);cv.stroke();
+    });
+    cv.restore();
+    // Legs splayed on ground
+    cv.save();cv.translate(CX+38,GY-10+Math.sin(t)*1);cv.rotate(.15);
+    cv.fillStyle='#1A3060';cv.beginPath();cv.roundRect(0,-8,52,16,[6]);cv.fill();
+    cv.fillStyle='#0a0402';cv.beginPath();cv.roundRect(48,-6,18,12,[4]);cv.fill();
+    cv.restore();
+    cv.save();cv.translate(CX+28,GY+2+Math.sin(t+1)*1);cv.rotate(.05);
+    cv.fillStyle='#1A3060';cv.beginPath();cv.roundRect(0,-7,48,14,[6]);cv.fill();
+    cv.fillStyle='#0a0402';cv.beginPath();cv.roundRect(44,-5,16,11,[4]);cv.fill();
+    cv.restore();
+    // One arm outstretched begging
+    cv.save();cv.translate(CX-58,GY-28+Math.sin(t*.7)*2);cv.rotate(-.25+Math.sin(t*.5)*.05);
+    cv.fillStyle='#3d2510';cv.beginPath();cv.roundRect(0,-7,55,14,[6]);cv.fill();
+    // hand open/begging
+    cv.fillStyle='#D4956A';cv.beginPath();cv.ellipse(58,0,10,8,0,0,Math.PI*2);cv.fill();
+    // fingers
+    [-6,-3,0,3,6].forEach(dy=>{
+      cv.fillStyle='#D4956A';cv.beginPath();cv.roundRect(64,dy-3,10,6,[3]);cv.fill();
+    });
+    cv.restore();
+    // Head on ground, tilted
+    cv.save();cv.translate(CX-52,GY-38+Math.sin(t*.6)*1.5);cv.rotate(-.3);
+    // neck
+    cv.fillStyle='#D4956A';cv.beginPath();cv.roundRect(-8,-6,16,18,[4]);cv.fill();
+    // head
+    const hG=cv.createRadialGradient(-2,-20,2,-2,-20,22);
+    hG.addColorStop(0,'#EBB88A');hG.addColorStop(.6,'#D4956A');hG.addColorStop(1,'#A0612A');
+    cv.fillStyle=hG;cv.save();cv.shadowColor='rgba(0,0,0,.4)';cv.shadowBlur=10;
+    cv.beginPath();cv.ellipse(0,-20,18,22,0,0,Math.PI*2);cv.fill();cv.restore();
+    // messy hair
+    cv.fillStyle='#1a0a02';
+    [[-12,-38],[-6,-42],[0,-40],[6,-38],[12,-36],[-8,-34],[8,-34]].forEach(([hx,hy])=>{
+      cv.beginPath();cv.ellipse(hx,hy,5,8,Math.random()*.4-.2,0,Math.PI*2);cv.fill();
+    });
+    // closed/sad eye
+    cv.strokeStyle='#5a3010';cv.lineWidth=2;
+    cv.beginPath();cv.arc(-6,-20,4,0,Math.PI);cv.stroke();
+    // mouth drooping
+    cv.beginPath();cv.arc(0,-12,6,0.2,Math.PI-.2);cv.stroke();
+    // stubble dots
+    cv.fillStyle='rgba(60,30,5,.5)';
+    [[-8,-8],[-4,-10],[0,-9],[4,-8],[6,-11],[-6,-5],[2,-6]].forEach(([sx,sy])=>{
+      cv.beginPath();cv.arc(sx,sy,1.2,0,Math.PI*2);cv.fill();
+    });
+    // dirt smudge on face
+    cv.fillStyle='rgba(40,20,0,.3)';cv.beginPath();cv.ellipse(8,-16,7,5,.3,0,Math.PI*2);cv.fill();
+    cv.restore();
+    // Flies around mendigo
+    if(Math.random()>.7){
+      const fx=CX-80+Math.random()*160,fy=GY-60+Math.random()*50;
+      cv.fillStyle='#111';cv.beginPath();cv.arc(fx,fy,2,0,Math.PI*2);cv.fill();
+    }
+    // NO TOGO badge — ripped off
+    cv.save();cv.translate(CX-20,GY-32);cv.rotate(-.08);
+    cv.strokeStyle='rgba(200,150,50,.3)';cv.lineWidth=1;cv.setLineDash([3,3]);
+    cv.beginPath();cv.roundRect(-17,-14,36,26,[4]);cv.stroke();cv.setLineDash([]);
+    cv.fillStyle='rgba(200,150,50,.15)';cv.fillRect(-17,-14,36,26);
+    cv.restore();
+    return;
+  }
+
+  const bob=isV?Math.sin(fr3d*.04)*2:Math.sin(fr3d*.08)*4;
+  const legSw=Math.sin(fr3d*.08)*6*(isV?.25:1);
+  const armSw=Math.sin(fr3d*.08+Math.PI)*8*(isV?.25:1);
+
+  const Y=isV?'#5a4a2a':isD?'#C47A0A':'#F59E0B';
+  const YL=isV?'#7a6a3a':isD?'#E89A18':'#FDE68A';
+  const YD=isV?'#3a2a10':isD?'#8a5005':'#B45309';
+  const YLL=isV?'#8a7a4a':isD?'#FFB830':'#FEF3C7';
   const JN='#2D4E8A',JL='#5878C8',JD='#1A3060';
   const SK='#D4956A',SKL='#EBB88A',SKD='#A0612A';
   const BT='#1A100A',BTH='#3A2418';
