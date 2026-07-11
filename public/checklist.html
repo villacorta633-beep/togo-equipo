@@ -911,7 +911,7 @@ function limb(x1,y1,x2,y2,r,base,light,dark){
 }
 
 function drawDriver2D(state){
-  const cv=dCtx,W=drvCv.width,H=drvCv.height;
+  const cv=dCtx,W=drvCv.width,H=drvCv.height,c=dCtx;
   const CX=W/2,GY=H-52;
   const isV=state==='vagabundo',isM=state==='mendigo',isD=state==='descuidado',isR=state==='regular',isB=state==='bueno',isE=state==='elite';
 
