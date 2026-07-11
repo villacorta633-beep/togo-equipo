@@ -1008,6 +1008,10 @@ function drawDriver2D(state){
   }
 
   const bob=isV?Math.sin(fr3d*.04)*2:isE?Math.sin(fr3d*.06)*8:Math.sin(fr3d*.08)*4;
+  const eFly=Math.sin(fr3d*.07)*8;
+  const eGlow=Math.abs(Math.sin(fr3d*.04));
+  const eCW=Math.sin(fr3d*.06)*10;
+  const eFly2=eFly, eGlow2=eGlow;
   const legSw=Math.sin(fr3d*.08)*6*(isV?.25:1);
   const armSw=Math.sin(fr3d*.08+Math.PI)*8*(isV?.25:1);
 
@@ -1021,8 +1025,6 @@ function drawDriver2D(state){
 
   // ══ ELITE BG: aura + rays (drawn before body) ══
   if(isE){
-    const eFly=Math.sin(fr3d*.07)*8;
-    const eGlow=Math.abs(Math.sin(fr3d*.04));
     // Aura rings
     for(let er=0;er<4;er++){
       const eAlpha=(.15-er*.03)*(0.5+eGlow*.5);
@@ -1329,9 +1331,6 @@ function drawDriver2D(state){
 
   // ══ ELITE FG: cape + crown + particles (drawn after body) ══
   if(isE){
-    const eFly2=Math.sin(fr3d*.07)*8;
-    const eGlow2=Math.abs(Math.sin(fr3d*.04));
-    const eCW=Math.sin(fr3d*.06)*10;
     // Cape behind+side of body
     cv.save();
     const eCapeG=cv.createLinearGradient(CX-15,GY-155+eFly2+bob,CX-50,GY-70+eFly2+bob);
