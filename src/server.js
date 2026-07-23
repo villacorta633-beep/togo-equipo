@@ -474,7 +474,7 @@ app.delete('/api/checklist/:id', async (req, res) => {
   }
 });
 
-// Bulk import from localStorage recovery
+// Bulk import from localStorage recovery — deploy 2026-07-23T23:07
 app.post('/api/checklist/bulk', async (req, res) => {
   try {
     const { registros } = req.body;
