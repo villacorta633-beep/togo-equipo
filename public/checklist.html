@@ -1027,80 +1027,119 @@ function drawDriver2D(state){
   // ══════════════════════════════════════════════════════
   if(state==='mendigo1'){
     const w=Math.sin(fr3d*.025)*1.5;
-    shadow(CX-5,GY+8,80,12,.55);
 
-    // body lying flat
-    cv.save();cv.translate(CX,GY-12+w);cv.rotate(-.05+Math.sin(fr3d*.02)*.02);
-    // torso: tattered dark cloth
-    cv.fillStyle=grad2(-65,-18,35,18,'#1a0d04','#0d0602');
-    cv.beginPath();cv.roundRect(-65,-18,100,36,[10]);cv.fill();
-    // rips on torso
-    cv.strokeStyle='rgba(60,30,5,.5)';cv.lineWidth=1.5;cv.setLineDash([4,3]);
-    cv.beginPath();cv.moveTo(-40,-18);cv.lineTo(-35,18);cv.stroke();
-    cv.beginPath();cv.moveTo(10,-18);cv.lineTo(15,18);cv.stroke();
+    // PISO — línea de suelo visible
+    cv.fillStyle='rgba(0,0,0,.35)';
+    cv.beginPath();cv.rect(CX-120,GY+2,240,4);cv.fill();
+    // sombra grande horizontal
+    shadow(CX,GY+6,85,10,.5);
+
+    // PIERNAS extendidas en el suelo (horizontales)
+    cv.strokeStyle='#1a2040';cv.lineWidth=18;cv.lineCap='round';
+    cv.beginPath();cv.moveTo(CX+10,GY+w);cv.lineTo(CX+88,GY-4+w);cv.stroke();
+    cv.beginPath();cv.moveTo(CX+8,GY+6+w);cv.lineTo(CX+82,GY+2+w);cv.stroke();
+    // zapatos
+    cv.fillStyle='#0a0402';
+    cv.beginPath();cv.ellipse(CX+90,GY-5+w,14,7,-.15,0,Math.PI*2);cv.fill();
+    cv.beginPath();cv.ellipse(CX+84,GY+2+w,13,6,-.1,0,Math.PI*2);cv.fill();
+
+    // TORSO acostado (horizontal, ancho)
+    cv.save();cv.translate(CX-18,GY-16+w);cv.rotate(-.04+Math.sin(fr3d*.02)*.015);
+    cv.fillStyle=grad2(-62,-18,22,18,'#1a0d04','#0d0602');
+    cv.beginPath();cv.roundRect(-62,-18,84,36,[10]);cv.fill();
+    // rasgaduras
+    cv.strokeStyle='rgba(60,30,5,.55)';cv.lineWidth=1.5;cv.setLineDash([4,3]);
+    cv.beginPath();cv.moveTo(-38,-18);cv.lineTo(-34,18);cv.stroke();
+    cv.beginPath();cv.moveTo(5,-18);cv.lineTo(8,18);cv.stroke();
     cv.setLineDash([]);
-    // dirt patches
-    [[-20,0,18,10],[-42,5,10,7],[20,-5,14,8]].forEach(([mx,my,mrx,mry])=>{
+    // manchas
+    [[-20,2,18,9],[-44,6,9,6],[15,-4,12,7]].forEach(([mx,my,mrx,mry])=>{
       cv.fillStyle='rgba(0,0,0,.4)';cv.beginPath();cv.ellipse(mx,my,mrx,mry,.2,0,Math.PI*2);cv.fill();
     });
     cv.restore();
 
-    // legs splayed
-    cv.save();cv.translate(CX+45,GY-8+w);cv.rotate(.18);
-    cv.strokeStyle='#1a2850';cv.lineWidth=18;cv.lineCap='round';
-    cv.beginPath();cv.moveTo(0,0);cv.lineTo(50,0);cv.stroke();
-    shoe(52,0,false,'#0a0402');cv.restore();
-    cv.save();cv.translate(CX+38,GY+4+w);cv.rotate(.06);
-    cv.strokeStyle='#1a2850';cv.lineWidth=16;cv.lineCap='round';
-    cv.beginPath();cv.moveTo(0,0);cv.lineTo(46,0);cv.stroke();
-    shoe(48,0,false,'#0a0402');cv.restore();
-
-    // begging arm outstretched
-    cv.save();cv.translate(CX-68,GY-24+w);
+    // BRAZO IZQUIERDO — extendido pidiendo limosna
+    cv.save();cv.translate(CX-78,GY-20+w);
     cv.strokeStyle='#1a0d04';cv.lineWidth=14;cv.lineCap='round';
     cv.beginPath();cv.moveTo(0,0);
-    cv.quadraticCurveTo(25,Math.sin(fr3d*.04)*4,56,Math.sin(fr3d*.04)*3);cv.stroke();
-    // open hand
-    cv.fillStyle='#D4956A';cv.beginPath();cv.ellipse(58,Math.sin(fr3d*.04)*3,11,8,0,0,Math.PI*2);cv.fill();
-    [-7,-3.5,0,3.5,7].forEach((dy,i)=>{
-      cv.fillStyle='#D4956A';cv.beginPath();cv.roundRect(64,dy+Math.sin(fr3d*.04)*3-4,12,8,[4]);cv.fill();
+    cv.quadraticCurveTo(28,Math.sin(fr3d*.04)*5,58,Math.sin(fr3d*.04)*4-4);cv.stroke();
+    // mano abierta pidiendo
+    cv.fillStyle='#C4855A';cv.beginPath();cv.ellipse(60,Math.sin(fr3d*.04)*4-4,12,9,-.2,0,Math.PI*2);cv.fill();
+    // dedos
+    [-8,-4,0,4,8].forEach((dy,i)=>{
+      cv.fillStyle='#C4855A';
+      cv.beginPath();cv.roundRect(66+i*.5,dy+Math.sin(fr3d*.04)*4-8,13,7,[3]);cv.fill();
+    });
+    // uña sucia
+    cv.fillStyle='rgba(0,0,0,.3)';
+    [-8,-4,0,4,8].forEach((dy,i)=>{
+      cv.beginPath();cv.roundRect(76+i*.5,dy+Math.sin(fr3d*.04)*4-7,4,3,[1]);cv.fill();
     });
     cv.restore();
 
-    // other arm limp
-    cv.save();cv.translate(CX-20,GY-24+w);cv.rotate(.6);
+    // BRAZO DERECHO — caído al costado
+    cv.save();cv.translate(CX+10,GY-20+w);cv.rotate(.5);
     cv.strokeStyle='#1a0d04';cv.lineWidth=13;cv.lineCap='round';
-    cv.beginPath();cv.moveTo(0,0);cv.lineTo(0,40);cv.stroke();
+    cv.beginPath();cv.moveTo(0,0);cv.lineTo(0,42);cv.stroke();
+    cv.fillStyle='#C4855A';cv.beginPath();cv.ellipse(0,44,8,7,0,0,Math.PI*2);cv.fill();
     cv.restore();
 
-    // HEAD on ground
-    head(CX-68,GY-52+w,18,'#C4855A','#E0A878','rgba(0,0,0,0)','#5a3010',0,'#0d0500',true,null);
-    // extra dirt on face
-    cv.fillStyle='rgba(40,20,0,.35)';cv.beginPath();cv.ellipse(CX-60,GY-48+w,9,6,.3,0,Math.PI*2);cv.fill();
-    // flies
+    // CABEZA apoyada en el suelo, ladeada
+    cv.save();cv.translate(CX-88,GY-44+w);cv.rotate(-.35);
+    // cuello
+    cv.fillStyle='#C4855A';cv.beginPath();cv.roundRect(-7,-5,14,18,[4]);cv.fill();
+    // cabeza
+    cv.fillStyle=radgrad(-4,-18,24,'#DDA070','#A0612A');
+    cv.beginPath();cv.ellipse(0,-18,19,23,0,0,Math.PI*2);cv.fill();
+    // pelo MUY despeinado
+    cv.fillStyle='#0d0500';
+    [[-14,-34,6,10,.6],[-9,-40,5,12,-.5],[-3,-43,4,13,.1],[4,-41,5,12,.35],[10,-38,6,10,-.4],
+     [15,-34,5,9,.65],[-12,-30,4,8,-.7],[13,-31,4,8,.55],[-6,-44,3,11,-.15],[5,-43,3,11,.2],
+     [0,-45,4,13,0],[-17,-32,3,7,.9],[17,-33,3,7,-.8],[1,-47,2,9,.1]].forEach(([hx,hy,rw,rh,ang])=>{
+      cv.save();cv.translate(hx,hy);cv.rotate(ang);
+      cv.beginPath();cv.ellipse(0,0,rw,rh,0,0,Math.PI*2);cv.fill();cv.restore();
+    });
+    // mechones que sobresalen
+    cv.strokeStyle='#0d0500';cv.lineWidth=2.5;cv.lineCap='round';
+    [[-10,-43,-18,-57,.3],[-1,-46,4,-58,0],[9,-41,17,-54,-.3],[0,-47,-5,-60,.15]].forEach(([x1,y1,x2,y2,cx1])=>{
+      cv.beginPath();cv.moveTo(x1,y1);
+      cv.quadraticCurveTo(x1+Math.sin(fr3d*.04+cx1)*4,y1-6,x2,y2);cv.stroke();
+    });
+    // ojo triste (viendo al piso)
+    cv.strokeStyle='#5a3010';cv.lineWidth=2;
+    cv.beginPath();cv.arc(-6,-18,4.5,0,Math.PI);cv.stroke();
+    // boca caída
+    cv.beginPath();cv.arc(0,-10,6.5,.25+Math.PI,-.25+Math.PI*2,true);cv.stroke();
+    // barba de días
+    cv.fillStyle='rgba(40,20,5,.55)';
+    [[-9,-6],[-5,-8],[0,-7],[4,-6],[7,-9],[-7,-3],[3,-2],[0,-1],[-10,-4],[6,-3]].forEach(([sx,sy])=>{
+      cv.beginPath();cv.arc(sx,sy,1.4,0,Math.PI*2);cv.fill();
+    });
+    // mancha de tierra en cara
+    cv.fillStyle='rgba(50,25,0,.3)';cv.beginPath();cv.ellipse(9,-14,9,6,.3,0,Math.PI*2);cv.fill();
+    cv.restore();
+
+    // MOSCAS orbitando
     for(let f=0;f<3;f++){
-      const ang=fr3d*.08+f*2.1;
-      const fx=CX-30+Math.cos(ang)*35, fy=GY-55+Math.sin(ang)*20;
-      cv.fillStyle='#111';cv.beginPath();cv.arc(fx,fy,1.8,0,Math.PI*2);cv.fill();
-      cv.strokeStyle='rgba(80,80,80,.4)';cv.lineWidth=1;
-      cv.beginPath();cv.ellipse(fx,fy,4,2,ang,0,Math.PI*2);cv.stroke();
+      const fang=fr3d*.09+f*2.1;
+      const fx=CX-40+Math.cos(fang)*40, fy=GY-58+Math.sin(fang)*22;
+      cv.fillStyle='#111';cv.beginPath();cv.arc(fx,fy,2,0,Math.PI*2);cv.fill();
+      cv.strokeStyle='rgba(80,80,80,.35)';cv.lineWidth=1;
+      cv.beginPath();cv.ellipse(fx,fy,5,2.5,fang,0,Math.PI*2);cv.stroke();
     }
-    // smell lines
-    cv.strokeStyle='rgba(120,180,60,.25)';cv.lineWidth=1.5;cv.lineCap='round';
+    // líneas de olor
+    cv.strokeStyle='rgba(100,180,50,.22)';cv.lineWidth=1.5;cv.lineCap='round';
     [0,1,2].forEach(i=>{
-      const ox=CX-50+i*15, baseY=GY-75+w;
-      cv.beginPath();
-      cv.moveTo(ox,baseY);
-      cv.quadraticCurveTo(ox+Math.sin(i)*8,baseY-15,ox+Math.sin(i+1)*5,baseY-30);
+      const ox=CX-60+i*18, baseY=GY-72+w;
+      cv.beginPath();cv.moveTo(ox,baseY);
+      cv.quadraticCurveTo(ox+Math.sin(i+fr3d*.02)*10,baseY-18,ox+Math.sin(i+1)*6,baseY-36);
       cv.stroke();
     });
     return;
   }
 
-  // ══════════════════════════════════════════════════════
-  // ESTADO 2: MENDIGO PARADO
-  // ══════════════════════════════════════════════════════
-  if(state==='mendigo2'){
+
+    if(state==='mendigo2'){
     const slump=10, sw=Math.sin(t)*2;
     shadow(CX,GY+6,28,7,.4);
 
