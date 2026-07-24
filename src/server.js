@@ -511,6 +511,13 @@ app.get('/api/checklist/count', async (req, res) => {
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
+// Self-ping every 10 min to prevent Render free-tier sleep
+const SELF_URL = process.env.RENDER_EXTERNAL_URL || 'https://togo-equipo.onrender.com';
+setInterval(() => {
+  const http = require('https');
+  http.get(SELF_URL + '/health', (r) => {}).on('error', () => {});
+}, 10 * 60 * 1000);
+
 app.listen(PORT, () => {
   console.log(`Servidor TOGO en http://localhost:${PORT}`);
   initDB()
