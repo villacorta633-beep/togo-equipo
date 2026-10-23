@@ -89,6 +89,21 @@ async function initDB() {
     ALTER TABLE checklist_registros ADD COLUMN IF NOT EXISTS evaluador TEXT DEFAULT '';
     ALTER TABLE checklist_registros ADD COLUMN IF NOT EXISTS turno TEXT DEFAULT '';
     ALTER TABLE checklist_registros ADD COLUMN IF NOT EXISTS hora TEXT DEFAULT '';
+
+    CREATE TABLE IF NOT EXISTS gastos (
+      id INTEGER PRIMARY KEY,
+      fecha TEXT NOT NULL,
+      anio INTEGER NOT NULL,
+      mes INTEGER NOT NULL,
+      proxi TEXT NOT NULL,
+      placa TEXT NOT NULL,
+      tipo TEXT NOT NULL,
+      descripcion TEXT DEFAULT '',
+      ot TEXT DEFAULT '',
+      doc TEXT DEFAULT '',
+      monto NUMERIC(14,2) NOT NULL
+    );
+    INSERT INTO config (key, value) VALUES ('gastos_meta', '{}') ON CONFLICT (key) DO NOTHING;
   `);
 
   // Crear admin por defecto si no existe
@@ -130,7 +145,7 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY
 );
 app.use(cors({ origin: '*' }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // la carga de gastos manda ~3.000 filas
 app.use(express.static(path.join(__dirname, '../public')));
 
 async function sendPushToAll(payload) {
@@ -505,6 +520,58 @@ app.get('/api/checklist/count', async (req, res) => {
     res.json(rows[0]);
   } catch(e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+// ══ GASTOS FLOTA API ══
+// Los datos vienen del Excel DASHBOARD GASTOS TOGO (hoja Detalle). La página los
+// lee y limpia en el navegador; aquí cada carga reemplaza la tabla completa.
+app.get('/api/gastos', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, fecha, anio, mes, proxi, placa, tipo, descripcion, ot, doc, monto::float8 AS monto
+       FROM gastos ORDER BY fecha, id`
+    );
+    const meta = await pool.query("SELECT value FROM config WHERE key='gastos_meta'");
+    res.json({ rows, meta: JSON.parse(meta.rows[0]?.value || '{}') });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/gastos/import', requireAdmin, async (req, res) => {
+  const { rows, archivo } = req.body;
+  if (!Array.isArray(rows) || !rows.length) return res.status(400).json({ error: 'No hay filas para cargar' });
+  const malas = [];
+  rows.forEach((r, i) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(r.fecha || '') || !Number.isFinite(r.monto)) malas.push(i + 1);
+  });
+  if (malas.length) return res.status(400).json({ error: `Filas con fecha o monto inválido: ${malas.slice(0, 10).join(', ')}` });
+
+  const col = k => rows.map(r => r[k]);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM gastos');
+    await client.query(
+      `INSERT INTO gastos (id, fecha, anio, mes, proxi, placa, tipo, descripcion, ot, doc, monto)
+       SELECT * FROM unnest($1::int[], $2::text[], $3::int[], $4::int[], $5::text[], $6::text[],
+                            $7::text[], $8::text[], $9::text[], $10::text[], $11::numeric[])`,
+      [rows.map((_, i) => i + 1), col('fecha'),
+       rows.map(r => +r.fecha.slice(0, 4)), rows.map(r => +r.fecha.slice(5, 7)),
+       col('proxi'), col('placa'), col('tipo'),
+       rows.map(r => r.descripcion || ''), rows.map(r => r.ot || ''), rows.map(r => r.doc || ''),
+       col('monto')]
+    );
+    const meta = { archivo: archivo || '', filas: rows.length, por: req.user.username, fecha: new Date().toISOString() };
+    await client.query("UPDATE config SET value=$1 WHERE key='gastos_meta'", [JSON.stringify(meta)]);
+    await client.query('COMMIT');
+    res.json({ ok: true, ...meta });
+  } catch(e) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: e.message });
+  } finally {
+    client.release();
   }
 });
 

@@ -2,3 +2,7 @@ node_modules/
 .env
 data.db
 *.db-journal
+
+# datos locales de gastos (repo publico)
+detalle_gastos.csv
+BRIEF.md
