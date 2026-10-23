@@ -50,10 +50,8 @@ button,select,input{font-family:inherit;}
 /* AVISOS */
 .notes{padding:0 24px;display:flex;flex-direction:column;gap:8px;margin-top:16px;}
 .note{font-size:12px;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--text3);border-radius:4px;padding:10px 14px;line-height:1.5;}
-.note.warn{border-left-color:var(--amber);}
 .note b{color:var(--text);font-weight:600;}
 .link{color:var(--amber);cursor:pointer;text-decoration:underline;background:none;border:none;font-size:12px;}
-.dup-list{margin-top:10px;max-height:320px;overflow:auto;}
 
 /* TARJETAS */
 .cards{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);margin:16px 24px 0;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
@@ -214,7 +212,6 @@ const fmt1 = new Intl.NumberFormat('es-BO', { minimumFractionDigits: 1, maximumF
 const pct = (a, b) => b ? fmt1.format(a / b * 100) + '%' : '–';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const grupo = tipo => GRUPOS.Combustible.includes(tipo) ? 'Combustible' : GRUPOS.Mantenimiento.includes(tipo) ? 'Mantenimiento' : 'Otros';
-const dupKey = r => r.placa + '|' + r.fecha + '|' + r.monto + '|' + r.tipo;
 
 let ROWS = [], META = {};
 const F = { anio: null, mes: 0, proxi: 'TODOS', placa: '', tipo: '' };
@@ -429,28 +426,7 @@ function renderNotes() {
   const notes = [];
   if (F.anio === 2026)
     notes.push(`<div class="note">Los datos de <b>2026</b> pueden estar incompletos en correctivo, repuestos y otros gastos, y en enero–abril. Una baja contra 2025 no siempre es una baja real.</div>`);
-  const dups = duplicados(ROWS);
-  if (dups.grupos.length) {
-    notes.push(`<div class="note warn">⚠ <b>${dups.grupos.length} posibles duplicados</b> en el Detalle (misma placa, fecha, monto y tipo), por <b>${bs(dups.extra)}</b> si fueran dobles. No se quitaron: revísalos en el Excel.
-      <button class="link" id="dupToggle">Ver lista</button><div class="dup-list" id="dupList" hidden></div></div>`);
-  }
-  const el = document.getElementById('notes');
-  el.innerHTML = notes.join('');
-  const tg = document.getElementById('dupToggle');
-  if (tg) tg.onclick = () => {
-    const l = document.getElementById('dupList');
-    if (l.hidden && !l.innerHTML) l.innerHTML = `<table class="tbl"><tr><th>Fecha</th><th>Placa</th><th>Tipo</th><th class="r">Monto</th><th class="r">Veces</th><th>Fact./Recibo</th></tr>` +
-      dups.grupos.map(g => `<tr><td class="m">${g[0].fecha}</td><td class="m">${esc(g[0].placa)}</td><td>${esc(g[0].tipo)}</td><td class="m r">${fmt2.format(g[0].monto)}</td><td class="m r">${g.length}</td><td class="m">${g.map(r => esc(r.doc) || '—').join(' · ')}</td></tr>`).join('') + '</table>';
-    l.hidden = !l.hidden; tg.textContent = l.hidden ? 'Ver lista' : 'Ocultar lista';
-  };
-}
-
-function duplicados(rows) {
-  const m = new Map();
-  rows.forEach(r => { const k = dupKey(r); m.has(k) ? m.get(k).push(r) : m.set(k, [r]); });
-  const grupos = [...m.values()].filter(g => g.length > 1).sort((a, b) => a[0].fecha.localeCompare(b[0].fecha));
-  const extra = grupos.reduce((s, g) => s + g[0].monto * (g.length - 1), 0);
-  return { grupos, extra };
+  document.getElementById('notes').innerHTML = notes.join('');
 }
 
 function animateValue(el, to, fmtFn) {
@@ -715,7 +691,6 @@ function previewUpload(nombre, rows, malas, faltan) {
   const fechas = rows.map(r => r.fecha).sort();
   const tot = rows.reduce((s, r) => s + r.monto, 0);
   const sinProxy = [...new Set(rows.filter(r => r.proxi === 'SIN PROXY' && r.placa !== 'SIN PLACA').map(r => r.placa))];
-  const dups = duplicados(rows);
   modal(`<h3>Revisar antes de cargar</h3>
     <dl class="kv">
       <dt>Archivo</dt><dd>${esc(nombre)}</dd>
@@ -723,9 +698,7 @@ function previewUpload(nombre, rows, malas, faltan) {
       <dt>Período</dt><dd>${fechas[0]} a ${fechas[fechas.length - 1]}</dd>
       <dt>Total</dt><dd>Bs ${fmt2.format(tot)}</dd>
       <dt>Sin placa</dt><dd>${rows.filter(r => r.placa === 'SIN PLACA').length} filas</dd>
-      <dt>Placas sin proxy</dt><dd>${sinProxy.length ? esc(sinProxy.join(', ')) : 'ninguna'}</dd>
-      <dt>Posibles duplicados</dt><dd>${dups.grupos.length} (Bs ${fmt0.format(dups.extra)})</dd>
-    </dl>
+      <dt>Placas sin proxy</dt><dd>${sinProxy.length ? esc(sinProxy.join(', ')) : 'ninguna'}</dd>    </dl>
     ${faltan.length ? `<div class="msg">Columnas no encontradas (quedan vacías): <b>${faltan.join(', ')}</b></div>` : ''}
     ${malas.length ? `<div class="msg err">${malas.length} filas sin fecha o monto válido no se cargarán (filas ${malas.slice(0, 8).map(m => m.fila).join(', ')}${malas.length > 8 ? '…' : ''}).</div>` : ''}
     <div class="msg">Esto <b>reemplaza todos los gastos</b> cargados ahora (${fmt0.format(ROWS.length)} filas) por los de este archivo.</div>
