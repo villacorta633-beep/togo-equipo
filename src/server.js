@@ -93,6 +93,20 @@ async function requireAdmin(req, res, next) {
   });
 }
 
+// Sincronizador de la PC: sube el Excel con la clave SYNC_KEY (variable de Render), sin usuario.
+// Solo sirve para cargar gastos y flota; para lo demás hace falta iniciar sesión.
+function requireAdminOSync(req, res, next) {
+  const clave = process.env.SYNC_KEY || '';
+  const enviada = String(req.headers['x-sync-key'] || '');
+  if (clave.length >= 32 && enviada.length === clave.length &&
+      crypto.timingSafeEqual(Buffer.from(enviada), Buffer.from(clave))) {
+    req.user = { username: 'sincronizador', role: 'admin' };
+    return next();
+  }
+  if (enviada) return res.status(401).json({ error: 'Clave de sincronización incorrecta' });
+  return requireAdmin(req, res, next);
+}
+
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '10mb' })); // la carga de gastos manda ~3.000 filas
 // Enlace anterior a la página de gastos: ahora es la portada
@@ -175,7 +189,7 @@ app.get('/api/gastos', requireAuth, async (req, res, next) => {
   }
 });
 
-app.post('/api/gastos/import', requireAdmin, async (req, res, next) => {
+app.post('/api/gastos/import', requireAdminOSync, async (req, res, next) => {
   const { rows, archivo } = req.body;
   if (!Array.isArray(rows) || !rows.length) return res.status(400).json({ error: 'No hay filas para cargar' });
   const malas = [];
@@ -214,7 +228,7 @@ app.post('/api/gastos/import', requireAdmin, async (req, res, next) => {
 
 // Flota actual: placas que están trabajando, leídas del Excel VEHICULOS PROXI en el navegador.
 // Cada carga reemplaza la lista completa.
-app.post('/api/flota', requireAdmin, seguro(async (req, res) => {
+app.post('/api/flota', requireAdminOSync, seguro(async (req, res) => {
   const { placas, archivo } = req.body;
   const ok = Array.isArray(placas) && placas.length && placas.length <= 500 &&
     placas.every(p => p && typeof p.placa === 'string' && /^[A-Z0-9]{3,12}$/.test(p.placa));

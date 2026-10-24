@@ -6,3 +6,10 @@ data.db
 # datos locales de gastos (repo publico)
 detalle_gastos.csv
 BRIEF.md
+
+# sincronizador: configuración y estado locales (la clave no se sube)
+sincronizador/node_modules/
+sincronizador/config.json
+sincronizador/estado.json
+sincronizador/sincronizador.log*
+.claude/

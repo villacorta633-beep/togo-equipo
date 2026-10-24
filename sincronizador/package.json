@@ -1,0 +1,14 @@
+{
+  "name": "togo-sincronizador",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sube a la web los Excel de gastos y de vehículos cada vez que se guardan en la PC",
+  "main": "sincronizador.js",
+  "scripts": {
+    "start": "node sincronizador.js"
+  },
+  "dependencies": {
+    "xlsx": "0.18.5"
+  },
+  "engines": { "node": ">=18.0.0" }
+}
