@@ -10,8 +10,16 @@ const PORT = process.env.PORT || 3000;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+  connectionTimeoutMillis: 10000
 });
+// Un fallo de la base no debe tumbar el servidor: se registra y cada ruta responde 503
+pool.on('error', err => console.error('[DB] error en conexión inactiva:', err.code || err.message));
+process.on('unhandledRejection', err => console.error('[ERROR] promesa sin capturar:', err && (err.code || err.message)));
+
+// Envuelve rutas async para que sus errores lleguen al manejador de errores de Express
+const seguro = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+const detalleError = err => [err.code, err.message].filter(Boolean).join(' ').slice(0, 200);
 
 async function initDB() {
   await pool.query(`
@@ -69,13 +77,16 @@ function generateToken() {
 async function requireAuth(req, res, next) {
   const token = req.headers['x-auth-token'];
   if (!token) return res.status(401).json({ error: 'No autenticado' });
-  const { rows } = await pool.query('SELECT * FROM sessions WHERE token=$1', [token]);
+  let rows;
+  try { ({ rows } = await pool.query('SELECT * FROM sessions WHERE token=$1', [token])); }
+  catch (e) { return next(e); }
   if (!rows.length) return res.status(401).json({ error: 'Sesión inválida' });
   req.user = rows[0];
   next();
 }
 async function requireAdmin(req, res, next) {
-  await requireAuth(req, res, async () => {
+  await requireAuth(req, res, err => {
+    if (err) return next(err);
     if (req.user.role !== 'admin') return res.status(403).json({ error: 'Solo admin' });
     next();
   });
@@ -88,7 +99,7 @@ app.get('/gastos.html', (req, res) => res.redirect(301, '/'));
 app.use(express.static(path.join(__dirname, '../public')));
 
 // ── AUTH ROUTES ───────────────────────────────────────────────────────────────
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', seguro(async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Faltan datos' });
   const hash = hashPassword(password);
@@ -98,25 +109,25 @@ app.post('/api/login', async (req, res) => {
   await pool.query('INSERT INTO sessions (token, user_id, username, role) VALUES ($1,$2,$3,$4)',
     [token, rows[0].id, rows[0].username, rows[0].role]);
   res.json({ ok: true, token, username: rows[0].username, role: rows[0].role });
-});
+}));
 
-app.post('/api/logout', async (req, res) => {
+app.post('/api/logout', seguro(async (req, res) => {
   const token = req.headers['x-auth-token'];
   if (token) await pool.query('DELETE FROM sessions WHERE token=$1', [token]);
   res.json({ ok: true });
-});
+}));
 
 app.get('/api/me', requireAuth, (req, res) => {
   res.json({ username: req.user.username, role: req.user.role });
 });
 
 // ── USER MANAGEMENT (solo admin) ──────────────────────────────────────────────
-app.get('/api/users', requireAdmin, async (req, res) => {
+app.get('/api/users', requireAdmin, seguro(async (req, res) => {
   const { rows } = await pool.query('SELECT id, username, role, created_at FROM users ORDER BY id');
   res.json(rows);
-});
+}));
 
-app.post('/api/users', requireAdmin, async (req, res) => {
+app.post('/api/users', requireAdmin, seguro(async (req, res) => {
   const { username, password, role } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Usuario y contraseña requeridos' });
   const hash = hashPassword(password);
@@ -125,30 +136,31 @@ app.post('/api/users', requireAdmin, async (req, res) => {
       [username, hash, role || 'user']);
     res.json({ ok: true });
   } catch (e) {
+    if (e.code !== '23505') throw e;   // 23505 = usuario repetido
     res.status(400).json({ error: 'El usuario ya existe' });
   }
-});
+}));
 
-app.delete('/api/users/:id', requireAdmin, async (req, res) => {
+app.delete('/api/users/:id', requireAdmin, seguro(async (req, res) => {
   const { rows } = await pool.query('SELECT username FROM users WHERE id=$1', [req.params.id]);
   if (rows[0]?.username === 'admin') return res.status(400).json({ error: 'No puedes eliminar al admin' });
   await pool.query('DELETE FROM sessions WHERE user_id=$1', [req.params.id]);
   await pool.query('DELETE FROM users WHERE id=$1', [req.params.id]);
   res.json({ ok: true });
-});
+}));
 
-app.put('/api/users/:id/password', requireAdmin, async (req, res) => {
+app.put('/api/users/:id/password', requireAdmin, seguro(async (req, res) => {
   const { password } = req.body;
   if (!password) return res.status(400).json({ error: 'Contraseña requerida' });
   const hash = hashPassword(password);
   await pool.query('UPDATE users SET password_hash=$1 WHERE id=$2', [hash, req.params.id]);
   res.json({ ok: true });
-});
+}));
 
 // ══ GASTOS FLOTA API ══
 // Los datos vienen del Excel DASHBOARD GASTOS TOGO (hoja Detalle). La página los
 // lee y limpia en el navegador; aquí cada carga reemplaza la tabla completa.
-app.get('/api/gastos', requireAuth, async (req, res) => {
+app.get('/api/gastos', requireAuth, async (req, res, next) => {
   try {
     const { rows } = await pool.query(
       `SELECT id, fecha, anio, mes, proxi, placa, tipo, descripcion, ot, doc, monto::float8 AS monto
@@ -157,11 +169,11 @@ app.get('/api/gastos', requireAuth, async (req, res) => {
     const meta = await pool.query("SELECT value FROM config WHERE key='gastos_meta'");
     res.json({ rows, meta: JSON.parse(meta.rows[0]?.value || '{}') });
   } catch(e) {
-    res.status(500).json({ error: e.message });
+    next(e);
   }
 });
 
-app.post('/api/gastos/import', requireAdmin, async (req, res) => {
+app.post('/api/gastos/import', requireAdmin, async (req, res, next) => {
   const { rows, archivo } = req.body;
   if (!Array.isArray(rows) || !rows.length) return res.status(400).json({ error: 'No hay filas para cargar' });
   const malas = [];
@@ -171,7 +183,8 @@ app.post('/api/gastos/import', requireAdmin, async (req, res) => {
   if (malas.length) return res.status(400).json({ error: `Filas con fecha o monto inválido: ${malas.slice(0, 10).join(', ')}` });
 
   const col = k => rows.map(r => r[k]);
-  const client = await pool.connect();
+  let client;
+  try { client = await pool.connect(); } catch (e) { return next(e); }
   try {
     await client.query('BEGIN');
     await client.query('DELETE FROM gastos');
@@ -190,15 +203,30 @@ app.post('/api/gastos/import', requireAdmin, async (req, res) => {
     await client.query('COMMIT');
     res.json({ ok: true, ...meta });
   } catch(e) {
-    await client.query('ROLLBACK');
+    await client.query('ROLLBACK').catch(() => {});
     res.status(500).json({ error: e.message });
   } finally {
     client.release();
   }
 });
 
-// Health check
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+// Health check: también prueba la base para ver la causa sin entrar a los logs de Render
+app.get('/health', async (req, res) => {
+  try {
+    await pool.query('SELECT 1');
+    await asegurarDB();
+    res.json({ status: 'ok', db: 'ok' });
+  } catch (e) {
+    // 200 aunque falle la base: si Render usa /health como chequeo, no debe reiniciar el servicio por esto
+    res.json({ status: 'ok', db: 'error', detalle: detalleError(e), database_url: !!process.env.DATABASE_URL });
+  }
+});
+
+// Errores de la base: responder 503 con un mensaje claro en vez de caerse
+app.use((err, req, res, next) => {
+  console.error('[API]', req.method, req.path, detalleError(err));
+  res.status(503).json({ error: 'La base de datos no responde. Intenta en unos minutos.' });
+});
 
 // Self-ping every 10 min to prevent Render free-tier sleep
 const SELF_URL = process.env.RENDER_EXTERNAL_URL || 'https://togo-equipo.onrender.com';
@@ -207,9 +235,16 @@ setInterval(() => {
   http.get(SELF_URL + '/health', (r) => {}).on('error', () => {});
 }, 10 * 60 * 1000);
 
+// Si la base no estaba lista al arrancar, se vuelve a intentar crear las tablas más tarde
+let dbLista = false;
+async function asegurarDB() {
+  if (dbLista) return;
+  await initDB();
+  dbLista = true;
+  console.log('DB lista ✅');
+}
+
 app.listen(PORT, () => {
   console.log(`Servidor TOGO en http://localhost:${PORT}`);
-  initDB()
-    .then(() => console.log('DB lista ✅'))
-    .catch(err => console.error('Error DB:', err));
+  asegurarDB().catch(err => console.error('Error DB:', detalleError(err)));
 });
