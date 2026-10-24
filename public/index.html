@@ -41,6 +41,8 @@ button,select,input{font-family:inherit;}
 .btn{padding:6px 14px;font-size:11px;font-family:var(--mono);font-weight:500;border:1px solid var(--border2);background:transparent;color:var(--text2);border-radius:4px;cursor:pointer;transition:all .15s;letter-spacing:.5px;text-transform:uppercase;}
 .btn:hover{border-color:var(--amber);color:var(--amber);}
 .btn.active{background:var(--amber-dim);border-color:var(--amber);color:var(--amber);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn:disabled:hover{border-color:var(--border2);color:var(--text2);}
 .btn-primary{background:var(--amber);color:#000;border:none;font-weight:600;}
 .btn-primary:hover{background:var(--amber2);color:#000;}
 .toolbar-sep{flex:1;}
@@ -173,6 +175,11 @@ button,select,input{font-family:inherit;}
 </div>
 
 <div class="toolbar" id="toolbar" style="display:none">
+  <div class="f-group" id="fVista">
+    <span class="f-label">Vista</span>
+    <button class="btn active" data-v="TOTAL">Total</button>
+    <button class="btn" data-v="FLOTA" id="vFlota">Flota actual</button>
+  </div>
   <div class="f-group"><span class="f-label">Año</span><select class="sel" id="fAnio"></select></div>
   <div class="f-group"><span class="f-label">Mes</span><select class="sel" id="fMes"></select></div>
   <div class="f-group"><span class="f-label">Placa</span><select class="sel" id="fPlaca"></select></div>
@@ -214,7 +221,9 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const grupo = tipo => GRUPOS.Combustible.includes(tipo) ? 'Combustible' : GRUPOS.Mantenimiento.includes(tipo) ? 'Mantenimiento' : 'Otros';
 
 let ROWS = [], META = {};
-const F = { anio: null, mes: 0, proxi: 'TODOS', placa: '', tipo: '' };
+// Flota actual: placas que están trabajando, del Excel VEHICULOS PROXI
+let FLOTA = {}, FLOTA_SET = new Set();
+const F = { vista: 'TOTAL', anio: null, mes: 0, proxi: 'TODOS', placa: '', tipo: '' };
 const T = { q: '', sort: 'fecha', dir: -1, shown: 100 };
 let rankAll = false;
 let chMes = null, chTipo = null, chDona = null;
@@ -240,6 +249,9 @@ async function load() {
   try {
     const d = await api('/api/gastos');
     ROWS = d.rows; META = d.meta || {};
+    FLOTA = d.flota || {};
+    FLOTA_SET = new Set((FLOTA.placas || []).map(p => p.placa));
+    if (!FLOTA_SET.size) F.vista = 'TOTAL';
   } catch (e) {
     document.getElementById('app').innerHTML = `<div class="empty">No se pudieron cargar los gastos.<br>${esc(e.message)}</div>`;
     return;
@@ -278,18 +290,30 @@ function setupFilters() {
   sM.innerHTML = '<option value="0">Todos</option>' + MESES_FULL.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('');
   sM.value = F.mes;
   sM.onchange = () => { F.mes = +sM.value; render(); };
-  const opts = (vals, todos) => `<option value="">${todos}</option>` + vals.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
   const sP = document.getElementById('fPlaca');
-  sP.innerHTML = opts([...new Set(ROWS.map(r => r.placa))].sort(), 'Todas');
   sP.onchange = () => { F.placa = sP.value; render(); };
   const sT = document.getElementById('fTipo');
-  sT.innerHTML = opts([...new Set(ROWS.map(r => r.tipo))].sort(), 'Todos');
+  sT.innerHTML = opciones([...new Set(ROWS.map(r => r.tipo))].sort(), 'Todos');
   sT.onchange = () => { F.tipo = sT.value; render(); };
   document.querySelectorAll('#fProxi .btn').forEach(b => b.onclick = () => { F.proxi = b.dataset.p; render(); });
+  const vF = document.getElementById('vFlota');
+  vF.disabled = !FLOTA_SET.size;
+  vF.textContent = FLOTA_SET.size ? `Flota actual (${FLOTA_SET.size})` : 'Flota actual';
+  vF.title = FLOTA_SET.size ? '' : 'Sube el Excel VEHICULOS PROXI para activar esta vista';
+  document.querySelectorAll('#fVista .btn').forEach(b => b.onclick = () => {
+    if (b.disabled) return;
+    F.vista = b.dataset.v;
+    if (F.vista === 'FLOTA' && F.placa && !FLOTA_SET.has(F.placa)) F.placa = '';
+    render();
+  });
 }
+const opciones = (vals, todos) => `<option value="">${todos}</option>` + vals.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
 
+// En la vista Flota actual solo cuentan las placas de la flota, también en el año anterior,
+// así la comparación es con los mismos vehículos.
 function match(r, { anio = F.anio, mes = F.mes, proxi = F.proxi, placa = F.placa, tipo = F.tipo } = {}) {
-  return (anio == null || r.anio === anio) && (!mes || r.mes === mes) &&
+  return (F.vista !== 'FLOTA' || FLOTA_SET.has(r.placa)) &&
+         (anio == null || r.anio === anio) && (!mes || r.mes === mes) &&
          (proxi === 'TODOS' || r.proxi === proxi) && (!placa || r.placa === placa) && (!tipo || r.tipo === tipo);
 }
 
@@ -303,7 +327,10 @@ function renderChips() {
   el.querySelectorAll('.chip').forEach(ch => ch.onclick = () => { F[ch.dataset.k] = ch.dataset.k === 'mes' ? 0 : ''; render(); });
   document.getElementById('fAnio').value = F.anio;
   document.getElementById('fMes').value = F.mes;
+  const placas = F.vista === 'FLOTA' ? [...FLOTA_SET] : ROWS.map(r => r.placa);
+  document.getElementById('fPlaca').innerHTML = opciones([...new Set(placas)].sort(), 'Todas');
   document.getElementById('fPlaca').value = F.placa;
+  document.querySelectorAll('#fVista .btn').forEach(b => b.classList.toggle('active', b.dataset.v === F.vista));
   document.getElementById('fTipo').value = F.tipo;
   document.querySelectorAll('#fProxi .btn').forEach(b => b.classList.toggle('active', b.dataset.p === F.proxi));
 }
@@ -426,6 +453,11 @@ function renderNotes() {
   const notes = [];
   if (F.anio === 2026)
     notes.push(`<div class="note">Los datos de <b>2026</b> pueden estar incompletos en correctivo, repuestos y otros gastos, y en enero–abril. Una baja contra 2025 no siempre es una baja real.</div>`);
+  if (F.vista === 'FLOTA') {
+    const f = FLOTA.fecha ? new Date(FLOTA.fecha).toLocaleDateString('es-BO') : '';
+    notes.push(`<div class="note">Vista <b>Flota actual</b>: solo las <b>${FLOTA_SET.size} placas</b> que están trabajando
+      (${esc(FLOTA.archivo || 'VEHICULOS PROXI')}${f ? ', cargado el ' + f : ''}). La comparación con ${F.anio - 1} usa las mismas placas.</div>`);
+  }
   document.getElementById('notes').innerHTML = notes.join('');
 }
 
@@ -670,22 +702,90 @@ document.getElementById('fileIn').onchange = async e => {
   if (!file) return;
   modal(`<h3>Leyendo archivo…</h3><div class="msg">${esc(file.name)}</div>`);
   try {
-    let table, hoja = '';
+    let table, hoja = '', wb = null;
     if (/\.csv$/i.test(file.name)) {
       table = parseCSV(await file.text());
     } else {
       if (!window.XLSX) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
-      const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+      wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
       hoja = wb.SheetNames.includes('Detalle') ? 'Detalle' : wb.SheetNames[0];
       table = XLSX.utils.sheet_to_json(wb.Sheets[hoja], { header: 1, raw: true, defval: '' });
     }
-    const { rows, malas, faltan } = limpiar(table);
+    // Excel de gastos (hoja Detalle) o, si no tiene fecha y monto, la lista de vehículos (flota actual)
+    let gastos = null;
+    try { gastos = limpiar(table); } catch (errGastos) {
+      const tablas = wb ? wb.SheetNames.map(n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' })) : [table];
+      const placas = leerFlota(tablas);
+      if (!placas.length) throw new Error('No reconocí el archivo: no es la hoja Detalle de gastos ni una lista de vehículos con columna PLACA.');
+      return previewFlota(file.name, placas);
+    }
+    const { rows, malas, faltan } = gastos;
     if (!rows.length) throw new Error('El archivo no tiene filas de gastos válidas.');
     previewUpload(file.name + (hoja ? ` · hoja ${hoja}` : ''), rows, malas, faltan);
   } catch (err) {
     modal(`<h3>No se pudo leer el archivo</h3><div class="msg err">${esc(err.message)}</div><div class="modal-actions"><button class="btn" onclick="closeModal()">Cerrar</button></div>`);
   }
 };
+
+// Lista de vehículos (Excel VEHICULOS PROXI): puede tener varios bloques lado a lado,
+// uno por proxy, cada uno con su columna PLACA. El proxy sale de la columna PROXI
+// o, si no hay, del título que está encima del bloque.
+const normPlaca = p => String(p ?? '').toUpperCase().replace(/[\s-]/g, '');
+const normProxi = p => { const s = normH(p); return s.startsWith('ISUTO') ? 'ISUTO' : s.startsWith('ESCUADR') ? 'ESCUADRON' : String(p ?? '').trim().toUpperCase(); };
+function leerFlota(tablas) {
+  const vistas = new Map();
+  for (const t of tablas) {
+    for (let hi = 0; hi < Math.min(10, t.length); hi++) {
+      const hs = t[hi].map(normH);
+      const cols = hs.map((h, c) => h === 'PLACA' ? c : -1).filter(c => c >= 0);
+      cols.forEach((c, k) => {
+        const fin = k + 1 < cols.length ? cols[k + 1] : hs.length;
+        const col = alias => { for (let j = c + 1; j < fin; j++) if (alias.includes(hs[j])) return j; return -1; };
+        const cP = col(['PROXI', 'PROXY']), cT = col(['TIPO', 'VEHICULO']), cMa = col(['MARCA']), cMo = col(['MODELO']);
+        const titulo = hi > 0 ? t[hi - 1][c] : '';
+        for (let r = hi + 1; r < t.length; r++) {
+          const placa = normPlaca(t[r][c]);
+          if (!placa) break;
+          if (!/^[A-Z0-9]{5,10}$/.test(placa) || vistas.has(placa)) continue;
+          const v = j => j >= 0 ? String(t[r][j] ?? '').trim() : '';
+          vistas.set(placa, { placa, proxi: normProxi(v(cP) || titulo), tipo: v(cT).toUpperCase(), marca: v(cMa), modelo: v(cMo) });
+        }
+      });
+    }
+  }
+  return [...vistas.values()];
+}
+
+function previewFlota(nombre, placas) {
+  const conGasto = new Set(ROWS.map(r => r.placa));
+  const sinGasto = placas.filter(p => !conGasto.has(p.placa)).map(p => p.placa);
+  const nuevas = new Set(placas.map(p => p.placa));
+  const fuera = [...conGasto].filter(p => p !== 'SIN PLACA' && !nuevas.has(p)).sort();
+  const porProxi = {};
+  placas.forEach(p => (porProxi[p.proxi || 'SIN PROXY'] = porProxi[p.proxi || 'SIN PROXY'] || []).push(p.placa));
+  modal(`<h3>Flota actual</h3>
+    <dl class="kv">
+      <dt>Archivo</dt><dd>${esc(nombre)}</dd>
+      <dt>Placas</dt><dd>${placas.length}</dd>
+      ${Object.entries(porProxi).map(([px, ps]) => `<dt>${esc(px)}</dt><dd>${ps.length}: ${esc(ps.join(', '))}</dd>`).join('')}
+    </dl>
+    ${sinGasto.length ? `<div class="msg">Sin gastos en el Detalle cargado: <b>${esc(sinGasto.join(', '))}</b></div>` : ''}
+    ${fuera.length ? `<div class="msg">Tienen gastos pero no están en esta lista (no cuentan en la vista Flota actual): ${esc(fuera.join(', '))}</div>` : ''}
+    <div class="msg">Esto <b>reemplaza la lista de flota actual</b>${FLOTA_SET.size ? ` (hoy ${FLOTA_SET.size} placas)` : ''}. Los gastos no cambian.</div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" id="confirmFlota">Guardar flota actual</button></div>`);
+  document.getElementById('confirmFlota').onclick = async ev => {
+    ev.target.disabled = true; ev.target.textContent = 'Guardando…';
+    try {
+      await api('/api/flota', { method: 'POST', body: JSON.stringify({ placas, archivo: nombre }) });
+      closeModal();
+      F.vista = 'FLOTA'; F.placa = '';
+      await load();
+    } catch (err) {
+      ev.target.disabled = false; ev.target.textContent = 'Reintentar';
+      document.querySelector('#modalBody .modal-actions').insertAdjacentHTML('beforebegin', `<div class="msg err">${esc(err.message)}</div>`);
+    }
+  };
+}
 
 function previewUpload(nombre, rows, malas, faltan) {
   const fechas = rows.map(r => r.fecha).sort();

@@ -55,6 +55,7 @@ async function initDB() {
       monto NUMERIC(14,2) NOT NULL
     );
     INSERT INTO config (key, value) VALUES ('gastos_meta', '{}') ON CONFLICT (key) DO NOTHING;
+    INSERT INTO config (key, value) VALUES ('flota_actual', '{}') ON CONFLICT (key) DO NOTHING;
   `);
 
   // Crear admin por defecto si no existe
@@ -166,8 +167,9 @@ app.get('/api/gastos', requireAuth, async (req, res, next) => {
       `SELECT id, fecha, anio, mes, proxi, placa, tipo, descripcion, ot, doc, monto::float8 AS monto
        FROM gastos ORDER BY fecha, id`
     );
-    const meta = await pool.query("SELECT value FROM config WHERE key='gastos_meta'");
-    res.json({ rows, meta: JSON.parse(meta.rows[0]?.value || '{}') });
+    const cfg = await pool.query("SELECT key, value FROM config WHERE key IN ('gastos_meta','flota_actual')");
+    const val = k => JSON.parse(cfg.rows.find(c => c.key === k)?.value || '{}');
+    res.json({ rows, meta: val('gastos_meta'), flota: val('flota_actual') });
   } catch(e) {
     next(e);
   }
@@ -209,6 +211,23 @@ app.post('/api/gastos/import', requireAdmin, async (req, res, next) => {
     client.release();
   }
 });
+
+// Flota actual: placas que están trabajando, leídas del Excel VEHICULOS PROXI en el navegador.
+// Cada carga reemplaza la lista completa.
+app.post('/api/flota', requireAdmin, seguro(async (req, res) => {
+  const { placas, archivo } = req.body;
+  const ok = Array.isArray(placas) && placas.length && placas.length <= 500 &&
+    placas.every(p => p && typeof p.placa === 'string' && /^[A-Z0-9]{3,12}$/.test(p.placa));
+  if (!ok) return res.status(400).json({ error: 'La lista de placas no es válida' });
+  const flota = {
+    placas: placas.map(p => ({ placa: p.placa, proxi: String(p.proxi || '').slice(0, 30), tipo: String(p.tipo || '').slice(0, 30),
+                               marca: String(p.marca || '').slice(0, 30), modelo: String(p.modelo || '').slice(0, 30) })),
+    archivo: String(archivo || '').slice(0, 200), por: req.user.username, fecha: new Date().toISOString()
+  };
+  await pool.query(`INSERT INTO config (key, value) VALUES ('flota_actual', $1)
+                    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`, [JSON.stringify(flota)]);
+  res.json({ ok: true, placas: flota.placas.length });
+}));
 
 // Health check: también prueba la base para ver la causa sin entrar a los logs de Render
 app.get('/health', async (req, res) => {
