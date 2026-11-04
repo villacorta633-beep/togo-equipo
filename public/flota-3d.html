@@ -131,6 +131,7 @@ button,select{font-family:inherit;}
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 // ══ PIEZAS ══════════════════════════════════════════════════════════════════
 // Cada gasto se asigna a las piezas que nombra su descripción (sin tildes, en mayúsculas).
@@ -231,6 +232,8 @@ async function cargar() {
   S.veh = q && VEH.has(q) ? q : (lista.find(v => v.tipo === 'furgon') || lista[0]).placa;
 
   armarFiltros(lista);
+  // Las calcomanías se dibujan con la fuente Inter: esperar a que cargue
+  await document.fonts.load('italic 700 64px Inter').catch(() => {});
   document.getElementById('estado').style.display = 'none';
   actualizar();
 }
@@ -288,7 +291,10 @@ controls.autoRotate = true;
 controls.autoRotateSpeed = 0.7;
 controls.maxPolarAngle = Math.PI * 0.49;
 
-scene.add(new THREE.HemisphereLight('#d6dde6', '#1a1a1a', 0.9));
+// Entorno de estudio: da reflejos a la pintura, los vidrios y el cromo
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.55;
+scene.add(new THREE.HemisphereLight('#d6dde6', '#1a1a1a', 0.5));
 const sol = new THREE.DirectionalLight('#ffffff', 2.4);
 sol.position.set(4, 7, 3);
 sol.castShadow = true;
@@ -312,7 +318,7 @@ let root = null, piezas = [], modeloActual = '';
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.25, ...o });
 const METAL = { metalness: 0.85, roughness: 0.3 };
-const VIDRIO = { metalness: 0.9, roughness: 0.08 };
+const VIDRIO = { metalness: 0.6, roughness: 0.04 };
 const GOMA = { metalness: 0, roughness: 0.92 };
 function mesh(geo, color, pos = [0, 0, 0], rot = [0, 0, 0], o) {
   const m = new THREE.Mesh(geo, mat(color, o));
@@ -366,76 +372,168 @@ function pz(parte, obj, ex = [0, 0, 0]) {
 }
 
 // ── Ayudas para los furgones: eje X = largo (frente +X), Z = ancho ──
+// Perfil lateral con los pasaruedas recortados: de atrás hacia adelante por abajo
+function bajoConRuedas(xAtras, xFrente, yBajo, ruedas, yR, r) {
+  const pts = [[xAtras, yBajo]];
+  ruedas.forEach(xc => {
+    pts.push([xc - r, yBajo], [xc - r, yR]);
+    for (let a = 180; a >= 0; a -= 12) pts.push([xc + r * Math.cos(a * Math.PI / 180), yR + r * Math.sin(a * Math.PI / 180)]);
+    pts.push([xc + r, yBajo]);
+  });
+  pts.push([xFrente, yBajo]);
+  return pts;
+}
 // Carrocería a partir del perfil lateral, extruido a lo ancho
-function perfil(pts, ancho, color) {
-  const sh = new THREE.Shape();
-  sh.moveTo(...pts[0]); pts.slice(1).forEach(p => sh.lineTo(...p));
-  const g = new THREE.ExtrudeGeometry(sh, { depth: ancho, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 3 });
-  g.translate(0, 0, -ancho / 2);
-  return new THREE.Mesh(g, mat(color, { roughness: 0.35, metalness: 0.15 }));
+// Las esquinas del perfil se redondean, los bordes laterales se biselan y la trompa
+// se angosta hacia adelante, como en la carrocería real. Pintura con laca.
+function perfil(pts, ancho, color, { radio = 0.1, trompa = 0.07 } = {}) {
+  pts = pts.filter((p, i) => { const q = pts[(i + 1) % pts.length]; return Math.hypot(p[0] - q[0], p[1] - q[1]) > 1e-4; });
+  const n = pts.length, sh = new THREE.Shape();
+  pts.forEach((p, i) => {
+    const a = pts[(i - 1 + n) % n], b = pts[(i + 1) % n];
+    const la = Math.hypot(a[0] - p[0], a[1] - p[1]), lb = Math.hypot(b[0] - p[0], b[1] - p[1]);
+    const r = Math.min(radio, la / 2.2, lb / 2.2);
+    const p1 = [p[0] + (a[0] - p[0]) / la * r, p[1] + (a[1] - p[1]) / la * r];
+    const p2 = [p[0] + (b[0] - p[0]) / lb * r, p[1] + (b[1] - p[1]) / lb * r];
+    if (i === 0) sh.moveTo(...p1); else sh.lineTo(...p1);
+    sh.quadraticCurveTo(p[0], p[1], ...p2);
+  });
+  sh.closePath();
+  const g = new THREE.ExtrudeGeometry(sh, { depth: ancho - 0.1, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.05, bevelSegments: 5, curveSegments: 6 });
+  g.translate(0, 0, -(ancho - 0.1) / 2);
+  const pos = g.attributes.position, xMax = Math.max(...pts.map(p => p[0])), x0 = xMax - 0.65;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    if (x > x0) { const f = (x - x0) / (xMax - x0); pos.setZ(i, pos.getZ(i) * (1 - trompa * f * f)); }
+  }
+  g.computeVertexNormals();
+  return new THREE.Mesh(g, new THREE.MeshPhysicalMaterial({ color, roughness: 0.32, metalness: 0.05, clearcoat: 1, clearcoatRoughness: 0.08 }));
 }
 // Vidrio inclinado entre dos puntos del perfil (x, y)
 function vidrioEntre([ax, ay], [bx, by], ancho) {
   const dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy);
-  return caja(0.02, L * 0.92, ancho, '#0f172a', [(ax + bx) / 2 + dy / L * 0.035, (ay + by) / 2 - dx / L * 0.035, 0], [0, 0, Math.atan2(-dx, dy)], VIDRIO);
+  return caja(0.02, L * 0.92, ancho, '#0f172a', [(ax + bx) / 2 + dy / L * 0.07, (ay + by) / 2 - dx / L * 0.07, 0], [0, 0, Math.atan2(-dx, dy)], VIDRIO);
 }
-// Pasarrueda negro sobre cada rueda, a los dos lados
-const pasarruedas = (xs, y, z) => xs.flatMap(x => [1, -1].map(s =>
-  mesh(new THREE.TorusGeometry(0.37, 0.035, 8, 28, Math.PI), '#1a1a1a', [x, y, s * z], undefined, GOMA)));
-// Ruedas y frenos (discos adelante, tambores atrás)
-function ruedasYFrenos(XF, XT, YR, zR) {
+// Pieza plana pegada al costado (ventanas), a los dos lados
+function lamina(pts, z, color, o) {
+  const sh = new THREE.Shape(); sh.moveTo(...pts[0]); pts.slice(1).forEach(p => sh.lineTo(...p));
+  const geo = new THREE.ShapeGeometry(sh);
+  return [1, -1].map(s => { const m = new THREE.Mesh(geo, mat(color, { side: THREE.DoubleSide, ...o })); m.position.z = s * z; return m; });
+}
+// Línea fina sobre la carrocería (juntas de puertas)
+const junta = (x0, y0, x1, y1, z) => [1, -1].map(s => barra([x0, y0, s * z], [x1, y1, s * z], 0.004, '#8f949b'));
+
+// ── Calcomanías de Farmacorp, dibujadas en un canvas ──
+const AZUL_FC = '#22306e';
+const PETALOS = ['#1d4f9c', '#3fa9dd', '#f6c400', '#f39200', '#e2352b', '#3fa9dd', '#f6c400', '#f39200'];
+function flor(ctx, cx, cy, r) {
+  PETALOS.forEach((c, i) => {
+    const a = i * Math.PI / 4 - Math.PI / 2;
+    ctx.save(); ctx.translate(cx + Math.cos(a) * r * 0.56, cy + Math.sin(a) * r * 0.56); ctx.rotate(a);
+    ctx.fillStyle = c; ctx.beginPath(); ctx.ellipse(0, 0, r * 0.42, r * 0.15, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  });
+}
+function marca(ctx, w, h, color = AZUL_FC) {
+  const fs = h * 0.78;
+  ctx.font = `italic 700 ${fs}px Inter, Arial, sans-serif`; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = color;
+  const tw = ctx.measureText('Farmacorp').width, esc = Math.min(1, (w - fs * 0.7) / tw);
+  ctx.save(); ctx.translate(0, h * 0.86); ctx.scale(esc, 1); ctx.fillText('Farmacorp', 0, 0); ctx.restore();
+  flor(ctx, tw * esc + fs * 0.32, h * 0.3, fs * 0.3);
+}
+function texto(txt, color, peso = 700, italica = true) {
+  return (ctx, w, h) => {
+    const fs = h * 0.8;
+    ctx.font = `${italica ? 'italic ' : ''}${peso} ${fs}px Inter, Arial, sans-serif`; ctx.fillStyle = color; ctx.textBaseline = 'middle';
+    const tw = ctx.measureText(txt).width, esc = Math.min(1, w / tw);
+    ctx.save(); ctx.translate(0, h / 2); ctx.scale(esc, 1); ctx.fillText(txt, 0, 0); ctx.restore();
+  };
+}
+// Calcomanía en los dos costados; x, y = centro
+function calco(ancho, alto, dibujar, x, y, z) {
+  const W = 1024, H = Math.max(16, Math.round(W * alto / ancho));
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  dibujar(cv.getContext('2d'), W, H);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  const geo = new THREE.PlaneGeometry(ancho, alto);
+  return [1, -1].map(s => {
+    const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, alphaTest: 0.35, roughness: 0.4, polygonOffset: true, polygonOffsetFactor: -2 }));
+    m.position.set(x, y, s * z); if (s < 0) m.rotation.y = Math.PI;
+    return m;
+  });
+}
+
+// Ruedas y frenos (discos adelante, tambores atrás); llanta de acero o de aleación
+function ruedasYFrenos(XF, XT, YR, zR, llanta) {
   [[XF, 1], [XF, -1], [XT, 1], [XT, -1]].forEach(([x, s]) => {
-    const del = x === XF, zF = s * (zR - 0.14);
+    const del = x === XF, zF = s * (zR - 0.13);
     pz('frenos', grupo(
-      del ? cil(0.17, 0.025, '#c0c4ca', [x, YR, zF], EJE_Z, METAL) : cil(0.15, 0.08, '#6b7280', [x, YR, zF], EJE_Z, METAL),
-      del ? caja(0.08, 0.12, 0.07, '#dc2626', [x + 0.15, YR + 0.06, zF]) : cil(0.02, 0.1, '#dc2626', [x, YR + 0.12, zF], EJE_Z),
+      del ? cil(0.15, 0.025, '#c0c4ca', [x, YR, zF], EJE_Z, METAL) : cil(0.13, 0.08, '#6b7280', [x, YR, zF], EJE_Z, METAL),
+      del ? caja(0.07, 0.11, 0.07, '#dc2626', [x + 0.13, YR + 0.05, zF]) : cil(0.02, 0.1, '#dc2626', [x, YR + 0.1, zF], EJE_Z),
     ), [0, 0, s * 0.55]);
-    const tire = mesh(new THREE.TorusGeometry(0.245, 0.085, 18, 48), '#1b1b1b', [x, YR, s * zR], undefined, GOMA);
-    tire.scale.z = 1.2;
+    const tire = mesh(new THREE.TorusGeometry(0.215, 0.085, 18, 48), '#1b1b1b', [x, YR, s * zR], undefined, GOMA);
+    tire.scale.z = 1.15;
+    const cara = s * (zR + 0.07);
+    const detalle = llanta === 'aleacion'
+      ? [0, 1, 2, 3, 4].map(i => { const a = i * Math.PI * 2 / 5 + 0.3; return caja(0.09, 0.035, 0.01, '#2a2a2a', [x + Math.cos(a) * 0.09, YR + Math.sin(a) * 0.09, cara + s * 0.006], [0, 0, a]); })
+      : [...Array(8)].map((_, i) => { const a = i * Math.PI / 4; return cil(0.016, 0.01, '#2a2a2a', [x + Math.cos(a) * 0.105, YR + Math.sin(a) * 0.105, cara + s * 0.006], EJE_Z); });
     pz('ruedas', grupo(
       tire,
-      cil(0.17, 0.17, '#c0c4ca', [x, YR, s * zR], EJE_Z, METAL),
-      cil(0.06, 0.19, '#525252', [x, YR, s * zR], EJE_Z, METAL),
-      [0, 1, 2, 3, 4].map(i => { const a = i * Math.PI * 2 / 5; return cil(0.012, 0.02, '#3a3a3a', [x + Math.cos(a) * 0.1, YR + Math.sin(a) * 0.1, s * (zR + 0.09)], EJE_Z); }),
+      cil(0.155, 0.14, llanta === 'aleacion' ? '#d6d9dd' : '#c3c7cc', [x, YR, s * zR], EJE_Z, METAL),
+      cil(0.045, 0.16, '#8a8f96', [x, YR, s * zR], EJE_Z, METAL),
+      detalle,
     ), [0, 0, s * 1.1]);
   });
 }
-const faro = (pos, ex) => pz('electrico', caja(0.04, 0.15, 0.3, '#fff4c2', pos, undefined, { emissive: '#fff4c2', emissiveIntensity: 0.5 }), ex);
-const stop = (pos, ex, alto = 0.3) => pz('electrico', caja(0.04, alto, 0.1, '#ff3b30', pos, undefined, { emissive: '#ff3b30', emissiveIntensity: 0.5 }), ex);
+const faro = (pos, ex, t = [0.04, 0.15, 0.3]) => pz('electrico', caja(...t, '#fff4c2', pos, undefined, { emissive: '#fff4c2', emissiveIntensity: 0.5 }), ex);
+const stop = (pos, ex, alto = 0.3, ancho = 0.1) => pz('electrico', caja(0.04, alto, ancho, '#c81e1e', pos, undefined, { emissive: '#ff3b30', emissiveIntensity: 0.45 }), ex);
 
-// ── Suzuki APV: van de trompa corta y techo alto, motor bajo los asientos, tracción trasera ──
+// ── Suzuki APV furgón (según fotos de la 5762NZL): trompa corta, puerta corrediza, sin ventanas atrás ──
 function construirAPV() {
-  const blanco = '#e9eaec', negro = '#262626';
-  const XF = 1.25, XT = -1.35, YR = 0.33;
-  const P = [[-2.05, 0.5], [1.95, 0.5], [2.02, 0.62], [2.0, 0.95], [1.85, 1.06], [1.3, 1.84], [1.18, 1.9], [-1.95, 1.9], [-2.05, 1.8]];
+  const blanco = '#f1f2f3', negro = '#1c1c1c';
+  const W = 1.62, ZS = W / 2 + 0.035, XF = 1.38, XT = -1.41, YR = 0.3;
+  const P = [...bajoConRuedas(-2.0, 2.0, 0.3, [XT, XF], YR, 0.36),
+    [2.07, 0.42], [2.07, 0.9], [2.0, 1.0], [1.32, 1.2], [0.9, 1.8], [0.8, 1.86], [-1.95, 1.86], [-2.05, 1.78], [-2.07, 0.45]];
 
   pz('chasis', grupo(
-    [1, -1].map(s => caja(3.8, 0.09, 0.09, '#2b2b2b', [-0.05, 0.42, s * 0.42])),
-    [1.6, 0.7, -0.3, -1.3, -1.9].map(x => caja(0.07, 0.07, 0.84, '#2b2b2b', [x, 0.42, 0])),
+    [1, -1].map(s => caja(3.8, 0.09, 0.09, '#2b2b2b', [-0.05, 0.36, s * 0.42])),
+    [1.7, 0.7, -0.3, -1.3, -1.9].map(x => caja(0.07, 0.07, 0.84, '#2b2b2b', [x, 0.36, 0])),
   ));
 
   pz('carroceria', grupo(
-    perfil(P, 1.6, blanco),
-    vidrioEntre([1.85, 1.06], [1.3, 1.84], 1.42),
-    [1, -1].map(s => caja(0.5, 0.42, 0.02, '#0f172a', [1.08, 1.5, s * 0.835], undefined, VIDRIO)),
-    [1, -1].map(s => caja(2.6, 0.1, 0.02, '#F5A623', [-0.6, 0.95, s * 0.835])),
-    [1, -1].map(s => caja(1.0, 0.3, 0.02, '#F5A623', [-0.9, 1.45, s * 0.835])),
-    [1, -1].map(s => [0.75, 0.0, 1.45].map(x => caja(0.012, 1.25, 0.01, '#bdbdbd', [x, 1.15, s * 0.832]))),
-    [1, -1].map(s => caja(0.75, 0.025, 0.02, '#9ca3af', [0.38, 1.78, s * 0.84], undefined, METAL)),
-    caja(0.02, 0.15, 0.8, '#111', [2.035, 0.8, 0]),
-    caja(0.12, 0.16, 1.68, negro, [2.04, 0.55, 0]),
-    caja(0.12, 0.16, 1.68, negro, [-2.1, 0.55, 0]),
-    caja(0.012, 1.2, 0.012, '#bdbdbd', [-2.085, 1.2, 0]),
-    caja(0.02, 0.35, 1.2, '#0f172a', [-2.085, 1.55, 0], undefined, VIDRIO),
-    [1, -1].map(s => caja(0.07, 0.14, 0.12, negro, [1.55, 1.42, s * 0.9])),
-    pasarruedas([XF, XT], YR, 0.84),
-    [1, -1].map(s => caja(0.4, 0.12, 0.5, negro, [1.05, 0.85, s * 0.35])),
-    [1, -1].map(s => caja(0.1, 0.55, 0.5, negro, [0.84, 1.15, s * 0.35])),
+    perfil(P, W, blanco),
+    vidrioEntre([1.32, 1.2], [0.9, 1.8], 1.44),
+    lamina([[1.28, 1.22], [0.93, 1.81], [0.15, 1.81], [0.15, 1.22]], ZS + 0.001, '#151515'),
+    lamina([[1.22, 1.27], [0.9, 1.76], [0.2, 1.76], [0.2, 1.27]], ZS + 0.004, '#0f172a', VIDRIO),
+    [0.6, -0.1].map(z => barra([1.31, 1.23, z], [1.16, 1.44, z - 0.35], 0.008, '#111')),
+    [1, -1].map(s => caja(0.07, 0.03, 0.02, '#f59e0b', [1.78, 0.86, s * (ZS - 0.01)], undefined, { emissive: '#f59e0b', emissiveIntensity: 0.3 })),
+    junta(1.3, 0.62, 1.3, 1.2, ZS), junta(0.14, 0.32, 0.14, 1.8, ZS), junta(-1.05, 0.32, -1.05, 1.8, ZS),
+    junta(0.14, 1.8, -1.05, 1.8, ZS),
+    [1, -1].map(s => caja(0.11, 0.035, 0.02, negro, [0.3, 1.1, s * ZS])),
+    [1, -1].map(s => caja(0.11, 0.035, 0.02, negro, [-0.86, 1.1, s * ZS])),
+    [1, -1].map(s => caja(0.07, 0.2, 0.14, negro, [1.18, 1.32, s * (ZS + 0.07)])),
+    caja(0.14, 0.3, W + 0.1, negro, [2.06, 0.48, 0]),
+    caja(0.02, 0.2, 0.95, '#151515', [2.08, 0.8, 0]),
+    [0.76, 0.84].map(y => caja(0.025, 0.015, 0.93, '#2a2a2a', [2.09, y, 0])),
+    caja(0.03, 0.08, 0.07, '#cfd3d8', [2.095, 0.8, 0], undefined, METAL),
+    caja(0.12, 0.22, W + 0.1, negro, [-2.07, 0.42, 0]),
+    junta(-2.1, 0.55, -2.1, 1.75, 0).slice(0, 1),
+    caja(0.02, 0.05, 0.4, negro, [-2.1, 0.68, 0]),
+    calco(0.78, 0.2, marca, -0.47, 1.68, ZS + 0.003),
+    calco(1.95, 0.17, texto('¡Que estés muy bien!', AZUL_FC), 0.12, 0.97, ZS + 0.003),
+    calco(0.75, 0.07, texto('www.farmacorp.com', AZUL_FC), -1.55, 0.76, ZS + 0.003),
+    calco(0.95, 0.95, (ctx, w, h) => {
+      [['#1d4f9c', 0.3, 0.55, 0.28], ['#f6c400', 0.55, 0.5, 0.33], ['#f39200', 0.78, 0.4, 0.22]].forEach(([c, x, y, r]) => {
+        ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x * w, y * h, r * w, 0, Math.PI * 2); ctx.fill();
+      });
+    }, -1.55, 1.3, ZS + 0.002),
+    [1, -1].map(s => caja(0.4, 0.12, 0.5, '#3a3a3a', [1.05, 0.85, s * 0.35])),
+    [1, -1].map(s => caja(0.1, 0.55, 0.5, '#3a3a3a', [0.84, 1.15, s * 0.35])),
   ), [0, 1.8, 0]);
 
   [1, -1].forEach(s => {
-    faro([2.0, 0.88, s * 0.58], [0.8, 0, 0]);
-    stop([-2.08, 1.15, s * 0.74], [-0.8, 0, 0], 0.4);
+    faro([2.05, 0.93, s * 0.6], [0.8, 0, 0], [0.05, 0.16, 0.34]);
+    stop([-2.08, 1.08, s * 0.72], [-0.8, 0, 0], 0.38, 0.14);
   });
   pz('electrico', grupo(
     caja(0.26, 0.2, 0.17, '#1f1f1f', [1.7, 0.7, -0.5]),
@@ -446,150 +544,154 @@ function construirAPV() {
   ), [0.3, 0.6, -1.4]);
 
   pz('motor', grupo(
-    caja(0.5, 0.36, 0.42, '#6b7280', [0.95, 0.66, 0], undefined, { metalness: 0.6 }),
-    caja(0.5, 0.12, 0.38, '#9ca3af', [0.95, 0.9, 0], undefined, METAL),
-    caja(0.46, 0.07, 0.32, '#b91c1c', [0.95, 0.995, 0]),
-    cil(0.03, 0.04, '#facc15', [1.08, 1.05, 0.06]),
-    caja(0.44, 0.1, 0.36, '#374151', [0.95, 0.43, 0]),
-    cil(0.02, 0.03, '#facc15', [0.95, 0.37, 0.1]),
-    cil(0.05, 0.1, '#ea580c', [0.95, 0.6, 0.25], EJE_Z),
-    cil(0.11, 0.3, '#111827', [0.62, 1.0, 0.1], EJE_X),
-    cil(0.09, 0.03, '#d4d4d4', [1.12, 0.6, -0.23], EJE_Z, METAL),
-    cil(0.06, 0.03, '#d4d4d4', [1.12, 0.88, -0.23], EJE_Z, METAL),
-    barra([1.21, 0.6, -0.235], [1.18, 0.88, -0.235], 0.012, '#111'),
-    barra([1.03, 0.6, -0.235], [1.06, 0.88, -0.235], 0.012, '#111'),
-    [0.82, 0.9, 1.0, 1.1].map(x => cil(0.012, 0.06, '#e5e5e5', [x, 1.03, -0.1])),
-    caja(0.12, 0.22, 1.1, '#525252', [1.88, 0.75, 0], undefined, METAL),
-    tubo([[0.8, 0.6, 0.22], [0.6, 0.45, 0.3], [-0.2, 0.38, 0.34], [-1.3, 0.36, 0.4]], 0.03, '#a3a3a3', false, METAL),
-    cil(0.08, 0.5, '#737373', [-1.6, 0.36, 0.42], EJE_X, METAL),
+    caja(0.5, 0.36, 0.42, '#6b7280', [0.95, 0.62, 0], undefined, { metalness: 0.6 }),
+    caja(0.5, 0.12, 0.38, '#9ca3af', [0.95, 0.86, 0], undefined, METAL),
+    caja(0.46, 0.07, 0.32, '#b91c1c', [0.95, 0.955, 0]),
+    cil(0.03, 0.04, '#facc15', [1.08, 1.01, 0.06]),
+    caja(0.44, 0.1, 0.36, '#374151', [0.95, 0.39, 0]),
+    cil(0.02, 0.03, '#facc15', [0.95, 0.33, 0.1]),
+    cil(0.05, 0.1, '#ea580c', [0.95, 0.56, 0.25], EJE_Z),
+    cil(0.11, 0.3, '#111827', [0.62, 0.96, 0.1], EJE_X),
+    cil(0.09, 0.03, '#d4d4d4', [1.12, 0.56, -0.23], EJE_Z, METAL),
+    cil(0.06, 0.03, '#d4d4d4', [1.12, 0.84, -0.23], EJE_Z, METAL),
+    barra([1.21, 0.56, -0.235], [1.18, 0.84, -0.235], 0.012, '#111'),
+    barra([1.03, 0.56, -0.235], [1.06, 0.84, -0.235], 0.012, '#111'),
+    [0.82, 0.9, 1.0, 1.1].map(x => cil(0.012, 0.06, '#e5e5e5', [x, 0.99, -0.1])),
+    caja(0.1, 0.24, 1.1, '#525252', [1.92, 0.7, 0], undefined, METAL),
+    tubo([[0.8, 0.56, 0.22], [0.6, 0.42, 0.3], [-0.2, 0.34, 0.34], [-1.3, 0.32, 0.4]], 0.03, '#a3a3a3', false, METAL),
+    cil(0.08, 0.5, '#737373', [-1.6, 0.32, 0.42], EJE_X, METAL),
   ), [0, 0, -1.8]);
 
   pz('transmision', grupo(
-    caja(0.38, 0.26, 0.3, '#4b5563', [0.48, 0.62, 0], undefined, { metalness: 0.6 }),
-    cil(0.17, 0.1, '#6b7280', [0.67, 0.66, 0], EJE_X, METAL),
-    barra([0.29, 0.6, 0], [XT + 0.12, YR + 0.03, 0], 0.035, '#9ca3af', METAL),
-    mesh(new THREE.SphereGeometry(0.15, 24, 16), '#374151', [XT, YR, 0], undefined, { metalness: 0.6 }),
+    caja(0.38, 0.26, 0.3, '#4b5563', [0.48, 0.58, 0], undefined, { metalness: 0.6 }),
+    cil(0.17, 0.1, '#6b7280', [0.67, 0.62, 0], EJE_X, METAL),
+    barra([0.29, 0.56, 0], [XT + 0.12, YR + 0.03, 0], 0.035, '#9ca3af', METAL),
+    mesh(new THREE.SphereGeometry(0.14, 24, 16), '#374151', [XT, YR, 0], undefined, { metalness: 0.6 }),
     barra([XT, YR, -0.6], [XT, YR, 0.6], 0.04, '#4b5563', METAL),
   ), [0, -0.05, 1.7]);
 
   [1, -1].forEach(s => {
-    pz('suspension', resorte([XF, 0.44, s * 0.5], [XF, 0.88, s * 0.5], 0.07, 6, '#16a34a'), [0, 0.5, s * 0.35]);
-    pz('suspension', grupo([0.44, 0.47, 0.5].map((y, i) => caja(1.0 - i * 0.2, 0.025, 0.07, '#525252', [XT, y, s * 0.45], undefined, METAL))), [0, 0.35, s * 0.35]);
+    pz('suspension', resorte([XF, 0.4, s * 0.5], [XF, 0.84, s * 0.5], 0.07, 6, '#16a34a'), [0, 0.5, s * 0.35]);
+    pz('suspension', grupo([0.4, 0.43, 0.46].map((y, i) => caja(1.0 - i * 0.2, 0.025, 0.07, '#525252', [XT, y, s * 0.45], undefined, METAL))), [0, 0.35, s * 0.35]);
   });
   pz('suspension', grupo(
-    barra([XF + 0.17, 0.42, -0.6], [XF + 0.17, 0.42, 0.6], 0.025, '#9ca3af', METAL),
-    caja(0.1, 0.1, 0.22, '#525252', [XF + 0.17, 0.42, 0.15]),
+    barra([XF + 0.17, 0.38, -0.6], [XF + 0.17, 0.38, 0.6], 0.025, '#9ca3af', METAL),
+    caja(0.1, 0.1, 0.22, '#525252', [XF + 0.17, 0.38, 0.15]),
   ), [0.5, 0.25, 0]);
 
-  ruedasYFrenos(XF, XT, YR, 0.72);
+  ruedasYFrenos(XF, XT, YR, 0.69, 'acero');
 
   pz('mandos', grupo(
-    mesh(new THREE.TorusGeometry(0.17, 0.02, 10, 40), '#111', [1.45, 1.25, 0.35], [0, Math.PI / 2, 0]),
-    barra([1.45, 1.25, 0.35], [1.7, 0.85, 0.35], 0.02, '#333'),
+    mesh(new THREE.TorusGeometry(0.17, 0.02, 10, 40), '#111', [1.42, 1.25, 0.35], [0, Math.PI / 2, 0]),
+    barra([1.42, 1.25, 0.35], [1.7, 0.85, 0.35], 0.02, '#333'),
     barra([1.25, 0.75, 0], [1.2, 1.05, 0], 0.012, '#333'),
     mesh(new THREE.SphereGeometry(0.03, 12, 8), '#111', [1.2, 1.07, 0]),
     [0.25, 0.35, 0.45].map(z => caja(0.02, 0.1, 0.06, '#333', [1.75, 0.7, z])),
   ), [0, 1.05, 0]);
 
-  return { centro: V(0, 0.9, 0), camara: V(4.7, 2.6, 4.7) };
+  return { centro: V(0, 0.9, 0), camara: V(4.7, 2.5, 4.7) };
 }
 
-// ── RAM 700 modificada: pickup con trompa, motor delantero transversal y cajón de furgón atrás ──
+// ── RAM 700 Rapid furgón (5264PUB, según fotos): frente de auto chico, cajón de fibra alto
+//    integrado con joroba sobre la cabina, puertas traseras dobles, motor delantero transversal ──
 function construirRAM() {
-  const blanco = '#e9eaec', negro = '#262626';
-  const XF = 1.55, XT = -1.2, YR = 0.33;
-  const CAB = [[-0.05, 0.48], [2.15, 0.48], [2.24, 0.6], [2.22, 1.0], [1.45, 1.1], [0.95, 1.52], [0.82, 1.54], [-0.05, 1.54]];
+  const blanco = '#f1f2f3', negro = '#1c1c1c';
+  const W = 1.6, ZS = W / 2 + 0.035, XF = 1.23, XT = -1.15, YR = 0.3;
+  const P = [...bajoConRuedas(-1.96, 1.9, 0.32, [XT, XF], YR, 0.36),
+    [1.98, 0.42], [1.99, 0.76], [1.92, 0.84], [1.15, 1.02], [0.55, 1.42], [0.25, 1.47], [0.13, 1.6], [0.03, 1.82], [-0.12, 1.92], [-1.88, 1.92], [-1.98, 1.84], [-1.99, 0.45]];
 
   pz('chasis', grupo(
-    [1, -1].map(s => caja(4.2, 0.09, 0.09, '#2b2b2b', [0.0, 0.42, s * 0.42])),
-    [1.9, 0.8, -0.2, -1.2, -2.0].map(x => caja(0.07, 0.07, 0.84, '#2b2b2b', [x, 0.42, 0])),
+    [1, -1].map(s => caja(3.7, 0.09, 0.09, '#2b2b2b', [0.0, 0.38, s * 0.42])),
+    [1.6, 0.6, -0.4, -1.3, -1.85].map(x => caja(0.07, 0.07, 0.84, '#2b2b2b', [x, 0.38, 0])),
   ));
 
   pz('carroceria', grupo(
-    perfil(CAB, 1.56, blanco),
-    vidrioEntre([1.45, 1.1], [0.95, 1.52], 1.38),
-    [1, -1].map(s => caja(0.62, 0.38, 0.02, '#0f172a', [0.45, 1.28, s * 0.815], undefined, VIDRIO)),
-    caja(0.02, 0.35, 1.3, '#0f172a', [-0.075, 1.3, 0], undefined, VIDRIO),
-    [1, -1].map(s => caja(0.012, 0.95, 0.01, '#bdbdbd', [0.0, 0.98, s * 0.812])),
-    [1, -1].map(s => caja(0.012, 0.95, 0.01, '#bdbdbd', [0.92, 0.98, s * 0.812])),
-    caja(0.02, 0.18, 1.0, '#111', [2.245, 0.76, 0]),
-    caja(0.03, 0.04, 0.3, '#9ca3af', [2.26, 0.76, 0], undefined, METAL),
-    caja(0.12, 0.17, 1.66, negro, [2.26, 0.55, 0]),
-    [1, -1].map(s => caja(0.07, 0.14, 0.12, negro, [0.98, 1.3, s * 0.88])),
-    pasarruedas([XF], YR, 0.82),
-    [1, -1].map(s => caja(0.45, 0.12, 0.5, negro, [0.45, 0.75, s * 0.35])),
-    [1, -1].map(s => caja(0.1, 0.55, 0.5, negro, [0.2, 1.05, s * 0.35])),
-  ), [0, 1.5, 0]);
-
-  pz('carroceria', grupo(
-    caja(2.1, 1.42, 1.7, blanco, [-1.17, 1.28, 0], undefined, { roughness: 0.35, metalness: 0.15 }),
-    caja(2.14, 0.05, 1.74, '#d4d4d4', [-1.17, 2.0, 0], undefined, METAL),
-    [1, -1].map(s => caja(1.8, 0.1, 0.02, '#F5A623', [-1.15, 0.95, s * 0.855])),
-    [1, -1].map(s => caja(1.0, 0.3, 0.02, '#F5A623', [-1.15, 1.45, s * 0.855])),
-    caja(0.012, 1.3, 0.012, '#bdbdbd', [-2.225, 1.28, 0]),
-    [1, -1].map(s => caja(0.02, 1.3, 0.04, '#9ca3af', [-2.225, 1.28, s * 0.6], undefined, METAL)),
-    caja(0.12, 0.16, 1.7, negro, [-2.27, 0.55, 0]),
-    pasarruedas([XT], YR, 0.86),
-  ), [0, 2.2, 0]);
+    perfil(P, W, blanco),
+    vidrioEntre([1.15, 1.02], [0.55, 1.42], 1.38),
+    lamina([[1.07, 1.03], [0.62, 1.42], [0.17, 1.45], [0.17, 1.03]], ZS + 0.001, '#151515'),
+    lamina([[1.02, 1.07], [0.6, 1.38], [0.22, 1.41], [0.22, 1.07]], ZS + 0.004, '#0f172a', VIDRIO),
+    [0.55, -0.1].map(z => barra([1.13, 1.04, z], [0.98, 1.2, z - 0.32], 0.008, '#111')),
+    junta(1.12, 0.62, 1.12, 1.03, ZS), junta(0.17, 0.34, 0.17, 1.45, ZS),
+    lamina([[0.17, 0.46], [1.15, 0.46], [1.15, 0.55], [0.17, 0.55]], ZS + 0.002, '#2a2a2a'),
+    lamina([[-0.62, 0.46], [0.15, 0.46], [0.15, 0.55], [-0.62, 0.55]], ZS + 0.002, '#2a2a2a'),
+    [1, -1].map(s => caja(0.11, 0.035, 0.02, negro, [0.3, 0.95, s * ZS])),
+    [1, -1].map(s => caja(0.07, 0.16, 0.12, negro, [0.95, 1.12, s * (ZS + 0.06)])),
+    calco(1.62, 0.8, (ctx, w, h) => {
+      ctx.strokeStyle = '#c9ccd0'; ctx.lineWidth = 6; ctx.beginPath(); ctx.roundRect(4, 4, w - 8, h - 8, h * 0.18); ctx.stroke();
+    }, -0.98, 1.36, ZS + 0.002),
+    calco(1.3, 0.3, marca, -0.98, 1.38, ZS + 0.004),
+    calco(0.22, 0.22, (ctx, w, h) => flor(ctx, w / 2, h / 2, w * 0.45), 0.72, 0.84, ZS + 0.003),
+    calco(0.2, 0.05, texto('Farmacorp', AZUL_FC, 600, false), 0.72, 0.7, ZS + 0.003),
+    caja(0.05, 0.13, 1.0, negro, [1.985, 0.46, 0]),
+    [-0.12, -0.04, 0.04, 0.12].map(z => caja(0.02, 0.09, 0.045, '#151515', [1.995, 0.68, z + 0.12])),
+    cil(0.045, 0.02, '#cfd3d8', [1.995, 0.68, -0.12], EJE_X, METAL),
+    caja(0.12, 0.2, W + 0.08, negro, [-2.02, 0.42, 0]),
+    caja(0.004, 1.3, 0.008, '#8f949b', [-2.025, 1.15, 0]),
+    caja(0.03, 0.12, 0.05, negro, [-2.03, 1.0, 0.15]),
+    caja(0.02, 0.28, 0.22, negro, [-2.025, 1.12, -0.38]),
+    caja(0.03, 0.06, 0.4, '#8a1414', [-1.95, 1.93, 0], undefined, { emissive: '#ff3b30', emissiveIntensity: 0.2 }),
+    [1, -1].map(s => caja(0.4, 0.12, 0.5, '#3a3a3a', [0.45, 0.72, s * 0.35])),
+    [1, -1].map(s => caja(0.1, 0.55, 0.5, '#3a3a3a', [0.2, 1.02, s * 0.35])),
+  ), [0, 1.8, 0]);
 
   [1, -1].forEach(s => {
-    faro([2.23, 0.85, s * 0.55], [0.8, 0, 0]);
-    stop([-2.23, 0.85, s * 0.75], [-0.8, 0, 0], 0.25);
+    faro([1.95, 0.8, s * 0.56], [0.8, 0, 0], [0.05, 0.13, 0.3]);
+    stop([-2.0, 1.05, s * 0.72], [-0.8, 0, 0], 0.5, 0.13);
   });
   pz('electrico', grupo(
-    caja(0.24, 0.2, 0.17, '#1f1f1f', [1.95, 0.68, 0.48]),
-    cil(0.018, 0.04, '#dc2626', [1.89, 0.8, 0.48]),
-    cil(0.018, 0.04, '#111', [2.01, 0.8, 0.48]),
-    tubo([[1.89, 0.82, 0.48], [1.8, 0.86, 0.3], [1.75, 0.82, 0.1], [1.72, 0.78, -0.2]], 0.012, '#c2410c'),
-    cil(0.07, 0.1, '#9ca3af', [1.72, 0.76, -0.3], EJE_Z, METAL),
+    caja(0.22, 0.18, 0.16, '#1f1f1f', [1.68, 0.6, 0.5]),
+    cil(0.018, 0.04, '#dc2626', [1.62, 0.71, 0.5]),
+    cil(0.018, 0.04, '#111', [1.74, 0.71, 0.5]),
+    tubo([[1.62, 0.73, 0.5], [1.55, 0.75, 0.3], [1.5, 0.7, 0.1], [1.48, 0.66, -0.2]], 0.012, '#c2410c'),
+    cil(0.065, 0.1, '#9ca3af', [1.48, 0.62, -0.32], EJE_Z, METAL),
   ), [0.6, 0.8, 1.2]);
 
-  // Motor transversal bajo el capó
+  // Motor transversal bajo el capó corto
   pz('motor', grupo(
-    caja(0.38, 0.36, 0.6, '#6b7280', [1.75, 0.66, 0], undefined, { metalness: 0.6 }),
-    caja(0.32, 0.12, 0.58, '#9ca3af', [1.75, 0.9, 0], undefined, METAL),
-    caja(0.26, 0.07, 0.52, '#b91c1c', [1.75, 0.99, 0]),
-    cil(0.03, 0.03, '#facc15', [1.8, 1.03, -0.12]),
-    caja(0.34, 0.1, 0.5, '#374151', [1.75, 0.43, 0]),
-    cil(0.02, 0.03, '#facc15', [1.75, 0.37, 0.12]),
-    cil(0.05, 0.1, '#ea580c', [1.95, 0.58, -0.15], EJE_X),
-    cil(0.1, 0.3, '#111827', [1.95, 0.92, -0.05], EJE_Z),
-    caja(0.06, 0.32, 1.1, '#525252', [2.12, 0.72, 0], undefined, METAL),
-    [0, 1, 2, 3].map(i => cil(0.012, 0.06, '#e5e5e5', [1.75, 1.02, -0.18 + i * 0.12])),
-    tubo([[1.6, 0.6, 0.1], [1.4, 0.42, 0.25], [0.5, 0.36, 0.32], [-1.5, 0.36, 0.36]], 0.03, '#a3a3a3', false, METAL),
-    cil(0.08, 0.5, '#737373', [-1.8, 0.36, 0.38], EJE_X, METAL),
+    caja(0.34, 0.3, 0.56, '#6b7280', [1.5, 0.52, 0], undefined, { metalness: 0.6 }),
+    caja(0.3, 0.1, 0.54, '#9ca3af', [1.5, 0.72, 0], undefined, METAL),
+    caja(0.24, 0.05, 0.48, '#b91c1c', [1.5, 0.795, 0]),
+    cil(0.025, 0.025, '#facc15', [1.55, 0.83, -0.12]),
+    caja(0.3, 0.08, 0.46, '#374151', [1.5, 0.33, 0]),
+    cil(0.02, 0.03, '#facc15', [1.5, 0.28, 0.12]),
+    cil(0.045, 0.09, '#ea580c', [1.68, 0.45, -0.15], EJE_X),
+    cil(0.07, 0.26, '#111827', [1.74, 0.76, -0.05], EJE_Z),
+    caja(0.05, 0.3, 1.0, '#525252', [1.88, 0.58, 0], undefined, METAL),
+    [0, 1, 2, 3].map(i => cil(0.01, 0.05, '#e5e5e5', [1.5, 0.81, -0.18 + i * 0.12])),
+    tubo([[1.38, 0.45, 0.1], [1.2, 0.33, 0.25], [0.3, 0.3, 0.32], [-1.4, 0.3, 0.36]], 0.028, '#a3a3a3', false, METAL),
+    cil(0.075, 0.45, '#737373', [-1.66, 0.3, 0.38], EJE_X, METAL),
   ), [0.2, 0, -1.9]);
 
   // Tracción delantera: caja al costado del motor y palieres a las ruedas
   pz('transmision', grupo(
-    caja(0.32, 0.26, 0.3, '#4b5563', [1.62, 0.56, 0.42], undefined, { metalness: 0.6 }),
-    cil(0.15, 0.1, '#6b7280', [1.7, 0.62, 0.3], EJE_Z, METAL),
-    barra([1.58, 0.48, 0.5], [XF, YR, 0.6], 0.03, '#9ca3af', METAL),
-    barra([1.58, 0.48, -0.25], [XF, YR, -0.6], 0.03, '#9ca3af', METAL),
-    barra([1.58, 0.48, 0.3], [1.58, 0.48, -0.25], 0.03, '#9ca3af', METAL),
+    caja(0.3, 0.24, 0.28, '#4b5563', [1.4, 0.45, 0.42], undefined, { metalness: 0.6 }),
+    cil(0.14, 0.08, '#6b7280', [1.46, 0.5, 0.3], EJE_Z, METAL),
+    barra([1.32, 0.38, 0.5], [XF, YR, 0.58], 0.028, '#9ca3af', METAL),
+    barra([1.32, 0.38, -0.25], [XF, YR, -0.58], 0.028, '#9ca3af', METAL),
+    barra([1.32, 0.38, 0.3], [1.32, 0.38, -0.25], 0.028, '#9ca3af', METAL),
   ), [0, -0.05, 1.7]);
 
   [1, -1].forEach(s => {
-    pz('suspension', resorte([XF, 0.44, s * 0.5], [XF, 0.9, s * 0.5], 0.07, 6, '#16a34a'), [0, 0.5, s * 0.35]);
-    pz('suspension', grupo([0.44, 0.47, 0.5].map((y, i) => caja(1.1 - i * 0.22, 0.025, 0.07, '#525252', [XT, y, s * 0.45], undefined, METAL))), [0, 0.35, s * 0.35]);
+    pz('suspension', resorte([XF, 0.4, s * 0.5], [XF, 0.8, s * 0.5], 0.065, 6, '#16a34a'), [0, 0.5, s * 0.35]);
+    pz('suspension', grupo([0.4, 0.43, 0.46].map((y, i) => caja(1.0 - i * 0.2, 0.025, 0.07, '#525252', [XT, y, s * 0.45], undefined, METAL))), [0, 0.35, s * 0.35]);
   });
   pz('suspension', grupo(
     barra([XT, YR, -0.6], [XT, YR, 0.6], 0.04, '#4b5563', METAL),
-    barra([XF - 0.18, 0.42, -0.6], [XF - 0.18, 0.42, 0.6], 0.025, '#9ca3af', METAL),
-    caja(0.1, 0.1, 0.22, '#525252', [XF - 0.18, 0.42, -0.15]),
+    barra([XF - 0.17, 0.36, -0.6], [XF - 0.17, 0.36, 0.6], 0.025, '#9ca3af', METAL),
+    caja(0.1, 0.1, 0.22, '#525252', [XF - 0.17, 0.36, -0.15]),
   ), [0, 0.25, 0]);
 
-  ruedasYFrenos(XF, XT, YR, 0.72);
+  ruedasYFrenos(XF, XT, YR, 0.68, 'aleacion');
 
   pz('mandos', grupo(
-    mesh(new THREE.TorusGeometry(0.17, 0.02, 10, 40), '#111', [0.95, 1.12, 0.35], [0, Math.PI / 2, 0]),
-    barra([0.95, 1.12, 0.35], [1.3, 0.85, 0.35], 0.02, '#333'),
-    barra([0.75, 0.68, 0], [0.7, 0.95, 0], 0.012, '#333'),
-    mesh(new THREE.SphereGeometry(0.03, 12, 8), '#111', [0.7, 0.97, 0]),
-    [0.25, 0.35, 0.45].map(z => caja(0.02, 0.1, 0.06, '#333', [1.3, 0.62, z])),
+    mesh(new THREE.TorusGeometry(0.17, 0.02, 10, 40), '#111', [0.78, 1.03, 0.35], [0, Math.PI / 2, 0]),
+    barra([0.78, 1.03, 0.35], [1.08, 0.75, 0.35], 0.02, '#333'),
+    barra([0.62, 0.62, 0], [0.58, 0.88, 0], 0.012, '#333'),
+    mesh(new THREE.SphereGeometry(0.03, 12, 8), '#111', [0.58, 0.9, 0]),
+    [0.25, 0.35, 0.45].map(z => caja(0.02, 0.1, 0.06, '#333', [1.08, 0.55, z])),
   ), [0, 1.0, 0]);
 
-  return { centro: V(0, 0.9, 0), camara: V(4.9, 2.6, 4.9) };
+  return { centro: V(0, 0.9, 0), camara: V(4.6, 2.5, 4.6) };
 }
 
 // ── Moto (Honda CB160 de reparto) ──
@@ -706,7 +808,7 @@ function construirMoto() {
     [1, -1].map(s => barra([-0.36, 0.9, s * 0.12], [-0.76, 0.9, s * 0.12], 0.01, '#525252')),
   ), [0, 0.55, 0]);
   pz('carroceria', grupo(
-    caja(0.44, 0.38, 0.42, '#F5A623', [-0.56, 1.1, 0]),
+    caja(0.44, 0.38, 0.42, '#f2c200', [-0.56, 1.1, 0]),
     caja(0.45, 0.012, 0.43, '#111', [-0.56, 1.2, 0]),
   ), [-0.1, 0.85, 0]);
   pz('carroceria', barra([-0.1, 0.3, -0.12], [-0.2, 0.02, -0.26], 0.012, '#3a3a3a'), [0, 0, -0.3]);
