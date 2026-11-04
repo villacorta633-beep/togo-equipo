@@ -54,6 +54,9 @@ async function initDB() {
       doc TEXT DEFAULT '',
       monto NUMERIC(14,2) NOT NULL
     );
+    ALTER TABLE gastos ADD COLUMN IF NOT EXISTS km TEXT DEFAULT '';
+    ALTER TABLE gastos ADD COLUMN IF NOT EXISTS prox TEXT DEFAULT '';
+    ALTER TABLE gastos ADD COLUMN IF NOT EXISTS solicitud TEXT DEFAULT '';
     INSERT INTO config (key, value) VALUES ('gastos_meta', '{}') ON CONFLICT (key) DO NOTHING;
     INSERT INTO config (key, value) VALUES ('flota_actual', '{}') ON CONFLICT (key) DO NOTHING;
   `);
@@ -178,7 +181,7 @@ app.put('/api/users/:id/password', requireAdmin, seguro(async (req, res) => {
 app.get('/api/gastos', requireAuth, async (req, res, next) => {
   try {
     const { rows } = await pool.query(
-      `SELECT id, fecha, anio, mes, proxi, placa, tipo, descripcion, ot, doc, monto::float8 AS monto
+      `SELECT id, fecha, anio, mes, proxi, placa, tipo, descripcion, ot, doc, km, prox, solicitud, monto::float8 AS monto
        FROM gastos ORDER BY fecha, id`
     );
     const cfg = await pool.query("SELECT key, value FROM config WHERE key IN ('gastos_meta','flota_actual')");
@@ -205,14 +208,16 @@ app.post('/api/gastos/import', requireAdminOSync, async (req, res, next) => {
     await client.query('BEGIN');
     await client.query('DELETE FROM gastos');
     await client.query(
-      `INSERT INTO gastos (id, fecha, anio, mes, proxi, placa, tipo, descripcion, ot, doc, monto)
+      `INSERT INTO gastos (id, fecha, anio, mes, proxi, placa, tipo, descripcion, ot, doc, monto, km, prox, solicitud)
        SELECT * FROM unnest($1::int[], $2::text[], $3::int[], $4::int[], $5::text[], $6::text[],
-                            $7::text[], $8::text[], $9::text[], $10::text[], $11::numeric[])`,
+                            $7::text[], $8::text[], $9::text[], $10::text[], $11::numeric[],
+                            $12::text[], $13::text[], $14::text[])`,
       [rows.map((_, i) => i + 1), col('fecha'),
        rows.map(r => +r.fecha.slice(0, 4)), rows.map(r => +r.fecha.slice(5, 7)),
        col('proxi'), col('placa'), col('tipo'),
        rows.map(r => r.descripcion || ''), rows.map(r => r.ot || ''), rows.map(r => r.doc || ''),
-       col('monto')]
+       col('monto'),
+       rows.map(r => String(r.km || '')), rows.map(r => String(r.prox || '')), rows.map(r => String(r.solicitud || ''))]
     );
     const meta = { archivo: archivo || '', filas: rows.length, por: req.user.username, fecha: new Date().toISOString() };
     await client.query("UPDATE config SET value=$1 WHERE key='gastos_meta'", [JSON.stringify(meta)]);
