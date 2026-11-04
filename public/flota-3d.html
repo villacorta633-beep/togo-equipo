@@ -197,7 +197,7 @@ function modeloVehiculo(placa, tipo, descs) {
   const t = norm(`${f ? f.marca + ' ' + f.modelo : ''} ${descs.join(' ')}`);
   return PLACAS_RAM.has(placa) || /\bRAM\b|RAPID/.test(t) ? 'ram' : 'apv';
 }
-const ETIQUETA = { moto: 'Honda CB160', apv: 'Suzuki APV', ram: 'RAM 700 · furgón modificado' };
+const ETIQUETA = { moto: 'Honda CB160 Hornet', apv: 'Suzuki APV', ram: 'RAM 700 · furgón modificado' };
 
 async function cargar() {
   if (!token()) return goLogin();
@@ -694,126 +694,158 @@ function construirRAM() {
   return { centro: V(0, 0.9, 0), camara: V(4.6, 2.5, 4.6) };
 }
 
-// ── Moto (Honda CB160 de reparto) ──
+// ── Moto Honda CB160 Hornet de reparto (según foto): naked negra con detalles plateados,
+//    monoshock, discos adelante y atrás, llantas de aleación negras; parrilla con cajón amarillo ──
 function construirMoto() {
-  const rojo = '#b91c1c', negro = '#1f1f1f', marco = '#3a3a3a', cromo = '#d4d4d4';
-  const F = [0.68, 0.31], T = [-0.62, 0.31];
+  const negro = '#151515', marco = '#1f1f1f', plata = '#b9bdc3', cromo = '#d4d4d4';
+  const F = [0.72, 0.3], T = [-0.72, 0.3];
+  const ZC = -0.11;   // lado de la cadena; el escape va del otro lado
 
   pz('chasis', grupo(
-    barra([0.40, 1.0, 0], [0.46, 0.8, 0], 0.03, marco),
-    barra([0.42, 0.93, 0], [-0.3, 0.8, 0], 0.022, marco),
-    barra([0.44, 0.84, 0], [0.2, 0.3, 0], 0.022, marco),
-    barra([0.2, 0.3, 0], [-0.17, 0.3, 0], 0.02, marco),
-    barra([-0.17, 0.3, 0], [-0.17, 0.78, 0], 0.022, marco),
-    [1, -1].map(s => barra([-0.12, 0.78, s * 0.07], [-0.58, 0.86, s * 0.07], 0.014, marco)),
-    [1, -1].map(s => barra([-0.17, 0.46, s * 0.07], [-0.56, 0.84, s * 0.07], 0.014, marco)),
+    barra([0.43, 0.9, 0], [0.475, 0.69, 0], 0.032, marco),
+    [1, -1].map(s => [
+      barra([0.45, 0.84, s * 0.05], [0.05, 0.76, s * 0.1], 0.02, marco),
+      barra([0.05, 0.76, s * 0.1], [-0.3, 0.62, s * 0.1], 0.02, marco),
+      barra([-0.3, 0.62, s * 0.1], [-0.36, 0.5, s * 0.1], 0.02, marco),
+      barra([-0.25, 0.68, s * 0.07], [-0.85, 0.9, s * 0.06], 0.013, marco),
+      barra([-0.34, 0.52, s * 0.07], [-0.7, 0.85, s * 0.06], 0.011, marco),
+    ]),
+    barra([0.47, 0.74, 0], [0.24, 0.32, 0], 0.02, marco),
+    barra([0.24, 0.32, 0], [-0.16, 0.26, 0], 0.018, marco),
   ));
 
-  [[F, 1], [T, -1]].forEach(([[x, y], s]) => {
-    const tire = mesh(new THREE.TorusGeometry(0.245, 0.065, 18, 56), '#161616', [x, y, 0], undefined, GOMA);
-    tire.scale.z = 0.9;
-    const rayos = [0, 1, 2, 3, 4].map(i => { const a = i * Math.PI * 2 / 5; return barra([x + Math.cos(a) * 0.04, y + Math.sin(a) * 0.04, 0], [x + Math.cos(a) * 0.18, y + Math.sin(a) * 0.18, 0], 0.012, '#111', METAL); });
+  // Ruedas de aleación negras, 5 pares de rayos finos
+  [[F, 1, 0.055], [T, -1, 0.068]].forEach(([[x, y], s, t]) => {
+    const tire = mesh(new THREE.TorusGeometry(0.3 - t, t, 18, 64), '#121212', [x, y, 0], undefined, GOMA);
+    tire.scale.z = 1.1;
+    const rayos = [];
+    for (let i = 0; i < 5; i++) [-0.13, 0.13].forEach(d => {
+      const a = i * Math.PI * 2 / 5 + d;
+      rayos.push(barra([x + Math.cos(a) * 0.04, y + Math.sin(a) * 0.04, 0], [x + Math.cos(a + d) * 0.2, y + Math.sin(a + d) * 0.2, 0], 0.007, '#111', METAL));
+    });
     pz('ruedas', grupo(
       tire,
-      mesh(new THREE.TorusGeometry(0.185, 0.014, 8, 48), '#111', [x, y, 0], undefined, METAL),
-      cil(0.045, 0.12, '#9ca3af', [x, y, 0], EJE_Z, METAL),
+      mesh(new THREE.TorusGeometry(0.205, 0.013, 8, 56), '#111', [x, y, 0], undefined, METAL),
+      cil(0.04, 0.12, '#2a2a2a', [x, y, 0], EJE_Z, METAL),
       rayos,
     ), [s * 0.5, 0, 0]);
   });
 
+  // Discos de pétalos y cálipers
+  const disco = (x, y, r, z) => {
+    const g = new THREE.Group();
+    g.add(cil(r, 0.005, '#c3c7cc', [x, y, z], EJE_Z, METAL, 18));
+    g.add(cil(r * 0.55, 0.008, '#3a3a3a', [x, y, z], EJE_Z, METAL));
+    for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5; g.add(cil(0.009, 0.008, '#2a2a2a', [x + Math.cos(a) * r * 0.75, y + Math.sin(a) * r * 0.75, z], EJE_Z)); }
+    return g;
+  };
   pz('frenos', grupo(
-    cil(0.13, 0.008, '#c0c4ca', [F[0], F[1], -0.075], EJE_Z, METAL, 32),
-    caja(0.07, 0.1, 0.035, '#dc2626', [F[0] - 0.09, F[1] + 0.09, -0.08], [0, 0, 0.8]),
-  ), [0.5, 0, -0.45]);
+    disco(F[0], F[1], 0.135, 0.075),
+    caja(0.07, 0.11, 0.04, '#b8862b', [F[0] - 0.08, F[1] + 0.1, 0.085], [0, 0, 0.7], METAL),
+  ), [0.5, 0, 0.45]);
   pz('frenos', grupo(
-    cil(0.095, 0.06, '#9ca3af', [T[0], T[1], -0.075], EJE_Z, METAL),
-    barra([T[0], T[1], -0.11], [T[0] + 0.1, T[1] - 0.06, -0.11], 0.01, '#525252'),
-  ), [-0.5, 0, -0.45]);
+    disco(T[0], T[1], 0.11, 0.08),
+    caja(0.08, 0.06, 0.04, '#2a2a2a', [T[0] + 0.02, T[1] - 0.1, 0.09]),
+  ), [-0.5, 0, 0.45]);
 
+  // Horquilla telescópica, monoshock y basculante
   pz('suspension', grupo([1, -1].map(s => [
-    barra([0.40, 1.0, s * 0.075], [0.585, 0.545, s * 0.075], 0.018, cromo, METAL),
-    barra([0.585, 0.545, s * 0.075], [F[0], F[1], s * 0.075], 0.027, '#a3a3a3', METAL),
+    barra([0.43, 0.9, s * 0.08], [0.6, 0.555, s * 0.08], 0.019, '#cfd3d8', METAL),
+    barra([0.6, 0.555, s * 0.08], [F[0], F[1] + 0.02, s * 0.08], 0.03, '#1a1a1a', METAL),
   ]),
-    caja(0.07, 0.03, 0.2, '#525252', [0.40, 1.0, 0]),
-    caja(0.07, 0.03, 0.2, '#525252', [0.44, 0.9, 0]),
+    caja(0.08, 0.03, 0.22, '#222', [0.43, 0.9, 0], [0, 0, 0.45]),
+    caja(0.08, 0.03, 0.22, '#222', [0.465, 0.8, 0], [0, 0, 0.45]),
   ), [0.4, 0.3, 0]);
-  [1, -1].forEach(s => {
-    pz('suspension', resorte([-0.5, 0.36, s * 0.1], [-0.38, 0.8, s * 0.1], 0.03, 7, '#dc2626'), [0, 0.1, s * 0.4]);
-    pz('suspension', barra([-0.17, 0.42, s * 0.09], [T[0], T[1], s * 0.09], 0.02, '#2b2b2b'), [0, -0.05, s * 0.3]);
-  });
+  pz('suspension', resorte([-0.28, 0.5, 0], [-0.12, 0.78, 0], 0.035, 8, '#d42020'), [0, 0.45, 0.35]);
+  pz('suspension', grupo([1, -1].map(s => barra([-0.36, 0.5, s * 0.1], [T[0], T[1], s * 0.1], 0.024, '#1a1a1a', METAL)),
+    barra([-0.36, 0.5, -0.1], [-0.36, 0.5, 0.1], 0.02, '#1a1a1a')), [0, -0.05, -0.3]);
 
+  // Motor monocilíndrico: cárter negro con tapa plateada, cilindro con aletas, escape corto
   const aletas = [];
-  for (let i = 0; i < 7; i++) aletas.push(caja(0.17, 0.016, 0.19, '#6b7280', [0.12 + i * 0.031 * Math.sin(0.35), 0.5 + i * 0.031 * Math.cos(0.35), 0], [0, 0, -0.35], { metalness: 0.6 }));
+  for (let i = 0; i < 6; i++) aletas.push(caja(0.17, 0.015, 0.2, '#2f2f2f', [0.12 + i * 0.028 * Math.sin(0.25), 0.47 + i * 0.028 * Math.cos(0.25), 0], [0, 0, -0.25], { metalness: 0.6 }));
   pz('motor', grupo(
-    caja(0.34, 0.24, 0.24, '#9ca3af', [0.02, 0.38, 0], undefined, METAL),
-    cil(0.1, 0.05, '#a3a3a3', [0.02, 0.36, -0.14], EJE_Z, METAL),
+    caja(0.36, 0.26, 0.24, '#232323', [-0.02, 0.36, 0], undefined, { metalness: 0.5 }),
+    cil(0.11, 0.04, plata, [-0.02, 0.36, 0.13], EJE_Z, METAL),
+    cil(0.05, 0.02, '#c41e1e', [-0.02, 0.36, 0.155], EJE_Z),
     aletas,
-    caja(0.18, 0.07, 0.2, '#9ca3af', [0.2, 0.74, 0], [0, 0, -0.35], METAL),
-    cil(0.012, 0.05, '#e5e5e5', [0.24, 0.8, 0.06]),
-    cil(0.035, 0.1, '#a3a3a3', [-0.05, 0.63, 0], EJE_X, METAL),
-    caja(0.16, 0.15, 0.18, negro, [-0.2, 0.6, 0]),
-    cil(0.016, 0.02, '#facc15', [0.02, 0.255, 0]),
-    tubo([[0.27, 0.66, 0.05], [0.32, 0.46, 0.1], [0.25, 0.24, 0.13], [0, 0.2, 0.14], [-0.3, 0.3, 0.15]], 0.022, cromo, false, METAL),
-    cil(0.045, 0.36, '#9ca3af', [-0.47, 0.37, 0.16], [0, 0, Math.PI / 2 - 0.25], METAL),
-  ), [0, -0.05, -0.8]);
+    caja(0.17, 0.06, 0.2, '#3a3a3a', [0.17, 0.66, 0], [0, 0, -0.25], METAL),
+    cil(0.03, 0.09, '#a3a3a3', [-0.08, 0.58, 0], EJE_X, METAL),
+    caja(0.16, 0.14, 0.18, '#1a1a1a', [-0.22, 0.6, 0]),
+    cil(0.014, 0.02, '#facc15', [-0.02, 0.225, 0]),
+    tubo([[0.24, 0.6, 0.06], [0.29, 0.38, 0.1], [0.16, 0.15, 0.12], [-0.15, 0.15, 0.14], [-0.3, 0.25, 0.15]], 0.02, '#3a3a3a', false, METAL),
+    barra([-0.28, 0.25, 0.15], [-0.68, 0.4, 0.15], 0.055, '#222', METAL),
+    barra([-0.32, 0.27, 0.2], [-0.62, 0.39, 0.2], 0.035, plata, METAL),
+  ), [0, -0.05, 0.8]);
 
-  const fr = { x: -0.08, y: 0.36, r: 0.05 }, co = { x: T[0], y: T[1], r: 0.105 }, pts = [];
-  for (let a = -90; a <= 90; a += 20) pts.push([fr.x + fr.r * Math.cos(a * Math.PI / 180), fr.y + fr.r * Math.sin(a * Math.PI / 180), 0.115]);
-  for (let a = 90; a <= 270; a += 15) pts.push([co.x + co.r * Math.cos(a * Math.PI / 180), co.y + co.r * Math.sin(a * Math.PI / 180), 0.115]);
+  // Cadena y piñones (lado contrario al escape)
+  const fr = { x: -0.26, y: 0.42, r: 0.045 }, co = { x: T[0], y: T[1], r: 0.1 }, pts = [];
+  for (let a = -90; a <= 90; a += 20) pts.push([fr.x + fr.r * Math.cos(a * Math.PI / 180), fr.y + fr.r * Math.sin(a * Math.PI / 180), ZC]);
+  for (let a = 90; a <= 270; a += 15) pts.push([co.x + co.r * Math.cos(a * Math.PI / 180), co.y + co.r * Math.sin(a * Math.PI / 180), ZC]);
   pz('transmision', grupo(
-    cil(0.045, 0.015, '#737373', [fr.x, fr.y, 0.115], EJE_Z, METAL),
-    cil(0.1, 0.012, '#a3a3a3', [co.x, co.y, 0.115], EJE_Z, METAL),
-    tubo(pts, 0.009, '#525252', true, METAL),
-  ), [0, 0, 0.6]);
+    cil(fr.r, 0.015, '#737373', [fr.x, fr.y, ZC], EJE_Z, METAL),
+    cil(co.r, 0.012, '#a3a3a3', [co.x, co.y, ZC], EJE_Z, METAL),
+    tubo(pts, 0.008, '#4a4a4a', true, METAL),
+  ), [0, 0, -0.6]);
 
+  // Faro tipo máscara con visera, faro trasero en la punta de la cola, guiñadores
   pz('electrico', grupo(
-    mesh(new THREE.SphereGeometry(0.075, 24, 16), negro, [0.5, 0.9, 0]),
-    cil(0.066, 0.01, '#fff4c2', [0.572, 0.9, 0], EJE_X, { emissive: '#fff4c2', emissiveIntensity: 0.6 }),
-    [1, -1].map(s => caja(0.05, 0.03, 0.03, '#f59e0b', [0.47, 0.86, s * 0.13], undefined, { emissive: '#f59e0b', emissiveIntensity: 0.4 })),
+    caja(0.13, 0.17, 0.2, negro, [0.58, 0.9, 0], [0, 0, -0.35]),
+    caja(0.02, 0.07, 0.16, '#fff4c2', [0.645, 0.87, 0], [0, 0, -0.35], { emissive: '#fff4c2', emissiveIntensity: 0.6 }),
+    caja(0.12, 0.015, 0.17, '#2a2a2a', [0.54, 1.0, 0], [0, 0, -0.9]),
+    [1, -1].map(s => caja(0.05, 0.025, 0.025, '#f59e0b', [0.52, 0.84, s * 0.14], undefined, { emissive: '#f59e0b', emissiveIntensity: 0.4 })),
   ), [0.4, 0.15, 0]);
   pz('electrico', grupo(
-    caja(0.05, 0.05, 0.12, '#ff3b30', [-0.62, 0.86, 0], undefined, { emissive: '#ff3b30', emissiveIntensity: 0.5 }),
-    [1, -1].map(s => caja(0.05, 0.03, 0.03, '#f59e0b', [-0.6, 0.84, s * 0.11], undefined, { emissive: '#f59e0b', emissiveIntensity: 0.4 })),
+    caja(0.05, 0.035, 0.1, '#c81e1e', [-0.95, 0.965, 0], [0, 0, 0.3], { emissive: '#ff3b30', emissiveIntensity: 0.5 }),
+    [1, -1].map(s => caja(0.04, 0.025, 0.025, '#f59e0b', [-1.0, 0.66, s * 0.11], undefined, { emissive: '#f59e0b', emissiveIntensity: 0.4 })),
   ), [-0.4, 0.1, 0]);
   pz('electrico', grupo(
-    caja(0.1, 0.12, 0.13, '#1f1f1f', [-0.34, 0.66, 0]),
-    caja(0.05, 0.04, 0.05, '#525252', [0.12, 0.83, 0]),
-  ), [0, 0.1, 0.55]);
+    caja(0.1, 0.12, 0.13, '#1f1f1f', [-0.36, 0.7, 0]),
+    caja(0.05, 0.04, 0.05, '#525252', [0.1, 0.72, 0]),
+  ), [0, 0.1, -0.55]);
 
+  // Manubrio plano, puños, palancas, espejos y chicotillos
   pz('mandos', grupo(
-    barra([0.37, 1.06, -0.34], [0.37, 1.06, 0.34], 0.012, cromo, METAL),
-    barra([0.40, 1.0, 0], [0.37, 1.06, 0], 0.015, cromo, METAL),
-    [1, -1].map(s => cil(0.02, 0.12, '#111', [0.37, 1.06, s * 0.3], EJE_Z)),
-    [1, -1].map(s => barra([0.39, 1.06, s * 0.22], [0.48, 1.04, s * 0.3], 0.006, '#525252')),
-    tubo([[0.38, 1.06, 0.22], [0.3, 1.0, 0.18], [0.1, 0.8, 0.08], [-0.05, 0.66, 0.02]], 0.005, '#111'),
-    tubo([[0.38, 1.06, -0.22], [0.3, 0.98, -0.18], [0.1, 0.62, -0.15], [0.02, 0.45, -0.13]], 0.005, '#111'),
-    [1, -1].map(s => barra([0.37, 1.06, s * 0.22], [0.33, 1.2, s * 0.26], 0.006, '#333')),
+    barra([0.36, 1.06, -0.37], [0.36, 1.06, 0.37], 0.012, '#1a1a1a', METAL),
+    barra([0.43, 0.92, 0], [0.37, 1.05, 0], 0.016, '#1a1a1a', METAL),
+    [1, -1].map(s => cil(0.02, 0.12, '#111', [0.36, 1.06, s * 0.31], EJE_Z)),
+    [1, -1].map(s => barra([0.38, 1.06, s * 0.22], [0.47, 1.04, s * 0.31], 0.006, '#525252')),
+    [1, -1].map(s => [barra([0.36, 1.06, s * 0.22], [0.31, 1.22, s * 0.27], 0.006, '#222'), caja(0.03, 0.06, 0.1, '#111', [0.31, 1.24, s * 0.28])]),
+    tubo([[0.38, 1.06, 0.22], [0.3, 1.0, 0.18], [0.1, 0.78, 0.08], [-0.08, 0.62, 0.02]], 0.005, '#111'),
+    tubo([[0.38, 1.06, -0.22], [0.3, 0.98, -0.18], [0.1, 0.6, -0.15], [0.0, 0.45, -0.13]], 0.005, '#111'),
   ), [0, 0.45, 0]);
 
-  const tanque = mesh(new THREE.SphereGeometry(1, 32, 16), rojo, [0.2, 0.87, 0]);
-  tanque.scale.set(0.22, 0.11, 0.13);
-  pz('carroceria', grupo(tanque), [0, 0.55, 0]);
+  // Carrocería: tanque anguloso con aletas, asiento, cola en punta, tapas plateadas
   pz('carroceria', grupo(
-    caja(0.48, 0.07, 0.22, '#111', [-0.2, 0.83, 0], undefined, GOMA),
-    [1, -1].map(s => caja(0.18, 0.12, 0.02, rojo, [-0.22, 0.66, s * 0.11])),
-  ), [0, 0.45, 0]);
-  [[F, 1], [T, -1]].forEach(([[x, y], s]) => {
-    const arco = 0.75 * Math.PI;
-    const g = mesh(new THREE.TorusGeometry(0.29, 0.02, 8, 32, arco), negro, [x, y, 0], [0, 0, Math.PI / 2 - arco / 2 + (s < 0 ? 0.35 : -0.25)]);
-    g.scale.z = 3;
-    pz('carroceria', g, [s * 0.5, 0.25, 0]);
-  });
-  pz('carroceria', grupo(
-    [-0.38, -0.5, -0.62, -0.74].map(x => barra([x, 0.9, -0.12], [x, 0.9, 0.12], 0.008, '#525252')),
-    [1, -1].map(s => barra([-0.36, 0.9, s * 0.12], [-0.76, 0.9, s * 0.12], 0.01, '#525252')),
+    perfil([[-0.14, 0.72], [0.2, 0.69], [0.43, 0.64], [0.48, 0.79], [0.41, 0.93], [0.18, 0.99], [-0.05, 0.97], [-0.17, 0.9]], 0.34, negro, { radio: 0.06, trompa: 0.3 }),
+    lamina([[0.18, 0.7], [0.43, 0.65], [0.47, 0.76], [0.3, 0.8]], 0.205, plata, METAL),
+    calco(0.12, 0.06, texto('HORNET', '#c9ccd0', 700, false), 0.18, 0.86, 0.205),
   ), [0, 0.55, 0]);
   pz('carroceria', grupo(
-    caja(0.44, 0.38, 0.42, '#f2c200', [-0.56, 1.1, 0]),
-    caja(0.45, 0.012, 0.43, '#111', [-0.56, 1.2, 0]),
+    perfil([[-0.17, 0.83], [-0.72, 0.93], [-0.82, 0.98], [-0.78, 1.0], [-0.5, 0.97], [-0.16, 0.93]], 0.26, '#2b2b2b', { radio: 0.04, trompa: 0 }),
+    perfil([[-0.45, 0.8], [-0.96, 0.94], [-0.98, 0.99], [-0.8, 0.97], [-0.45, 0.9]], 0.2, negro, { radio: 0.03, trompa: 0 }),
+    perfil([[-0.2, 0.66], [-0.5, 0.71], [-0.76, 0.85], [-0.45, 0.86], [-0.2, 0.82]], 0.22, plata, { radio: 0.04, trompa: 0 }),
+  ), [0, 0.45, 0]);
+  const arco = 0.6 * Math.PI;
+  const guardabarro = mesh(new THREE.TorusGeometry(0.33, 0.015, 8, 28, arco), negro, [F[0], F[1], 0], [0, 0, Math.PI / 2 - arco / 2 - 0.2]);
+  guardabarro.scale.z = 4.5;
+  pz('carroceria', guardabarro, [0.5, 0.25, 0]);
+  pz('carroceria', grupo(
+    barra([-0.9, 0.9, 0], [-1.06, 0.58, 0], 0.025, negro),
+    caja(0.015, 0.12, 0.2, '#e5e5e5', [-1.07, 0.55, 0], [0, 0, 0.35]),
+  ), [-0.35, 0, 0]);
+  pz('carroceria', grupo(
+    [-0.42, -0.55, -0.68, -0.81].map(x => barra([x, 1.02, -0.13], [x, 1.02, 0.13], 0.008, '#3a3a3a')),
+    [1, -1].map(s => barra([-0.38, 1.02, s * 0.13], [-0.86, 1.02, s * 0.13], 0.01, '#3a3a3a')),
+    [1, -1].map(s => barra([-0.4, 1.02, s * 0.13], [-0.35, 0.9, s * 0.12], 0.01, '#3a3a3a')),
+  ), [0, 0.55, 0]);
+  pz('carroceria', grupo(
+    caja(0.46, 0.42, 0.44, '#f2c200', [-0.62, 1.25, 0], undefined, { roughness: 0.5 }),
+    caja(0.47, 0.012, 0.45, '#111', [-0.62, 1.36, 0]),
+    calco(0.38, 0.1, marca, -0.62, 1.22, 0.223),
   ), [-0.1, 0.85, 0]);
-  pz('carroceria', barra([-0.1, 0.3, -0.12], [-0.2, 0.02, -0.26], 0.012, '#3a3a3a'), [0, 0, -0.3]);
+  pz('carroceria', barra([-0.12, 0.28, ZC - 0.02], [-0.24, 0.02, ZC - 0.16], 0.012, '#1a1a1a'), [0, 0, -0.3]);
 
-  return { centro: V(0, 0.6, 0), camara: V(2.3, 1.4, 2.5) };
+  return { centro: V(-0.05, 0.62, 0), camara: V(2.4, 1.45, 2.6) };
 }
 
 // En pantallas angostas la cámara se aleja para que entre el vehículo completo
