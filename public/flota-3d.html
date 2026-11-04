@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOGO · Vehículo 3D</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0D0D0D;--bg2:#141414;--bg3:#1A1A1A;--bg4:#222;
+  --border:#2A2A2A;--border2:#333;
+  --amber:#F5A623;--amber2:#FFBE47;--amber-dim:#F5A6231a;
+  --text:#E8E8E8;--text2:#999;--text3:#666;--red:#FF4444;
+  --font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+html,body{height:100%;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);display:flex;flex-direction:column;overflow:hidden;}
+button,select{font-family:inherit;}
+.header{display:flex;align-items:center;gap:16px;padding:0 24px;height:52px;flex:none;background:var(--bg2);border-bottom:1px solid var(--border);}
+.logo{background:var(--amber);color:#000;font-weight:700;font-size:13px;padding:4px 10px;border-radius:4px;letter-spacing:1px;font-family:var(--mono);text-decoration:none;}
+.header-title{font-size:13px;color:var(--text2);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;}
+.sep{flex:1;}
+.btn{padding:6px 14px;font-size:11px;font-family:var(--mono);font-weight:500;border:1px solid var(--border2);background:transparent;color:var(--text2);border-radius:4px;cursor:pointer;transition:all .15s;letter-spacing:.5px;text-transform:uppercase;text-decoration:none;}
+.btn:hover{border-color:var(--amber);color:var(--amber);}
+.btn.active{background:var(--amber-dim);border-color:var(--amber);color:var(--amber);}
+.toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 24px;flex:none;border-bottom:1px solid var(--border);background:var(--bg2);}
+.f-label{font-size:10px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.8px;}
+.f-group{display:flex;align-items:center;gap:6px;}
+.sel{background:var(--bg3);color:var(--text);border:1px solid var(--border2);border-radius:4px;padding:6px 10px;font-size:12px;font-family:var(--mono);cursor:pointer;}
+.sel:focus{outline:1px solid var(--amber);}
+
+.main{flex:1;display:grid;grid-template-columns:1fr 400px;min-height:0;}
+.viewer{position:relative;min-width:0;min-height:0;overflow:hidden;}
+.viewer canvas{display:block;width:100%;height:100%;cursor:grab;}
+.viewer canvas:active{cursor:grabbing;}
+.hud{position:absolute;pointer-events:none;}
+.hud-tl{top:18px;left:22px;}
+.hud-placa{font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:1px;}
+.hud-modelo{font-size:12px;color:var(--text2);margin-top:2px;}
+.hud-total{font-family:var(--mono);font-size:13px;color:var(--amber);margin-top:10px;}
+.hud-total span{color:var(--text3);}
+.hud-bl{left:22px;bottom:18px;display:flex;gap:8px;pointer-events:auto;flex-wrap:wrap;}
+.hud-bl .btn{background:#141414cc;backdrop-filter:blur(4px);}
+.hud-br{right:22px;bottom:20px;font-family:var(--mono);font-size:10px;color:var(--text3);text-align:right;}
+.legend{width:180px;height:6px;border-radius:3px;margin:6px 0 4px auto;background:linear-gradient(90deg,#245ea8,#3987e5 35%,#F5A623 70%,#FF4444);}
+.legend-l{display:flex;justify-content:space-between;width:180px;margin-left:auto;}
+.tip{position:absolute;pointer-events:none;background:#0d0d0de6;border:1px solid var(--border2);border-radius:6px;padding:8px 10px;font-size:12px;display:none;white-space:nowrap;z-index:5;}
+.tip b{display:block;font-weight:600;margin-bottom:2px;}
+.tip span{font-family:var(--mono);color:var(--amber);font-size:11px;}
+.estado{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--text2);font-size:13px;line-height:1.6;padding:24px;}
+
+.panel{border-left:1px solid var(--border);background:var(--bg2);overflow-y:auto;min-height:0;}
+.p-sec{padding:18px 20px;border-bottom:1px solid var(--border);}
+.p-h{font-size:10px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;justify-content:space-between;}
+.pt-row{display:grid;grid-template-columns:12px 1fr auto;gap:4px 10px;align-items:center;padding:9px 10px;border-radius:6px;cursor:pointer;border:1px solid transparent;transition:background .12s;}
+.pt-row:hover{background:var(--bg3);}
+.pt-row.on{background:var(--amber-dim);border-color:#F5A62355;}
+.sw{width:12px;height:12px;border-radius:3px;}
+.pt-n{font-size:13px;}
+.pt-m{font-family:var(--mono);font-size:12px;text-align:right;}
+.pt-bar{grid-column:2/4;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden;}
+.pt-bar i{display:block;height:100%;border-radius:2px;transition:width .4s;}
+.pt-c{grid-column:2/4;font-size:10px;color:var(--text3);font-family:var(--mono);}
+.det-h{font-size:16px;font-weight:600;}
+.det-sub{font-size:11px;color:var(--text3);margin-top:4px;line-height:1.5;}
+.det-kpi{display:flex;gap:18px;margin-top:12px;font-family:var(--mono);}
+.det-kpi div{font-size:16px;color:var(--amber);}
+.det-kpi small{display:block;font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px;}
+.g-row{padding:10px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.g-row:last-child{border-bottom:none;}
+.g-top{display:flex;gap:8px;align-items:baseline;font-family:var(--mono);font-size:11px;color:var(--text2);}
+.g-top .g-m{margin-left:auto;color:var(--text);}
+.g-desc{margin-top:4px;color:var(--text);line-height:1.45;word-break:break-word;}
+.g-tags{margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;}
+.tag{font-size:9px;font-family:var(--mono);padding:2px 6px;border-radius:8px;background:var(--bg4);color:var(--text2);text-transform:uppercase;letter-spacing:.4px;}
+.nota{font-size:11px;color:var(--text3);line-height:1.5;}
+.link{color:var(--amber);cursor:pointer;background:none;border:none;font-size:11px;text-decoration:underline;}
+
+@media (max-width:900px){
+  body{overflow:auto;}
+  .main{grid-template-columns:1fr;grid-template-rows:60vh auto;}
+  .panel{border-left:none;border-top:1px solid var(--border);overflow:visible;}
+}
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+
+<div class="header">
+  <a class="logo" href="/">TOGO</a>
+  <span class="header-title">Vehículo 3D · gasto por pieza</span>
+  <span class="sep"></span>
+  <a class="btn" href="/">← Gastos</a>
+</div>
+
+<div class="toolbar">
+  <div class="f-group"><span class="f-label">Vehículo</span><select class="sel" id="fVeh"></select></div>
+  <div class="f-group"><span class="f-label">Año</span><select class="sel" id="fAnio"></select></div>
+  <span class="nota" id="flotaNota"></span>
+</div>
+
+<div class="main">
+  <div class="viewer" id="viewer">
+    <div class="hud hud-tl">
+      <div class="hud-placa" id="hPlaca"></div>
+      <div class="hud-modelo" id="hModelo"></div>
+      <div class="hud-total" id="hTotal"></div>
+    </div>
+    <div class="hud hud-bl">
+      <button class="btn" id="bDesarmar">Desarmar</button>
+      <button class="btn active" id="bCalor">Mapa de calor</button>
+      <button class="btn active" id="bGirar">Girar</button>
+    </div>
+    <div class="hud hud-br" id="leyenda">
+      Gasto de mantenimiento por pieza
+      <div class="legend"></div>
+      <div class="legend-l"><span>menos</span><span>más</span></div>
+    </div>
+    <div class="tip" id="tip"></div>
+    <div class="estado" id="estado">Cargando gastos…</div>
+  </div>
+  <div class="panel" id="panel"></div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ══ PIEZAS ══════════════════════════════════════════════════════════════════
+// Cada gasto se asigna a las piezas que nombra su descripción (sin tildes, en mayúsculas).
+// Si nombra varias, el monto se reparte en partes iguales entre ellas.
+const PARTES = [
+  { id: 'carroceria', nombre: 'Carrocería', incluye: 'puertas, parrilla, parador, asiento, tanque, soldaduras',
+    re: /PUERTA|PARRILLA|PARILLA|CHAPA|SOLDADUR|SOLDAR|LATERAL|PARADOR|\bPATA\b|CARROCER|PINTURA|PARACHOQUE|GUARDABARRO|GUARDAFANGO|ASIENTO|VIDRIO|PARABRISA|PLUMILLA|TANQUE|CAJON|MALETERO/ },
+  { id: 'mandos', nombre: 'Mandos y cables', incluye: 'chicotillos, acelerador, palancas, puños, espejos',
+    re: /CHICOTILLO|ACELERADOR|ACELERACI|PALANCA|PUNO|\bCABLES?\b|MANILLAR|MANUBRIO|ESPEJO|PEDAL|VOLANTE(?! DE INERCIA)/ },
+  { id: 'electrico', nombre: 'Sistema eléctrico', incluye: 'focos, faroles, batería, bobina, arranque, aire acondicionado',
+    re: /FOCO|FAROL|BATERIA|BOBINA|ALTERNADOR|ARRANQUE|BENDIX|\bSTOP\b|SENSOR|ELECTRIC|REGULADOR|HALOGENO|\bLUC|\bLUZ\b|CORRIENTE|ENCENDIDO|FUSIBLE|BOCINA|DESTILADA|AIRE ACONDICIONADO|INTERMITENTE|DIRECCIONAL|GUINADOR|TABLERO|VELOCIMETRO|\bCDI\b|\bRELAY\b/ },
+  { id: 'motor', nombre: 'Motor y aceite', incluye: 'aceite, arandela y tapón, filtros, carburador, bujías, culata, distribución',
+    re: /MOTOR|ACEITE|ACIETE|ARANDELA|TAPON|FILTRO|CULATA|BALANCIN|DISTRIBUCI|CORREA|VALVULA|CIGUENAL|CARBURA|BUJIA|INYECTOR|EMPAQUETADURA|CARTER|O-?RING|ANILLO|EMBOLO|PISTON|RECTIFICAD|CADENILLA|INERCIA|PICOS|COMBUSTIBLE|RADIADOR|ESCAPE|SILENCIADOR/ },
+  { id: 'transmision', nombre: 'Transmisión', incluye: 'kit de transmisión, cadena, piñón, corona, embrague, caja',
+    re: /TRANSMISI|TRANSIMICI|TRASMISI|EMBRAGUE|EMRAGUE|\bCADENA\b|PINON|CORONA|\bCAJA\b|SELECTOR|NEUTRO|TE?N?SADOR DE CADENA|CARDAN|DIFERENCIAL|PALIER|SEMIEJE|CRUCETA|ARRASTRE/ },
+  { id: 'suspension', nombre: 'Suspensión y dirección', incluye: 'telescopios, amortiguadores, bujes, dirección, muelles',
+    re: /TELESCOPIO|TEELESCOPIO|AMORTIGUA|\bBUJES?\b|SUSPENSI|DIRECCION\b|ROTULA|TERMINAL|MUELLE|BALLESTA|ESPIRAL|ESTABILIZ|HORQUILLA|BASCULANTE/ },
+  { id: 'frenos', nombre: 'Frenos', incluye: 'pastillas, balatas, discos, zapatas',
+    re: /FRENO|BALATA|BALTA|PASTILLA|POASTILLA|\bDISCOS?\b(?! DE EMBRAGUE)|ZAPATA|TAMBOR/ },
+  { id: 'ruedas', nombre: 'Llantas y ruedas', incluye: 'llantas, cámaras, parchados, rodamientos, rotación',
+    re: /LLANTA|CAMARA|PARCHAD|RUEDA|RODAMIENTO|\bAROS?\b|\bRINES?\b|ROTACION|ALINEA|BALANCEO|NEUMATICO|RINALDI/ },
+];
+PARTES.forEach((p, i) => p.orden = i);
+const GENERAL = { id: 'general', nombre: 'Servicio general', incluye: 'mantenimientos y mano de obra que no nombran una pieza' };
+const PARTE = Object.fromEntries([...PARTES, GENERAL].map(p => [p.id, p]));
+const MANT = ['PREVENTIVO', 'CORRECTIVO', 'REPUESTOS'];
+
+const norm = s => String(s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+function clasificar(desc) {
+  const d = norm(desc);
+  const ids = PARTES.filter(p => p.re.test(d)).map(p => p.id);
+  return ids.length ? ids : ['general'];
+}
+
+// ══ DATOS ═══════════════════════════════════════════════════════════════════
+const fmt0 = new Intl.NumberFormat('es-BO', { maximumFractionDigits: 0 });
+const fmt2 = new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const bs = v => 'Bs ' + fmt0.format(v);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const token = () => localStorage.getItem('togo_token');
+const goLogin = () => { ['togo_token', 'togo_user', 'togo_role'].forEach(k => localStorage.removeItem(k)); location.href = '/login.html'; };
+
+let ROWS = [];               // gastos de mantenimiento con .partes
+let FLOTA = new Map();       // placa → {tipo, marca, modelo, proxi}
+let VEH = new Map();         // placa → {placa, tipo:'moto'|'furgon', etiqueta, total, n}
+const S = { veh: '', anio: 0, parte: '', hover: '', desarmar: false, calor: true, girar: true, shown: 60 };
+
+function tipoVehiculo(placa, descs) {
+  const f = FLOTA.get(placa);
+  const t = f ? norm(`${f.tipo} ${f.marca} ${f.modelo}`) : '';
+  if (/MOTO|CB ?1|HONDA|YAMAHA|BAJAJ/.test(t)) return 'moto';
+  if (/CARRY|APV|FURG|CAMION|VAN\b|RAM\b|SUZUKI|CAMIONETA|AUTO/.test(t)) return 'furgon';
+  let m = 0, c = 0;
+  descs.forEach(d => { d = norm(d); if (/\bMOTOS?\b|MOTOCICLETA|CB ?160/.test(d)) m++; if (/CARRY|FURGON|\bAPV\b|\bRAM\b|CAMION/.test(d)) c++; });
+  return m > c ? 'moto' : 'furgon';
+}
+function etiquetaVehiculo(placa, tipo, descs) {
+  const f = FLOTA.get(placa);
+  if (f && (f.marca || f.modelo)) return [f.marca, f.modelo].filter(Boolean).join(' ');
+  const d = norm(descs.join(' '));
+  if (tipo === 'moto') return /CB ?160/.test(d) ? 'Honda CB160' : 'Motocicleta';
+  if (/RAM 700|RAPID/.test(d)) return 'RAM 700 Rapid';
+  if (/\bAPV\b/.test(d)) return 'Suzuki APV';
+  if (/CARRY/.test(d)) return 'Suzuki Carry';
+  return 'Furgón';
+}
+
+async function cargar() {
+  if (!token()) return goLogin();
+  let d;
+  try {
+    const r = await fetch('/api/gastos', { headers: { 'x-auth-token': token() } });
+    if (r.status === 401) return goLogin();
+    d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'Error ' + r.status);
+  } catch (e) {
+    estado(`No se pudieron cargar los gastos.<br>${esc(e.message)}`);
+    return;
+  }
+  (d.flota?.placas || []).forEach(p => FLOTA.set(p.placa, p));
+  ROWS = d.rows.filter(r => MANT.includes(r.tipo) && r.placa && r.placa !== 'SIN PLACA')
+    .map(r => ({ ...r, partes: clasificar(r.descripcion) }));
+  if (!ROWS.length) { estado('Todavía no hay gastos de mantenimiento cargados.'); return; }
+
+  const porPlaca = new Map();
+  ROWS.forEach(r => { if (!porPlaca.has(r.placa)) porPlaca.set(r.placa, []); porPlaca.get(r.placa).push(r); });
+  porPlaca.forEach((rs, placa) => {
+    const descs = rs.map(r => r.descripcion);
+    const tipo = tipoVehiculo(placa, descs);
+    VEH.set(placa, { placa, tipo, etiqueta: etiquetaVehiculo(placa, tipo, descs), total: rs.reduce((s, r) => s + r.monto, 0), n: rs.length });
+  });
+  ROWS.forEach(r => r.vtipo = VEH.get(r.placa).tipo);
+
+  // Vehículo inicial: ?placa=XXX, o el furgón con más gasto
+  const q = new URLSearchParams(location.search).get('placa');
+  const lista = [...VEH.values()].sort((a, b) => b.total - a.total);
+  S.veh = q && VEH.has(q) ? q : (lista.find(v => v.tipo === 'furgon') || lista[0]).placa;
+
+  armarFiltros(lista);
+  document.getElementById('estado').style.display = 'none';
+  actualizar();
+}
+
+function estado(html) { const e = document.getElementById('estado'); e.innerHTML = html; e.style.display = 'flex'; }
+
+function armarFiltros(lista) {
+  const sV = document.getElementById('fVeh');
+  const grupo = (tipo, titulo) => {
+    const vs = lista.filter(v => v.tipo === tipo);
+    if (!vs.length) return '';
+    return `<option value="@${tipo}">${titulo} (${vs.length})</option><optgroup label="${titulo}">` +
+      vs.map(v => `<option value="${esc(v.placa)}">${esc(v.placa)} · ${esc(v.etiqueta)}${FLOTA.has(v.placa) ? ' ●' : ''}</option>`).join('') + '</optgroup>';
+  };
+  sV.innerHTML = grupo('furgon', 'Todos los furgones') + grupo('moto', 'Todas las motos');
+  sV.value = S.veh;
+  sV.onchange = () => { S.veh = sV.value; S.parte = ''; S.shown = 60; actualizar(); };
+  const anios = [...new Set(ROWS.map(r => r.anio))].sort((a, b) => b - a);
+  const sA = document.getElementById('fAnio');
+  sA.innerHTML = '<option value="0">Todos</option>' + anios.map(a => `<option value="${a}">${a}</option>`).join('');
+  sA.onchange = () => { S.anio = +sA.value; S.shown = 60; actualizar(); };
+  if (FLOTA.size) document.getElementById('flotaNota').textContent = '● = en la flota actual';
+}
+
+const tipoSel = () => S.veh.startsWith('@') ? S.veh.slice(1) : VEH.get(S.veh).tipo;
+function filasSel() {
+  return ROWS.filter(r => (S.veh.startsWith('@') ? r.vtipo === S.veh.slice(1) : r.placa === S.veh) && (!S.anio || r.anio === S.anio));
+}
+let AGG = {};
+function agregar(rows) {
+  const a = Object.fromEntries([...PARTES, GENERAL].map(p => [p.id, { monto: 0, n: 0, rows: [] }]));
+  rows.forEach(r => { const parte = r.monto / r.partes.length; r.partes.forEach(id => { a[id].monto += parte; a[id].n++; a[id].rows.push(r); }); });
+  return a;
+}
+
+// ══ ESCENA 3D ═══════════════════════════════════════════════════════════════
+const wrap = document.getElementById('viewer');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+wrap.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#0D0D0D');
+scene.fog = new THREE.Fog('#0D0D0D', 10, 24);
+const camera = new THREE.PerspectiveCamera(35, 1, 0.05, 100);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.7;
+controls.maxPolarAngle = Math.PI * 0.49;
+
+scene.add(new THREE.HemisphereLight('#d6dde6', '#1a1a1a', 0.9));
+const sol = new THREE.DirectionalLight('#ffffff', 2.4);
+sol.position.set(4, 7, 3);
+sol.castShadow = true;
+sol.shadow.mapSize.set(2048, 2048);
+Object.assign(sol.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4 });
+sol.shadow.bias = -0.0005;
+scene.add(sol);
+const contraluz = new THREE.DirectionalLight('#F5A623', 1.3);
+contraluz.position.set(-5, 3, -4);
+scene.add(contraluz);
+const suelo = new THREE.Mesh(new THREE.CircleGeometry(9, 64), new THREE.MeshStandardMaterial({ color: '#121212', roughness: 1 }));
+suelo.rotation.x = -Math.PI / 2;
+suelo.receiveShadow = true;
+scene.add(suelo);
+const grilla = new THREE.GridHelper(18, 36, '#2a2a2a', '#1b1b1b');
+grilla.position.y = 0.002;
+scene.add(grilla);
+
+// ── Ayudas para modelar ──
+let root = null, piezas = [], modeloActual = '';
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.25, ...o });
+const METAL = { metalness: 0.85, roughness: 0.3 };
+const VIDRIO = { metalness: 0.9, roughness: 0.08 };
+const GOMA = { metalness: 0, roughness: 0.92 };
+function mesh(geo, color, pos = [0, 0, 0], rot = [0, 0, 0], o) {
+  const m = new THREE.Mesh(geo, mat(color, o));
+  m.position.set(...pos); m.rotation.set(...rot);
+  return m;
+}
+const caja = (sx, sy, sz, color, pos, rot, o) => mesh(new THREE.BoxGeometry(sx, sy, sz), color, pos, rot, o);
+const cil = (r, h, color, pos, rot, o, seg = 24) => mesh(new THREE.CylinderGeometry(r, r, h, seg), color, pos, rot, o);
+const EJE_Z = [Math.PI / 2, 0, 0], EJE_X = [0, 0, Math.PI / 2];
+function barra(a, b, r, color, o) {
+  const A = V(...a), B = V(...b);
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, A.distanceTo(B), 12), mat(color, o));
+  m.position.copy(A).add(B).multiplyScalar(0.5);
+  m.quaternion.setFromUnitVectors(V(0, 1, 0), B.clone().sub(A).normalize());
+  return m;
+}
+function tubo(puntos, r, color, cerrado = false, o) {
+  const curva = new THREE.CatmullRomCurve3(puntos.map(p => V(...p)), cerrado);
+  return new THREE.Mesh(new THREE.TubeGeometry(curva, Math.max(64, puntos.length * 24), r, 8, cerrado), mat(color, o));
+}
+class Helice extends THREE.Curve {
+  constructor(r, h, vueltas) { super(); this.r = r; this.h = h; this.v = vueltas; }
+  getPoint(t, o = new THREE.Vector3()) { const a = t * Math.PI * 2 * this.v; return o.set(Math.cos(a) * this.r, t * this.h - this.h / 2, Math.sin(a) * this.r); }
+}
+// Resorte con amortiguador entre dos puntos
+function resorte(a, b, r, vueltas, color) {
+  const A = V(...a), B = V(...b), L = A.distanceTo(B);
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.TubeGeometry(new Helice(r, L * 0.8, vueltas), 160, r * 0.14, 8), mat(color, { metalness: 0.5, roughness: 0.4 })));
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(r * 0.38, r * 0.38, L, 12), mat('#d4d4d4', METAL)));
+  [-L / 2, L / 2].forEach(y => { const c = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.15, r * 1.15, L * 0.05, 16), mat('#3a3a3a')); c.position.y = y * 0.86; g.add(c); });
+  g.position.copy(A).add(B).multiplyScalar(0.5);
+  g.quaternion.setFromUnitVectors(V(0, 1, 0), B.clone().sub(A).normalize());
+  return g;
+}
+const grupo = (...objs) => { const g = new THREE.Group(); objs.flat(Infinity).forEach(o => g.add(o)); return g; };
+
+// Registra una pieza: a qué parte pertenece y hacia dónde sale al desarmar
+function pz(parte, obj, ex = [0, 0, 0]) {
+  obj.userData = { parte, base: obj.position.clone(), ex: V(...ex) };
+  obj.traverse(m => {
+    if (!m.isMesh) return;
+    m.castShadow = m.receiveShadow = true;
+    m.userData.parte = parte;
+    m.userData.c0 = m.material.color.clone();
+    m.userData.e0 = m.material.emissive.clone();
+    m.userData.ei0 = m.material.emissiveIntensity;
+  });
+  root.add(obj); piezas.push(obj);
+  return obj;
+}
+
+// ── Furgón (Suzuki Carry / APV / RAM 700): eje X = largo (frente +X), Z = ancho ──
+function construirFurgon() {
+  const blanco = '#e9eaec', negro = '#262626', vidrio = '#0f172a', gris = '#4b5563';
+  const XF = 1.15, XT = -1.0, YR = 0.33;
+
+  pz('chasis', grupo(
+    caja(3.7, 0.09, 0.09, '#2b2b2b', [-0.05, 0.42, 0.42]),
+    caja(3.7, 0.09, 0.09, '#2b2b2b', [-0.05, 0.42, -0.42]),
+    [1.5, 0.6, -0.3, -1.2, -1.85].map(x => caja(0.07, 0.07, 0.84, '#2b2b2b', [x, 0.42, 0])),
+  ));
+
+  pz('carroceria', grupo(
+    caja(2.75, 1.38, 1.56, blanco, [-0.72, 1.2, 0]),
+    caja(1.22, 1.38, 1.56, blanco, [1.27, 1.2, 0]),
+    caja(0.03, 0.55, 1.42, vidrio, [1.885, 1.55, 0], undefined, VIDRIO),
+    [1, -1].map(s => caja(0.75, 0.45, 0.02, vidrio, [1.3, 1.55, s * 0.785], undefined, VIDRIO)),
+    [1, -1].map(s => caja(2.3, 0.12, 0.02, '#F5A623', [-0.75, 0.95, s * 0.785])),
+    [1, -1].map(s => caja(0.9, 0.3, 0.02, '#F5A623', [-0.75, 1.42, s * 0.785])),
+    caja(0.14, 0.18, 1.62, negro, [1.92, 0.5, 0]),
+    caja(0.12, 0.18, 1.62, negro, [-2.15, 0.5, 0]),
+    caja(0.04, 0.14, 0.9, negro, [1.9, 0.68, 0]),
+    [1, -1].map(s => caja(0.06, 0.15, 0.12, negro, [1.72, 1.5, s * 0.86])),
+    caja(0.01, 1.25, 0.012, '#bdbdbd', [-2.096, 1.2, 0]),
+    [1, -1].map(s => caja(0.012, 1.25, 0.01, '#bdbdbd', [0.64, 1.18, s * 0.781])),
+    [1, -1].map(s => caja(0.4, 0.12, 0.5, negro, [1.2, 0.82, s * 0.35])),
+    [1, -1].map(s => caja(0.1, 0.5, 0.5, negro, [1.0, 1.1, s * 0.35])),
+  ), [0, 1.8, 0]);
+
+  [1, -1].forEach(s => {
+    pz('electrico', caja(0.04, 0.16, 0.32, '#fff4c2', [1.9, 0.84, s * 0.55], undefined, { emissive: '#fff4c2', emissiveIntensity: 0.5 }), [0.8, 0, 0]);
+    pz('electrico', caja(0.04, 0.22, 0.12, '#ff3b30', [-2.1, 0.88, s * 0.68], undefined, { emissive: '#ff3b30', emissiveIntensity: 0.5 }), [-0.8, 0, 0]);
+  });
+  pz('electrico', grupo(
+    caja(0.26, 0.2, 0.17, '#1f1f1f', [1.5, 0.66, -0.5]),
+    cil(0.018, 0.04, '#dc2626', [1.44, 0.78, -0.5]),
+    cil(0.018, 0.04, '#111', [1.56, 0.78, -0.5]),
+    tubo([[1.44, 0.8, -0.5], [1.3, 0.85, -0.35], [1.0, 0.8, -0.3], [0.9, 0.78, -0.3]], 0.012, '#c2410c'),
+    cil(0.075, 0.11, '#9ca3af', [0.88, 0.8, -0.3], EJE_Z, METAL),
+  ), [0.3, 0.6, -1.4]);
+
+  pz('motor', grupo(
+    caja(0.5, 0.36, 0.42, '#6b7280', [0.95, 0.66, 0], undefined, { metalness: 0.6 }),
+    caja(0.5, 0.12, 0.38, '#9ca3af', [0.95, 0.9, 0], undefined, METAL),
+    caja(0.46, 0.07, 0.32, '#b91c1c', [0.95, 0.995, 0]),
+    cil(0.03, 0.04, '#facc15', [1.08, 1.05, 0.06]),
+    caja(0.44, 0.1, 0.36, '#374151', [0.95, 0.43, 0]),
+    cil(0.02, 0.03, '#facc15', [0.95, 0.37, 0.1]),
+    cil(0.05, 0.1, '#ea580c', [0.95, 0.6, 0.25], EJE_Z),
+    cil(0.11, 0.3, '#111827', [0.6, 1.0, 0.1], EJE_X),
+    cil(0.09, 0.03, '#d4d4d4', [1.12, 0.6, -0.23], EJE_Z, METAL),
+    cil(0.06, 0.03, '#d4d4d4', [1.12, 0.88, -0.23], EJE_Z, METAL),
+    barra([1.21, 0.6, -0.235], [1.18, 0.88, -0.235], 0.012, '#111'),
+    barra([1.03, 0.6, -0.235], [1.06, 0.88, -0.235], 0.012, '#111'),
+    [0.82, 0.9, 1.0, 1.1].map(x => cil(0.012, 0.06, '#e5e5e5', [x, 1.03, -0.1])),
+    tubo([[0.8, 0.6, 0.22], [0.6, 0.45, 0.3], [0, 0.38, 0.32], [-0.6, 0.36, 0.35]], 0.03, '#a3a3a3', false, METAL),
+    cil(0.08, 0.5, '#737373', [-0.88, 0.36, 0.35], EJE_X, METAL),
+  ), [0, 0, -1.8]);
+
+  pz('transmision', grupo(
+    caja(0.38, 0.26, 0.3, '#4b5563', [0.48, 0.62, 0], undefined, { metalness: 0.6 }),
+    cil(0.17, 0.1, '#6b7280', [0.67, 0.66, 0], EJE_X, METAL),
+    barra([0.29, 0.6, 0], [-0.88, 0.36, 0], 0.035, '#9ca3af', METAL),
+    mesh(new THREE.SphereGeometry(0.15, 24, 16), '#374151', [-1.0, YR, 0], undefined, { metalness: 0.6 }),
+    barra([-1.0, YR, -0.58], [-1.0, YR, 0.58], 0.04, gris, METAL),
+  ), [0, -0.05, 1.7]);
+
+  [1, -1].forEach(s => {
+    pz('suspension', resorte([XF, 0.44, s * 0.45], [XF, 0.86, s * 0.45], 0.07, 6, '#16a34a'), [0, 0.5, s * 0.35]);
+    pz('suspension', grupo([0.44, 0.47, 0.5].map((y, i) => caja(0.95 - i * 0.18, 0.025, 0.07, '#525252', [XT, y, s * 0.45], undefined, METAL))), [0, 0.35, s * 0.35]);
+  });
+  pz('suspension', grupo(
+    barra([1.32, 0.42, -0.55], [1.32, 0.42, 0.55], 0.025, '#9ca3af', METAL),
+    caja(0.1, 0.1, 0.22, '#525252', [1.32, 0.42, 0.15]),
+  ), [0.5, 0.25, 0]);
+
+  [[XF, 1], [XF, -1], [XT, 1], [XT, -1]].forEach(([x, s]) => {
+    pz('frenos', grupo(
+      x === XF ? cil(0.17, 0.025, '#c0c4ca', [x, YR, s * 0.56], EJE_Z, METAL) : cil(0.15, 0.08, '#6b7280', [x, YR, s * 0.56], EJE_Z, METAL),
+      x === XF ? caja(0.08, 0.12, 0.07, '#dc2626', [x + 0.15, YR + 0.06, s * 0.56]) : cil(0.02, 0.1, '#dc2626', [x, YR + 0.12, s * 0.56], EJE_Z),
+    ), [0, 0, s * 0.55]);
+    const tire = mesh(new THREE.TorusGeometry(0.245, 0.085, 18, 48), '#1b1b1b', [x, YR, s * 0.7], undefined, GOMA);
+    tire.scale.z = 1.2;
+    pz('ruedas', grupo(
+      tire,
+      cil(0.17, 0.17, '#c0c4ca', [x, YR, s * 0.7], EJE_Z, METAL),
+      cil(0.06, 0.19, '#525252', [x, YR, s * 0.7], EJE_Z, METAL),
+    ), [0, 0, s * 1.1]);
+  });
+
+  const volante = mesh(new THREE.TorusGeometry(0.17, 0.02, 10, 40), '#111', [1.55, 1.22, 0.35], [0, Math.PI / 2, 0]);
+  pz('mandos', grupo(
+    volante,
+    barra([1.55, 1.22, 0.35], [1.75, 0.85, 0.35], 0.02, '#333'),
+    barra([1.25, 0.75, 0], [1.2, 1.05, 0], 0.012, '#333'),
+    mesh(new THREE.SphereGeometry(0.03, 12, 8), '#111', [1.2, 1.07, 0]),
+    [0.25, 0.35, 0.45].map(z => caja(0.02, 0.1, 0.06, '#333', [1.75, 0.72, z])),
+  ), [0, 1.05, 0]);
+
+  return { centro: V(0, 0.85, 0), camara: V(4.6, 2.6, 4.6) };
+}
+
+// ── Moto (Honda CB160 de reparto) ──
+function construirMoto() {
+  const rojo = '#b91c1c', negro = '#1f1f1f', marco = '#3a3a3a', cromo = '#d4d4d4';
+  const F = [0.68, 0.31], T = [-0.62, 0.31];
+
+  pz('chasis', grupo(
+    barra([0.40, 1.0, 0], [0.46, 0.8, 0], 0.03, marco),
+    barra([0.42, 0.93, 0], [-0.3, 0.8, 0], 0.022, marco),
+    barra([0.44, 0.84, 0], [0.2, 0.3, 0], 0.022, marco),
+    barra([0.2, 0.3, 0], [-0.17, 0.3, 0], 0.02, marco),
+    barra([-0.17, 0.3, 0], [-0.17, 0.78, 0], 0.022, marco),
+    [1, -1].map(s => barra([-0.12, 0.78, s * 0.07], [-0.58, 0.86, s * 0.07], 0.014, marco)),
+    [1, -1].map(s => barra([-0.17, 0.46, s * 0.07], [-0.56, 0.84, s * 0.07], 0.014, marco)),
+  ));
+
+  [[F, 1], [T, -1]].forEach(([[x, y], s]) => {
+    const tire = mesh(new THREE.TorusGeometry(0.245, 0.065, 18, 56), '#161616', [x, y, 0], undefined, GOMA);
+    tire.scale.z = 0.9;
+    const rayos = [0, 1, 2, 3, 4].map(i => { const a = i * Math.PI * 2 / 5; return barra([x + Math.cos(a) * 0.04, y + Math.sin(a) * 0.04, 0], [x + Math.cos(a) * 0.18, y + Math.sin(a) * 0.18, 0], 0.012, '#111', METAL); });
+    pz('ruedas', grupo(
+      tire,
+      mesh(new THREE.TorusGeometry(0.185, 0.014, 8, 48), '#111', [x, y, 0], undefined, METAL),
+      cil(0.045, 0.12, '#9ca3af', [x, y, 0], EJE_Z, METAL),
+      rayos,
+    ), [s * 0.5, 0, 0]);
+  });
+
+  pz('frenos', grupo(
+    cil(0.13, 0.008, '#c0c4ca', [F[0], F[1], -0.075], EJE_Z, METAL, 32),
+    caja(0.07, 0.1, 0.035, '#dc2626', [F[0] - 0.09, F[1] + 0.09, -0.08], [0, 0, 0.8]),
+  ), [0.5, 0, -0.45]);
+  pz('frenos', grupo(
+    cil(0.095, 0.06, '#9ca3af', [T[0], T[1], -0.075], EJE_Z, METAL),
+    barra([T[0], T[1], -0.11], [T[0] + 0.1, T[1] - 0.06, -0.11], 0.01, '#525252'),
+  ), [-0.5, 0, -0.45]);
+
+  pz('suspension', grupo([1, -1].map(s => [
+    barra([0.40, 1.0, s * 0.075], [0.585, 0.545, s * 0.075], 0.018, cromo, METAL),
+    barra([0.585, 0.545, s * 0.075], [F[0], F[1], s * 0.075], 0.027, '#a3a3a3', METAL),
+  ]),
+    caja(0.07, 0.03, 0.2, '#525252', [0.40, 1.0, 0]),
+    caja(0.07, 0.03, 0.2, '#525252', [0.44, 0.9, 0]),
+  ), [0.4, 0.3, 0]);
+  [1, -1].forEach(s => {
+    pz('suspension', resorte([-0.5, 0.36, s * 0.1], [-0.38, 0.8, s * 0.1], 0.03, 7, '#dc2626'), [0, 0.1, s * 0.4]);
+    pz('suspension', barra([-0.17, 0.42, s * 0.09], [T[0], T[1], s * 0.09], 0.02, '#2b2b2b'), [0, -0.05, s * 0.3]);
+  });
+
+  const aletas = [];
+  for (let i = 0; i < 7; i++) aletas.push(caja(0.17, 0.016, 0.19, '#6b7280', [0.12 + i * 0.031 * Math.sin(0.35), 0.5 + i * 0.031 * Math.cos(0.35), 0], [0, 0, -0.35], { metalness: 0.6 }));
+  pz('motor', grupo(
+    caja(0.34, 0.24, 0.24, '#9ca3af', [0.02, 0.38, 0], undefined, METAL),
+    cil(0.1, 0.05, '#a3a3a3', [0.02, 0.36, -0.14], EJE_Z, METAL),
+    aletas,
+    caja(0.18, 0.07, 0.2, '#9ca3af', [0.2, 0.74, 0], [0, 0, -0.35], METAL),
+    cil(0.012, 0.05, '#e5e5e5', [0.24, 0.8, 0.06]),
+    cil(0.035, 0.1, '#a3a3a3', [-0.05, 0.63, 0], EJE_X, METAL),
+    caja(0.16, 0.15, 0.18, negro, [-0.2, 0.6, 0]),
+    cil(0.016, 0.02, '#facc15', [0.02, 0.255, 0]),
+    tubo([[0.27, 0.66, 0.05], [0.32, 0.46, 0.1], [0.25, 0.24, 0.13], [0, 0.2, 0.14], [-0.3, 0.3, 0.15]], 0.022, cromo, false, METAL),
+    cil(0.045, 0.36, '#9ca3af', [-0.47, 0.37, 0.16], [0, 0, Math.PI / 2 - 0.25], METAL),
+  ), [0, -0.05, -0.8]);
+
+  const fr = { x: -0.08, y: 0.36, r: 0.05 }, co = { x: T[0], y: T[1], r: 0.105 }, pts = [];
+  for (let a = -90; a <= 90; a += 20) pts.push([fr.x + fr.r * Math.cos(a * Math.PI / 180), fr.y + fr.r * Math.sin(a * Math.PI / 180), 0.115]);
+  for (let a = 90; a <= 270; a += 15) pts.push([co.x + co.r * Math.cos(a * Math.PI / 180), co.y + co.r * Math.sin(a * Math.PI / 180), 0.115]);
+  pz('transmision', grupo(
+    cil(0.045, 0.015, '#737373', [fr.x, fr.y, 0.115], EJE_Z, METAL),
+    cil(0.1, 0.012, '#a3a3a3', [co.x, co.y, 0.115], EJE_Z, METAL),
+    tubo(pts, 0.009, '#525252', true, METAL),
+  ), [0, 0, 0.6]);
+
+  pz('electrico', grupo(
+    mesh(new THREE.SphereGeometry(0.075, 24, 16), negro, [0.5, 0.9, 0]),
+    cil(0.066, 0.01, '#fff4c2', [0.572, 0.9, 0], EJE_X, { emissive: '#fff4c2', emissiveIntensity: 0.6 }),
+    [1, -1].map(s => caja(0.05, 0.03, 0.03, '#f59e0b', [0.47, 0.86, s * 0.13], undefined, { emissive: '#f59e0b', emissiveIntensity: 0.4 })),
+  ), [0.4, 0.15, 0]);
+  pz('electrico', grupo(
+    caja(0.05, 0.05, 0.12, '#ff3b30', [-0.62, 0.86, 0], undefined, { emissive: '#ff3b30', emissiveIntensity: 0.5 }),
+    [1, -1].map(s => caja(0.05, 0.03, 0.03, '#f59e0b', [-0.6, 0.84, s * 0.11], undefined, { emissive: '#f59e0b', emissiveIntensity: 0.4 })),
+  ), [-0.4, 0.1, 0]);
+  pz('electrico', grupo(
+    caja(0.1, 0.12, 0.13, '#1f1f1f', [-0.34, 0.66, 0]),
+    caja(0.05, 0.04, 0.05, '#525252', [0.12, 0.83, 0]),
+  ), [0, 0.1, 0.55]);
+
+  pz('mandos', grupo(
+    barra([0.37, 1.06, -0.34], [0.37, 1.06, 0.34], 0.012, cromo, METAL),
+    barra([0.40, 1.0, 0], [0.37, 1.06, 0], 0.015, cromo, METAL),
+    [1, -1].map(s => cil(0.02, 0.12, '#111', [0.37, 1.06, s * 0.3], EJE_Z)),
+    [1, -1].map(s => barra([0.39, 1.06, s * 0.22], [0.48, 1.04, s * 0.3], 0.006, '#525252')),
+    tubo([[0.38, 1.06, 0.22], [0.3, 1.0, 0.18], [0.1, 0.8, 0.08], [-0.05, 0.66, 0.02]], 0.005, '#111'),
+    tubo([[0.38, 1.06, -0.22], [0.3, 0.98, -0.18], [0.1, 0.62, -0.15], [0.02, 0.45, -0.13]], 0.005, '#111'),
+    [1, -1].map(s => barra([0.37, 1.06, s * 0.22], [0.33, 1.2, s * 0.26], 0.006, '#333')),
+  ), [0, 0.45, 0]);
+
+  const tanque = mesh(new THREE.SphereGeometry(1, 32, 16), rojo, [0.2, 0.87, 0]);
+  tanque.scale.set(0.22, 0.11, 0.13);
+  pz('carroceria', grupo(tanque), [0, 0.55, 0]);
+  pz('carroceria', grupo(
+    caja(0.48, 0.07, 0.22, '#111', [-0.2, 0.83, 0], undefined, GOMA),
+    [1, -1].map(s => caja(0.18, 0.12, 0.02, rojo, [-0.22, 0.66, s * 0.11])),
+  ), [0, 0.45, 0]);
+  [[F, 1], [T, -1]].forEach(([[x, y], s]) => {
+    const arco = 0.75 * Math.PI;
+    const g = mesh(new THREE.TorusGeometry(0.29, 0.02, 8, 32, arco), negro, [x, y, 0], [0, 0, Math.PI / 2 - arco / 2 + (s < 0 ? 0.35 : -0.25)]);
+    g.scale.z = 3;
+    pz('carroceria', g, [s * 0.5, 0.25, 0]);
+  });
+  pz('carroceria', grupo(
+    [-0.38, -0.5, -0.62, -0.74].map(x => barra([x, 0.9, -0.12], [x, 0.9, 0.12], 0.008, '#525252')),
+    [1, -1].map(s => barra([-0.36, 0.9, s * 0.12], [-0.76, 0.9, s * 0.12], 0.01, '#525252')),
+  ), [0, 0.55, 0]);
+  pz('carroceria', grupo(
+    caja(0.44, 0.38, 0.42, '#F5A623', [-0.56, 1.1, 0]),
+    caja(0.45, 0.012, 0.43, '#111', [-0.56, 1.2, 0]),
+  ), [-0.1, 0.85, 0]);
+  pz('carroceria', barra([-0.1, 0.3, -0.12], [-0.2, 0.02, -0.26], 0.012, '#3a3a3a'), [0, 0, -0.3]);
+
+  return { centro: V(0, 0.6, 0), camara: V(2.3, 1.4, 2.5) };
+}
+
+// En pantallas angostas la cámara se aleja para que entre el vehículo completo
+let ENCUADRE = null;
+function encuadrar() {
+  if (!ENCUADRE) return;
+  const { centro, camara } = ENCUADRE;
+  controls.target.copy(centro);
+  camera.position.copy(centro).addScaledVector(camara.clone().sub(centro), Math.max(1, 1.5 / (camera.aspect || 1.5)));
+}
+function construir(tipo) {
+  if (modeloActual === tipo) return;
+  if (root) { scene.remove(root); root.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); }
+  root = new THREE.Group(); piezas = [];
+  scene.add(root);
+  const { centro, camara } = tipo === 'moto' ? construirMoto() : construirFurgon();
+  ENCUADRE = { centro, camara };
+  encuadrar();
+  const lejos = camara.distanceTo(centro);
+  controls.minDistance = lejos * 0.35; controls.maxDistance = lejos * 2.2;
+  modeloActual = tipo;
+  DES.t = S.desarmar ? 1 : 0;
+}
+
+// ── Colores: mapa de calor, resaltado y piezas fantasma ──
+const RAMPA = [[0, '#245ea8'], [0.35, '#3987e5'], [0.7, '#F5A623'], [1, '#FF4444']].map(([t, c]) => [t, new THREE.Color(c)]);
+const SIN_GASTO = new THREE.Color('#2f3640');
+function rampa(t) {
+  for (let i = 1; i < RAMPA.length; i++) if (t <= RAMPA[i][0]) {
+    const [t0, c0] = RAMPA[i - 1], [t1, c1] = RAMPA[i];
+    return c0.clone().lerp(c1, (t - t0) / (t1 - t0));
+  }
+  return RAMPA.at(-1)[1].clone();
+}
+function colorParte(id) {
+  const max = Math.max(...PARTES.map(p => AGG[p.id]?.monto || 0));
+  const m = AGG[id]?.monto || 0;
+  return m > 0 && max > 0 ? rampa(Math.sqrt(m / max)) : SIN_GASTO.clone();
+}
+const AMBAR = new THREE.Color('#F5A623');
+function pintar() {
+  const cols = Object.fromEntries(PARTES.map(p => [p.id, colorParte(p.id)]));
+  root?.traverse(m => {
+    if (!m.isMesh) return;
+    const p = m.userData.parte, mt = m.material, u = m.userData;
+    if (S.calor && cols[p]) {
+      const lum = u.c0.r * 0.3 + u.c0.g * 0.59 + u.c0.b * 0.11;
+      mt.color.copy(cols[p]).multiplyScalar(0.45 + 0.55 * Math.min(1, lum * 1.6));
+    } else mt.color.copy(u.c0);
+    const marcado = p === S.parte || (p === S.hover && p !== 'chasis');
+    if (marcado) { mt.emissive.copy(AMBAR); mt.emissiveIntensity = p === S.parte ? 0.35 : 0.2; }
+    else { mt.emissive.copy(u.e0); mt.emissiveIntensity = u.ei0; }
+    const fantasma = S.parte && S.parte !== 'general' && p !== S.parte;
+    mt.transparent = fantasma; mt.opacity = fantasma ? 0.1 : 1; mt.depthWrite = !fantasma;
+  });
+}
+
+// ── Desarmar: cada parte sale en su turno, con suavizado ──
+const DES = { t: 0 };
+const suave = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+function moverPiezas() {
+  piezas.forEach(o => {
+    const orden = PARTE[o.userData.parte]?.orden ?? 0;
+    const k = Math.min(1, Math.max(0, DES.t * 1.6 - orden * 0.075));
+    o.position.copy(o.userData.base).addScaledVector(o.userData.ex, suave(k));
+  });
+}
+
+// ── Interacción ──
+const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(), tip = document.getElementById('tip');
+function parteBajo(ev) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ptr.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ptr, camera);
+  // Con una pieza elegida, las demás quedan transparentes: se prioriza lo que se ve sólido
+  const hits = ray.intersectObjects(piezas, true).filter(h => h.object.userData.parte && h.object.userData.parte !== 'chasis');
+  const solido = hits.find(h => !h.object.material.transparent);
+  return (solido || hits[0])?.object.userData.parte || '';
+}
+renderer.domElement.addEventListener('pointermove', ev => {
+  if (ev.buttons) { tip.style.display = 'none'; return; }
+  const p = parteBajo(ev);
+  if (p !== S.hover) { S.hover = p; pintar(); }
+  if (p) {
+    const a = AGG[p], r = wrap.getBoundingClientRect();
+    tip.innerHTML = `<b>${esc(PARTE[p].nombre)}</b><span>${bs(a.monto)} · ${a.n} gasto${a.n === 1 ? '' : 's'}</span>`;
+    tip.style.display = 'block';
+    tip.style.left = Math.min(ev.clientX - r.left + 14, r.width - tip.offsetWidth - 8) + 'px';
+    tip.style.top = (ev.clientY - r.top + 14) + 'px';
+    renderer.domElement.style.cursor = 'pointer';
+  } else { tip.style.display = 'none'; renderer.domElement.style.cursor = ''; }
+});
+renderer.domElement.addEventListener('pointerleave', () => { S.hover = ''; tip.style.display = 'none'; pintar(); });
+let abajo = null;
+renderer.domElement.addEventListener('pointerdown', ev => abajo = [ev.clientX, ev.clientY]);
+renderer.domElement.addEventListener('pointerup', ev => {
+  if (!abajo || Math.hypot(ev.clientX - abajo[0], ev.clientY - abajo[1]) > 5) return;
+  const p = parteBajo(ev);
+  elegir(p && p !== S.parte ? p : '');
+});
+
+function elegir(p) {
+  S.parte = p; S.shown = 60;
+  if (p) { S.girar = false; controls.autoRotate = false; document.getElementById('bGirar').classList.remove('active'); }
+  pintar(); panel();
+}
+const boton = (id, fn) => document.getElementById(id).onclick = fn;
+boton('bDesarmar', () => {
+  S.desarmar = !S.desarmar;
+  document.getElementById('bDesarmar').textContent = S.desarmar ? 'Armar' : 'Desarmar';
+  document.getElementById('bDesarmar').classList.toggle('active', S.desarmar);
+});
+boton('bCalor', () => { S.calor = !S.calor; document.getElementById('bCalor').classList.toggle('active', S.calor); document.getElementById('leyenda').style.visibility = S.calor ? '' : 'hidden'; pintar(); });
+boton('bGirar', () => { S.girar = !S.girar; controls.autoRotate = S.girar; document.getElementById('bGirar').classList.toggle('active', S.girar); });
+
+// ── Bucle de render ──
+function ajustar() {
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  encuadrar();
+}
+new ResizeObserver(ajustar).observe(wrap);
+const reloj = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(reloj.getDelta(), 0.05);
+  const meta = S.desarmar ? 1 : 0;
+  if (DES.t !== meta) { DES.t = meta > DES.t ? Math.min(1, DES.t + dt / 1.6) : Math.max(0, DES.t - dt / 1.6); moverPiezas(); }
+  controls.update();
+  renderer.render(scene, camera);
+});
+
+// ══ PANEL ═══════════════════════════════════════════════════════════════════
+function actualizar() {
+  const tipo = tipoSel();
+  construir(tipo);
+  const rows = filasSel();
+  AGG = agregar(rows);
+  const total = rows.reduce((s, r) => s + r.monto, 0);
+  const grupoSel = S.veh.startsWith('@');
+  document.getElementById('hPlaca').textContent = grupoSel ? (tipo === 'moto' ? 'Todas las motos' : 'Todos los furgones') : S.veh;
+  document.getElementById('hModelo').textContent = grupoSel
+    ? `${[...VEH.values()].filter(v => v.tipo === tipo).length} vehículos`
+    : `${VEH.get(S.veh).etiqueta}${FLOTA.get(S.veh)?.proxi ? ' · ' + FLOTA.get(S.veh).proxi : ''}`;
+  document.getElementById('hTotal').innerHTML = `${bs(total)} <span>en mantenimiento · ${rows.length} gastos${S.anio ? ' · ' + S.anio : ''}</span>`;
+  moverPiezas(); pintar(); panel();
+}
+
+function panel() {
+  const lista = [...PARTES, GENERAL].map(p => ({ p, a: AGG[p.id] })).sort((x, y) => y.a.monto - x.a.monto);
+  const max = Math.max(1, ...lista.map(x => x.a.monto));
+  const hex = id => id === 'general' ? '#8a8a8a' : '#' + colorParte(id).getHexString();
+  let html = `<div class="p-sec"><div class="p-h"><span>Gasto por pieza</span><span>clic para ver</span></div>` +
+    lista.map(({ p, a }) => `<div class="pt-row${S.parte === p.id ? ' on' : ''}" data-p="${p.id}">
+      <span class="sw" style="background:${hex(p.id)}"></span><span class="pt-n">${esc(p.nombre)}</span><span class="pt-m">${bs(a.monto)}</span>
+      <div class="pt-bar"><i style="width:${(a.monto / max * 100).toFixed(1)}%;background:${hex(p.id)}"></i></div>
+      <span class="pt-c">${a.n} gasto${a.n === 1 ? '' : 's'}</span></div>`).join('') + '</div>';
+
+  if (S.parte) {
+    const p = PARTE[S.parte], a = AGG[S.parte];
+    const rows = [...a.rows].sort((x, y) => y.fecha.localeCompare(x.fecha) || y.id - x.id);
+    const ultimo = rows[0]?.fecha;
+    html += `<div class="p-sec">
+      <div class="det-h">${esc(p.nombre)}</div>
+      <div class="det-sub">Incluye ${esc(p.incluye)}.</div>
+      <div class="det-kpi"><div><small>Gasto</small>${bs(a.monto)}</div><div><small>Gastos</small>${a.n}</div>${ultimo ? `<div><small>Último</small>${ultimo}</div>` : ''}</div>
+      <div style="margin-top:12px">${rows.slice(0, S.shown).map(r => `<div class="g-row">
+        <div class="g-top"><span>${r.fecha}</span>${S.veh.startsWith('@') ? `<span>${esc(r.placa)}</span>` : ''}<span>${esc(r.tipo)}</span><span class="g-m">Bs ${fmt2.format(r.monto)}</span></div>
+        <div class="g-desc">${esc(r.descripcion) || '<span style="color:var(--text3)">sin descripción</span>'}</div>
+        ${r.partes.length > 1 ? `<div class="g-tags">${r.partes.map(id => `<span class="tag">${esc(PARTE[id].nombre)}</span>`).join('')}</div>` : ''}
+      </div>`).join('') || '<div class="nota">Sin gastos para esta pieza con estos filtros.</div>'}</div>
+      ${rows.length > S.shown ? `<button class="link" id="mas">Mostrar ${Math.min(100, rows.length - S.shown)} más de ${rows.length - S.shown}</button>` : ''}
+    </div>`;
+  }
+  html += `<div class="p-sec nota">Cada gasto se asigna a las piezas que nombra su descripción. Si nombra varias (por ejemplo, aceite y pastillas de freno), el monto se reparte en partes iguales. Solo cuenta mantenimiento: preventivo, correctivo y repuestos.</div>`;
+  const el = document.getElementById('panel');
+  el.innerHTML = html;
+  el.querySelectorAll('.pt-row').forEach(r => r.onclick = () => elegir(S.parte === r.dataset.p ? '' : r.dataset.p));
+  const mas = document.getElementById('mas');
+  if (mas) mas.onclick = () => { S.shown += 100; panel(); };
+}
+
+cargar();
+</script>
+</body>
+</html>

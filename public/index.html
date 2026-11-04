@@ -174,6 +174,7 @@ button,select,input{font-family:inherit;}
   <span class="header-title">Gastos de flota</span>
   <span class="header-sep"></span>
   <span class="last-update" id="meta"></span>
+  <a class="btn hdr-btn" href="/flota-3d.html" style="text-decoration:none">Vista 3D</a>
   <span class="hdr-user" id="hdrUser"></span>
   <button class="btn hdr-btn" id="usersBtn" style="display:none">Usuarios</button>
   <button class="btn hdr-btn btn-danger" id="logoutBtn">Salir</button>
@@ -620,7 +621,7 @@ function verDetalle(id) {
       <table class="tbl">${mismo.map(r => `<tr><td>${esc(r.tipo)}</td><td class="desc">${esc(r.descripcion) || '<span class="sin">sin descripción</span>'}</td><td class="m r">${fmt2.format(r.monto)}</td></tr>`).join('')}</table>` : ''}
     ${historial.length ? `<div class="msg" style="margin-top:14px"><b>Últimos mantenimientos de la ${esc(g.placa)}</b></div>
       <table class="tbl">${historial.map(r => `<tr class="fila" data-id="${r.id}"><td class="m">${r.fecha}</td><td>${esc(r.tipo)}</td><td class="desc">${esc(r.descripcion) || '<span class="sin">sin descripción</span>'}</td><td class="m r">${fmt2.format(r.monto)}</td></tr>`).join('')}</table>` : ''}
-    <div class="modal-actions"><button class="btn" onclick="closeModal()">Cerrar</button></div>`);
+    <div class="modal-actions">${g.placa !== 'SIN PLACA' && GRUPOS.Mantenimiento.includes(g.tipo) ? `<a class="btn" style="text-decoration:none" href="/flota-3d.html?placa=${encodeURIComponent(g.placa)}">Ver en 3D</a>` : ''}<button class="btn" onclick="closeModal()">Cerrar</button></div>`);
   document.querySelectorAll('#modalBody tr.fila').forEach(tr => tr.onclick = () => verDetalle(+tr.dataset.id));
 }
 
