@@ -7,7 +7,8 @@
   const HEADERS = {
     fecha: ['FECHA', 'FECHADELGASTO'], proxi: ['PROXI', 'PROXY'], placa: ['PLACA'],
     tipo: ['TIPO', 'TIPOGASTO', 'TIPODEGASTO'], descripcion: ['DESCRIPCION'], ot: ['OT', 'OTOS'],
-    doc: ['DOC', 'FACTRECIBO', 'FACTURA', 'RECIBO'], monto: ['MONTO', 'MONTOGASTADO']
+    doc: ['DOC', 'FACTRECIBO', 'FACTURA', 'RECIBO'], monto: ['MONTO', 'MONTOGASTADO'],
+    km: ['KM'], prox: ['PROXCAMBIO', 'PROXIMOCAMBIO'], solicitud: ['SOLICITUDCOMPRA', 'SOLICITUDDECOMPRA']
   };
   const normH = h => String(h ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 
@@ -63,7 +64,8 @@
       if (found.fecha != null && found.monto != null) { hi = i; idx = found; break; }
     }
     if (hi < 0) throw new Error('No encontré las columnas de fecha y monto. ¿Es la hoja Detalle del Excel de gastos?');
-    const faltan = Object.keys(HEADERS).filter(k => idx[k] == null);
+    // KM, próximo cambio y solicitud de compra son opcionales: no se avisa si faltan
+    const faltan = Object.keys(HEADERS).filter(k => idx[k] == null && !['km', 'prox', 'solicitud'].includes(k));
     const rows = [], malas = [];
     table.slice(hi + 1).forEach((raw, i) => {
       const get = k => idx[k] == null ? '' : raw[idx[k]];
@@ -77,7 +79,8 @@
       const tipo = String(get('tipo') ?? '').trim().toUpperCase() || 'SIN CLASIFICAR';
       const txt = k => String(get(k) ?? '').trim();
       rows.push({ fecha, monto, placa, proxi: PROXIS.includes(p) ? p : 'SIN PROXY', tipo,
-                  descripcion: txt('descripcion'), ot: txt('ot'), doc: txt('doc') });
+                  descripcion: txt('descripcion'), ot: txt('ot'), doc: txt('doc'),
+                  km: txt('km'), prox: txt('prox'), solicitud: txt('solicitud') });
     });
     return { rows, malas, faltan };
   }
