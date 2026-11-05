@@ -77,7 +77,26 @@ button,select{font-family:inherit;}
 .nota{font-size:11px;color:var(--text3);line-height:1.5;}
 .link{color:var(--amber);cursor:pointer;background:none;border:none;font-size:11px;text-decoration:underline;}
 
+.ficha{position:absolute;top:14px;right:14px;width:360px;max-height:calc(100% - 84px);overflow-y:auto;display:none;z-index:6;
+  background:#0f0f10eb;backdrop-filter:blur(6px);border:1px solid var(--border2);border-radius:10px;padding:14px 16px;box-shadow:0 10px 30px #0008;}
+.f-head{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;}
+.f-tit{font-size:16px;font-weight:600;}
+.f-sub{font-size:11px;color:var(--text3);margin-top:3px;line-height:1.45;}
+.f-x{background:none;border:1px solid var(--border2);color:var(--text2);border-radius:6px;width:26px;height:26px;font-size:16px;line-height:1;cursor:pointer;flex:none;}
+.f-x:hover{border-color:var(--amber);color:var(--amber);}
+.f-sec{font-size:10px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px;}
+.f-fila{display:grid;grid-template-columns:92px 1fr auto 34px;gap:8px;align-items:center;font-size:12px;margin-bottom:6px;}
+.f-k{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text2);font-family:var(--mono);font-size:11px;}
+.f-bar{height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;}
+.f-bar i{display:block;height:100%;border-radius:3px;}
+.f-v{font-family:var(--mono);font-size:11px;text-align:right;}
+.f-p{font-family:var(--mono);font-size:10px;color:var(--text3);text-align:right;}
+.f-rep{font-size:10px;color:var(--text3);margin-right:2px;align-self:center;}
+.tag.on{background:var(--amber-dim);color:var(--amber);}
+.f-err{margin-top:5px;font-size:11px;color:#fbbf24;background:#f59e0b14;border:1px solid #f59e0b40;border-radius:5px;padding:4px 7px;line-height:1.45;}
+.f-err b{font-family:var(--mono);font-weight:600;}
 @media (max-width:900px){
+  .ficha{top:auto;bottom:62px;left:10px;right:10px;width:auto;max-height:55%;}
   body{overflow:auto;}
   .main{grid-template-columns:1fr;grid-template-rows:60vh auto;}
   .panel{border-left:none;border-top:1px solid var(--border);overflow:visible;}
@@ -123,6 +142,7 @@ button,select{font-family:inherit;}
       <div class="legend-l"><span>menos</span><span>más</span></div>
     </div>
     <div class="tip" id="tip"></div>
+    <div class="ficha" id="ficha"></div>
     <div class="estado" id="estado">Cargando gastos…</div>
   </div>
   <div class="panel" id="panel"></div>
@@ -138,21 +158,21 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 // Si nombra varias, el monto se reparte en partes iguales entre ellas.
 const PARTES = [
   { id: 'carroceria', nombre: 'Carrocería', incluye: 'puertas, parrilla, parador, asiento, tanque, soldaduras',
-    re: /PUERTA|PARRILLA|PARILLA|CHAPA|SOLDADUR|SOLDAR|LATERAL|PARADOR|\bPATA\b|CARROCER|PINTURA|PARACHOQUE|GUARDABARRO|GUARDAFANGO|ASIENTO|VIDRIO|PARABRISA|PLUMILLA|TANQUE|CAJON|MALETERO/ },
+    re: /PUERTA|PARRILLA|PARILLA|CHAPA(?! DE ENCENDIDO)|SOLDADUR|SOLDAR|LATERAL|PARADOR|\bPATA\b|CARROCER|PINTURA|PARACHOQUE|GUARDABARRO|GUARDAFANGO|ASIENTO|VIDRIO|PARABRISA|PLUMILLA|TANQUE|CAJON|MALETERO/ },
   { id: 'mandos', nombre: 'Mandos y cables', incluye: 'chicotillos, acelerador, palancas, puños, espejos',
-    re: /CHICOTILLO|ACELERADOR|ACELERACI|PALANCA|PUNO|\bCABLES?\b|MANILLAR|MANUBRIO|ESPEJO|PEDAL|VOLANTE(?! DE INERCIA)/ },
+    re: /CHICOTILLO|ACELERADOR|ACELERACI|PALANCA|PUNO|\bCABLES?\b|MANILLAR|MANUBRIO|ESPEJO|PEDAL|VOLANTE(?! (DE )?INERCIA)/ },
   { id: 'electrico', nombre: 'Sistema eléctrico', incluye: 'focos, faroles, batería, bobina, arranque, aire acondicionado',
-    re: /FOCO|FAROL|BATERIA|BOBINA|ALTERNADOR|ARRANQUE|BENDIX|\bSTOP\b|SENSOR|ELECTRIC|REGULADOR|HALOGENO|\bLUC|\bLUZ\b|CORRIENTE|ENCENDIDO|FUSIBLE|BOCINA|DESTILADA|AIRE ACONDICIONADO|INTERMITENTE|DIRECCIONAL|GUINADOR|TABLERO|VELOCIMETRO|\bCDI\b|\bRELAY\b/ },
+    re: /FOCO|\bFOTOS?\b|FAROL|BATERIA|BOBINA|ALTERNADOR|ARRANQUE|BENDIX|\bSTOP\b|SENSOR|ELECTRIC|REGULADOR(?! DE BALANCIN)|HALOGENO|\bLUC|\bLUZ\b|CORRIENTE|(?<!BUJIAS? DE? ?)ENCENDIDO|FUSIBLE|BOCINA|DESTILADA|AIRE ACONDICIONADO|INTERMITENTE|DIRECCIONAL|GUINADOR|TABLERO|VELOCIMETRO|\bCDI\b|\bRELAY\b/ },
   { id: 'motor', nombre: 'Motor y aceite', incluye: 'aceite, arandela y tapón, filtros, carburador, bujías, culata, distribución',
-    re: /MOTOR|ACEITE|ACIETE|ARANDELA|TAPON|FILTRO|CULATA|BALANCIN|DISTRIBUCI|CORREA|VALVULA|CIGUENAL|CARBURA|BUJIA|INYECTOR|EMPAQUETADURA|CARTER|O-?RING|ANILLO|EMBOLO|PISTON|RECTIFICAD|CADENILLA|INERCIA|PICOS|COMBUSTIBLE|RADIADOR|ESCAPE|SILENCIADOR/ },
+    re: /(?<!BOBINAS? DE )MOTOR|ACEITE|ACIETE|ARANDELA(?!S? PARA SOPORTE)|TAPON|FILTRO|CULATA|BALANCIN|(?<!TRANSMISION O )DISTRIBUCI|CORREA|VALVULA|CIGUENAL|CARBURA|BUJIA|INYECTOR|EMPAQUETADURA|CARTER|(?<!C.)O-?RING|ANILLO|EMBOLO|PISTON|RECTIFICAD(?!O DE (TAMBOR|DISCO|CORRIENTE))|CADENILLA|INERCIA|PICOS(?! DE LLANTA)|REFRIGERANTE|COMBUSTIBLE|RADIADOR|ESCAPE|SILENCIADOR/ },
   { id: 'transmision', nombre: 'Transmisión', incluye: 'kit de transmisión, cadena, piñón, corona, embrague, caja',
-    re: /TRANSMISI|TRANSIMICI|TRASMISI|EMBRAGUE|EMRAGUE|\bCADENA\b|PINON|CORONA|\bCAJA\b|SELECTOR|NEUTRO|TE?N?SADOR DE CADENA|CARDAN|DIFERENCIAL|PALIER|SEMIEJE|CRUCETA|ARRASTRE/ },
+    re: /TRANSMISI|TRANSIMICI|TRASMISI|EMBRAGUE|EMRAGUE|\bCADENA\b|PINON|CORONA|\bCAJA\b|SELECTOR|NEUTRO|TE?N?SADOR DE CADENA|CARDAN|DIFERENCIAL|PALIER|SEMIEJE|CRUCETA|ARRASTRE|ROSETA/ },
   { id: 'suspension', nombre: 'Suspensión y dirección', incluye: 'telescopios, amortiguadores, bujes, dirección, muelles',
-    re: /TELESCOPIO|TEELESCOPIO|AMORTIGUA|\bBUJES?\b|SUSPENSI|DIRECCION\b|ROTULA|TERMINAL|MUELLE|BALLESTA|ESPIRAL|ESTABILIZ|HORQUILLA|BASCULANTE/ },
+    re: /TELESCOPIO|TEELESCOPIO|AMORTIGUA|\bBUJES?\b(?! DE ROSETA)|SUSPENSI|HIDR(AU|UA)LIC|DIRECCION\b|ROTULA|TERMINAL|MUELLE|BALLESTA|ESPIRAL|ESTABILIZ|HORQUILLA|BASCULANTE/ },
   { id: 'frenos', nombre: 'Frenos', incluye: 'pastillas, balatas, discos, zapatas',
-    re: /FRENO|BALATA|BALTA|PASTILLA|POASTILLA|\bDISCOS?\b(?! DE EMBRAGUE)|ZAPATA|TAMBOR/ },
+    re: /FRENO|BALATA|BALTA|PASTILLA|POASTILLA|\bDISCOS?\b(?! DE EMB?RAGUE)|ZAPATA|TAMBOR/ },
   { id: 'ruedas', nombre: 'Llantas y ruedas', incluye: 'llantas, cámaras, parchados, rodamientos, rotación',
-    re: /LLANTA|CAMARA|PARCHAD|RUEDA|RODAMIENTO|\bAROS?\b|\bRINES?\b|ROTACION|ALINEA|BALANCEO|NEUMATICO|RINALDI/ },
+    re: /LLANTA|CAMARA|PARCHAD|RUEDA|RODAMIENTOS?(?! (DE )?(CORREA|DIRECCION))|\bAROS?\b|\bRINES?\b|ROTACION|ALINEA|BALANCEO|NEUMATICO|RINALDI|MAC?S?ERO/ },
 ];
 PARTES.forEach((p, i) => p.orden = i);
 const GENERAL = { id: 'general', nombre: 'Servicio general', incluye: 'mantenimientos y mano de obra que no nombran una pieza' };
@@ -160,8 +180,33 @@ const PARTE = Object.fromEntries([...PARTES, GENERAL].map(p => [p.id, p]));
 const MANT = ['PREVENTIVO', 'CORRECTIVO', 'REPUESTOS'];
 
 const norm = s => String(s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-function clasificar(desc) {
-  const d = norm(desc);
+// Errores de escritura encontrados en el Excel: se corrigen antes de clasificar
+// y la ficha avisa en cada gasto qué palabra hay que arreglar en el Excel.
+const CORRECCIONES = [
+  [/\bACIETE\b/, 'ACEITE'], [/\bARA?NA?DELA(S?)\b/, 'ARANDELA$1'], [/\bASI?PI?RADO\b/, 'ASPIRADO'],
+  [/\bBALTA(S?)\b/, 'BALATA$1'], [/\bBARRILLA\b/, 'VARILLA'], [/\bBLOK\b/, 'BLOCK'],
+  [/\bCARBURADR\b/, 'CARBURADOR'], [/\bCARYY\b/, 'CARRY'], [/\bCOMR[PR]A\b/, 'COMPRA'],
+  [/\bDESMONTAGE\b/, 'DESMONTAJE'], [/MONTAGUE\b/, 'MONTAJE'], [/\bEMB?REAGU[ER]\b|\bEMRAGUE\b/, 'EMBRAGUE'],
+  [/\bFOTO\b/, 'FOCO'], [/\bHIDRUALIC/, 'HIDRAULIC'], [/\bLIUMPIEZA\b/, 'LIMPIEZA'],
+  [/\bMANTENIEMIENTO\b/, 'MANTENIMIENTO'], [/MANTENIMIENTO PREVENTIVA\b/, 'MANTENIMIENTO PREVENTIVO'],
+  [/\bPACHADO\b/, 'PARCHADO'], [/\bPARRILA(S?)\b|\bPARILLA(S?)\b/, 'PARRILLA$1$2'], [/\bPOASTILLA(S?)\b/, 'PASTILLA$1'],
+  [/\bREEEMPLAZO\b/, 'REEMPLAZO'], [/\bREVICION\b/, 'REVISION'], [/\bSUSPENCION\b/, 'SUSPENSION'],
+  [/\bTEELESCOPIO(S?)\b/, 'TELESCOPIO$1'], [/\bTRABAJAO?\b|\bTRABJAO\b/, 'TRABAJO'],
+  [/\bTRANSIMICION\b|\bTRANSMICION\b|\bTRASN?MISION\b/, 'TRANSMISION'], [/\bVALANCINES\b/, 'BALANCINES'],
+  [/\bM OTO\b/, 'MOTO'],
+];
+function corregir(desc) {
+  let d = norm(desc); const errores = [];
+  CORRECCIONES.forEach(([re, ok]) => {
+    d = d.replace(new RegExp(re.source, 'g'), (m, ...g) => {
+      const bien = ok.replace(/\$(\d)/g, (_, i) => g[i - 1] || '');
+      if (m !== bien && !errores.some(e => e[0] === m)) errores.push([m, bien]);
+      return bien;
+    });
+  });
+  return { d, errores };
+}
+function clasificar(d) {
   const ids = PARTES.filter(p => p.re.test(d)).map(p => p.id);
   return ids.length ? ids : ['general'];
 }
@@ -213,7 +258,7 @@ async function cargar() {
   }
   (d.flota?.placas || []).forEach(p => FLOTA.set(p.placa, p));
   ROWS = d.rows.filter(r => MANT.includes(r.tipo) && r.placa && r.placa !== 'SIN PLACA')
-    .map(r => ({ ...r, partes: clasificar(r.descripcion) }));
+    .map(r => { const { d, errores } = corregir(r.descripcion); return { ...r, partes: clasificar(d), errores }; });
   if (!ROWS.length) { estado('Todavía no hay gastos de mantenimiento cargados.'); return; }
 
   const porPlaca = new Map();
@@ -1304,28 +1349,61 @@ function panel() {
       <div class="pt-bar"><i style="width:${(a.monto / max * 100).toFixed(1)}%;background:${hex(p.id)}"></i></div>
       <span class="pt-c">${a.n} gasto${a.n === 1 ? '' : 's'}</span></div>`).join('') + '</div>';
 
-  if (S.parte) {
-    const p = PARTE[S.parte], a = AGG[S.parte];
-    const rows = [...a.rows].sort((x, y) => y.fecha.localeCompare(x.fecha) || y.id - x.id);
-    const ultimo = rows[0]?.fecha;
-    html += `<div class="p-sec">
-      <div class="det-h">${esc(p.nombre)}</div>
-      <div class="det-sub">Incluye ${esc(p.incluye)}.</div>
-      <div class="det-kpi"><div><small>Gasto</small>${bs(a.monto)}</div><div><small>Gastos</small>${a.n}</div>${ultimo ? `<div><small>Último</small>${ultimo}</div>` : ''}</div>
-      <div style="margin-top:12px">${rows.slice(0, S.shown).map(r => `<div class="g-row">
-        <div class="g-top"><span>${r.fecha}</span>${S.veh.startsWith('@') ? `<span>${esc(r.placa)}</span>` : ''}<span>${esc(r.tipo)}</span><span class="g-m">Bs ${fmt2.format(r.monto)}</span></div>
-        <div class="g-desc">${esc(r.descripcion) || '<span style="color:var(--text3)">sin descripción</span>'}</div>
-        ${r.partes.length > 1 ? `<div class="g-tags">${r.partes.map(id => `<span class="tag">${esc(PARTE[id].nombre)}</span>`).join('')}</div>` : ''}
-      </div>`).join('') || '<div class="nota">Sin gastos para esta pieza con estos filtros.</div>'}</div>
-      ${rows.length > S.shown ? `<button class="link" id="mas">Mostrar ${Math.min(100, rows.length - S.shown)} más de ${rows.length - S.shown}</button>` : ''}
-    </div>`;
-  }
-  html += `<div class="p-sec nota">Cada gasto se asigna a las piezas que nombra su descripción. Si nombra varias (por ejemplo, aceite y pastillas de freno), el monto se reparte en partes iguales. Solo cuenta mantenimiento: preventivo, correctivo y repuestos.</div>`;
+  html += `<div class="p-sec nota">Toca una pieza en el vehículo o en esta lista para ver el desglose de sus gastos. Cada gasto se asigna a las piezas que nombra su descripción; si nombra varias (por ejemplo, aceite y pastillas de freno), el monto se reparte en partes iguales. Solo cuenta mantenimiento: preventivo, correctivo y repuestos.</div>`;
   const el = document.getElementById('panel');
   el.innerHTML = html;
   el.querySelectorAll('.pt-row').forEach(r => r.onclick = () => elegir(S.parte === r.dataset.p ? '' : r.dataset.p));
+  ficha();
+}
+
+// ── Ficha flotante: desglose de los gastos de la pieza elegida ──
+const COLOR_TIPO = { PREVENTIVO: '#245ea8', CORRECTIVO: '#3987e5', REPUESTOS: '#7db3f2' };
+function ficha() {
+  const el = document.getElementById('ficha');
+  if (!S.parte) { el.style.display = 'none'; return; }
+  const p = PARTE[S.parte], a = AGG[S.parte], grupoSel = S.veh.startsWith('@');
+  const parteDe = r => r.monto / r.partes.length;          // lo que le toca a esta pieza
+  const rows = [...a.rows].sort((x, y) => y.fecha.localeCompare(x.fecha) || y.id - x.id);
+  const sumarPor = clave => {
+    const m = new Map();
+    rows.forEach(r => { const k = clave(r); const v = m.get(k) || { monto: 0, n: 0 }; v.monto += parteDe(r); v.n++; m.set(k, v); });
+    return [...m.entries()].sort((x, y) => y[1].monto - x[1].monto);
+  };
+  const barras = (lista, color) => {
+    const max = Math.max(1, ...lista.map(([, v]) => v.monto));
+    return lista.map(([k, v]) => `<div class="f-fila">
+      <span class="f-k">${esc(k)}</span>
+      <span class="f-bar"><i style="width:${(v.monto / max * 100).toFixed(1)}%;background:${color(k)}"></i></span>
+      <span class="f-v">${bs(v.monto)}</span><span class="f-p">${a.monto ? Math.round(v.monto / a.monto * 100) : 0}%</span>
+    </div>`).join('');
+  };
+  const porTipo = sumarPor(r => r.tipo);
+  const segunda = grupoSel ? ['Por placa', sumarPor(r => r.placa).slice(0, 8)] : !S.anio ? ['Por año', sumarPor(r => String(r.anio)).sort((x, y) => y[0] - x[0])] : null;
+  const ultimo = rows[0]?.fecha;
+  el.innerHTML = `
+    <div class="f-head">
+      <div><div class="f-tit">${esc(p.nombre)}</div><div class="f-sub">Incluye ${esc(p.incluye)}.</div></div>
+      <button class="f-x" id="fCerrar" title="Cerrar">×</button>
+    </div>
+    <div class="det-kpi"><div><small>Gasto</small>${bs(a.monto)}</div><div><small>Gastos</small>${a.n}</div>${ultimo ? `<div><small>Último</small>${ultimo}</div>` : ''}</div>
+    ${rows.some(r => r.errores.length) ? `<div class="f-err" style="margin-top:10px">⚠ ${rows.filter(r => r.errores.length).length} gasto(s) con palabras mal escritas en el Excel; se marcan abajo.</div>` : ''}
+    ${rows.length ? `
+    <div class="f-sec">Por tipo de gasto</div>${barras(porTipo, k => COLOR_TIPO[k] || '#8a8a8a')}
+    ${segunda ? `<div class="f-sec">${segunda[0]}</div>${barras(segunda[1], () => '#F5A623')}` : ''}
+    <div class="f-sec">Detalle de gastos</div>
+    ${rows.slice(0, S.shown).map(r => `<div class="g-row">
+      <div class="g-top"><span>${r.fecha}</span>${grupoSel ? `<span>${esc(r.placa)}</span>` : ''}<span style="color:${COLOR_TIPO[r.tipo] || 'inherit'}">${esc(r.tipo)}</span><span class="g-m">${bs(parteDe(r))}</span></div>
+      <div class="g-desc">${esc(r.descripcion) || '<span style="color:var(--text3)">sin descripción</span>'}</div>
+      ${r.partes.length > 1 ? `<div class="g-tags"><span class="f-rep">Bs ${fmt2.format(r.monto)} repartido entre</span>${r.partes.map(id => `<span class="tag${id === S.parte ? ' on' : ''}">${esc(PARTE[id].nombre)}</span>`).join('')}</div>` : ''}
+      ${r.errores.length ? `<div class="f-err">⚠ Mal escrito en el Excel: ${r.errores.map(([mal, bien]) => `<b>${esc(mal.toLowerCase())}</b> → ${esc(bien.toLowerCase())}`).join(', ')}</div>` : ''}
+    </div>`).join('')}
+    ${rows.length > S.shown ? `<button class="link" id="mas">Mostrar ${Math.min(100, rows.length - S.shown)} más de ${rows.length - S.shown}</button>` : ''}
+    ` : '<div class="nota" style="margin-top:12px">Sin gastos para esta pieza con estos filtros.</div>'}`;
+  el.style.display = 'block';
+  el.scrollTop = 0;
+  document.getElementById('fCerrar').onclick = () => elegir('');
   const mas = document.getElementById('mas');
-  if (mas) mas.onclick = () => { S.shown += 100; panel(); };
+  if (mas) mas.onclick = () => { S.shown += 100; ficha(); };
 }
 
 cargar();
