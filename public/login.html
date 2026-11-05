@@ -61,12 +61,19 @@ async function login() {
     localStorage.setItem('togo_token', d.token);
     localStorage.setItem('togo_user', d.username);
     localStorage.setItem('togo_role', d.role);
-    window.location.href = '/';
+    window.location.href = destino();
   } catch(e) { errEl.textContent='// error de conexión'; errEl.style.display='block'; }
 }
 
+// Página a la que volver después de entrar (?volver=/flota-3d.html?placa=...).
+// Solo se aceptan rutas de este mismo sitio, para no redirigir a otra web.
+function destino() {
+  const v = new URLSearchParams(location.search).get('volver') || '';
+  return /^\/(?![\/\\])/.test(v) && !v.startsWith('/login.html') ? v : '/';
+}
+
 // Si ya hay sesión, redirigir
-if (localStorage.getItem('togo_token')) window.location.href = '/';
+if (localStorage.getItem('togo_token')) window.location.href = destino();
 </script>
 </body>
 </html>
