@@ -239,7 +239,9 @@ const token = () => localStorage.getItem('togo_token');
 const isAdmin = () => localStorage.getItem('togo_role') === 'admin';
 function goLogin() {
   ['togo_token','togo_user','togo_role'].forEach(k => localStorage.removeItem(k));
-  location.href = '/login.html';
+  // Al entrar, vuelve a esta misma página (con sus filtros en la dirección)
+  const aqui = location.pathname + location.search;
+  location.href = aqui === '/' ? '/login.html' : '/login.html?volver=' + encodeURIComponent(aqui);
 }
 async function api(path, opts = {}) {
   const r = await fetch(API + path, { ...opts, headers: { 'Content-Type': 'application/json', 'x-auth-token': token(), ...(opts.headers || {}) } });

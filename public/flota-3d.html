@@ -217,7 +217,8 @@ const fmt2 = new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2, maximumF
 const bs = v => 'Bs ' + fmt0.format(v);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const token = () => localStorage.getItem('togo_token');
-const goLogin = () => { ['togo_token', 'togo_user', 'togo_role'].forEach(k => localStorage.removeItem(k)); location.href = '/login.html'; };
+// Al entrar, vuelve a esta misma vista (por ejemplo, con la placa del enlace compartido)
+const goLogin = () => { ['togo_token', 'togo_user', 'togo_role'].forEach(k => localStorage.removeItem(k)); location.href = '/login.html?volver=' + encodeURIComponent(location.pathname + location.search); };
 
 let ROWS = [];               // gastos de mantenimiento con .partes
 let FLOTA = new Map();       // placa → {tipo, marca, modelo, proxi}
