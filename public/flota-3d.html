@@ -93,6 +93,8 @@ button,select{font-family:inherit;}
 .f-p{font-family:var(--mono);font-size:10px;color:var(--text3);text-align:right;}
 .f-rep{font-size:10px;color:var(--text3);margin-right:2px;align-self:center;}
 .tag.on{background:var(--amber-dim);color:var(--amber);}
+.f-err{margin-top:5px;font-size:11px;color:#fbbf24;background:#f59e0b14;border:1px solid #f59e0b40;border-radius:5px;padding:4px 7px;line-height:1.45;}
+.f-err b{font-family:var(--mono);font-weight:600;}
 @media (max-width:900px){
   .ficha{top:auto;bottom:62px;left:10px;right:10px;width:auto;max-height:55%;}
   body{overflow:auto;}
@@ -160,7 +162,7 @@ const PARTES = [
   { id: 'mandos', nombre: 'Mandos y cables', incluye: 'chicotillos, acelerador, palancas, puños, espejos',
     re: /CHICOTILLO|ACELERADOR|ACELERACI|PALANCA|PUNO|\bCABLES?\b|MANILLAR|MANUBRIO|ESPEJO|PEDAL|VOLANTE(?! (DE )?INERCIA)/ },
   { id: 'electrico', nombre: 'Sistema eléctrico', incluye: 'focos, faroles, batería, bobina, arranque, aire acondicionado',
-    re: /FOCO|FAROL|BATERIA|BOBINA|ALTERNADOR|ARRANQUE|BENDIX|\bSTOP\b|SENSOR|ELECTRIC|REGULADOR(?! DE BALANCIN)|HALOGENO|\bLUC|\bLUZ\b|CORRIENTE|(?<!BUJIAS? DE? ?)ENCENDIDO|FUSIBLE|BOCINA|DESTILADA|AIRE ACONDICIONADO|INTERMITENTE|DIRECCIONAL|GUINADOR|TABLERO|VELOCIMETRO|\bCDI\b|\bRELAY\b/ },
+    re: /FOCO|\bFOTOS?\b|FAROL|BATERIA|BOBINA|ALTERNADOR|ARRANQUE|BENDIX|\bSTOP\b|SENSOR|ELECTRIC|REGULADOR(?! DE BALANCIN)|HALOGENO|\bLUC|\bLUZ\b|CORRIENTE|(?<!BUJIAS? DE? ?)ENCENDIDO|FUSIBLE|BOCINA|DESTILADA|AIRE ACONDICIONADO|INTERMITENTE|DIRECCIONAL|GUINADOR|TABLERO|VELOCIMETRO|\bCDI\b|\bRELAY\b/ },
   { id: 'motor', nombre: 'Motor y aceite', incluye: 'aceite, arandela y tapón, filtros, carburador, bujías, culata, distribución',
     re: /(?<!BOBINAS? DE )MOTOR|ACEITE|ACIETE|ARANDELA(?!S? PARA SOPORTE)|TAPON|FILTRO|CULATA|BALANCIN|(?<!TRANSMISION O )DISTRIBUCI|CORREA|VALVULA|CIGUENAL|CARBURA|BUJIA|INYECTOR|EMPAQUETADURA|CARTER|(?<!C.)O-?RING|ANILLO|EMBOLO|PISTON|RECTIFICAD(?!O DE (TAMBOR|DISCO|CORRIENTE))|CADENILLA|INERCIA|PICOS(?! DE LLANTA)|REFRIGERANTE|COMBUSTIBLE|RADIADOR|ESCAPE|SILENCIADOR/ },
   { id: 'transmision', nombre: 'Transmisión', incluye: 'kit de transmisión, cadena, piñón, corona, embrague, caja',
@@ -178,8 +180,33 @@ const PARTE = Object.fromEntries([...PARTES, GENERAL].map(p => [p.id, p]));
 const MANT = ['PREVENTIVO', 'CORRECTIVO', 'REPUESTOS'];
 
 const norm = s => String(s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-function clasificar(desc) {
-  const d = norm(desc);
+// Errores de escritura encontrados en el Excel: se corrigen antes de clasificar
+// y la ficha avisa en cada gasto qué palabra hay que arreglar en el Excel.
+const CORRECCIONES = [
+  [/\bACIETE\b/, 'ACEITE'], [/\bARA?NA?DELA(S?)\b/, 'ARANDELA$1'], [/\bASI?PI?RADO\b/, 'ASPIRADO'],
+  [/\bBALTA(S?)\b/, 'BALATA$1'], [/\bBARRILLA\b/, 'VARILLA'], [/\bBLOK\b/, 'BLOCK'],
+  [/\bCARBURADR\b/, 'CARBURADOR'], [/\bCARYY\b/, 'CARRY'], [/\bCOMR[PR]A\b/, 'COMPRA'],
+  [/\bDESMONTAGE\b/, 'DESMONTAJE'], [/MONTAGUE\b/, 'MONTAJE'], [/\bEMB?REAGU[ER]\b|\bEMRAGUE\b/, 'EMBRAGUE'],
+  [/\bFOTO\b/, 'FOCO'], [/\bHIDRUALIC/, 'HIDRAULIC'], [/\bLIUMPIEZA\b/, 'LIMPIEZA'],
+  [/\bMANTENIEMIENTO\b/, 'MANTENIMIENTO'], [/MANTENIMIENTO PREVENTIVA\b/, 'MANTENIMIENTO PREVENTIVO'],
+  [/\bPACHADO\b/, 'PARCHADO'], [/\bPARRILA(S?)\b|\bPARILLA(S?)\b/, 'PARRILLA$1$2'], [/\bPOASTILLA(S?)\b/, 'PASTILLA$1'],
+  [/\bREEEMPLAZO\b/, 'REEMPLAZO'], [/\bREVICION\b/, 'REVISION'], [/\bSUSPENCION\b/, 'SUSPENSION'],
+  [/\bTEELESCOPIO(S?)\b/, 'TELESCOPIO$1'], [/\bTRABAJAO?\b|\bTRABJAO\b/, 'TRABAJO'],
+  [/\bTRANSIMICION\b|\bTRANSMICION\b|\bTRASN?MISION\b/, 'TRANSMISION'], [/\bVALANCINES\b/, 'BALANCINES'],
+  [/\bM OTO\b/, 'MOTO'],
+];
+function corregir(desc) {
+  let d = norm(desc); const errores = [];
+  CORRECCIONES.forEach(([re, ok]) => {
+    d = d.replace(new RegExp(re.source, 'g'), (m, ...g) => {
+      const bien = ok.replace(/\$(\d)/g, (_, i) => g[i - 1] || '');
+      if (m !== bien && !errores.some(e => e[0] === m)) errores.push([m, bien]);
+      return bien;
+    });
+  });
+  return { d, errores };
+}
+function clasificar(d) {
   const ids = PARTES.filter(p => p.re.test(d)).map(p => p.id);
   return ids.length ? ids : ['general'];
 }
@@ -231,7 +258,7 @@ async function cargar() {
   }
   (d.flota?.placas || []).forEach(p => FLOTA.set(p.placa, p));
   ROWS = d.rows.filter(r => MANT.includes(r.tipo) && r.placa && r.placa !== 'SIN PLACA')
-    .map(r => ({ ...r, partes: clasificar(r.descripcion) }));
+    .map(r => { const { d, errores } = corregir(r.descripcion); return { ...r, partes: clasificar(d), errores }; });
   if (!ROWS.length) { estado('Todavía no hay gastos de mantenimiento cargados.'); return; }
 
   const porPlaca = new Map();
@@ -1359,6 +1386,7 @@ function ficha() {
       <button class="f-x" id="fCerrar" title="Cerrar">×</button>
     </div>
     <div class="det-kpi"><div><small>Gasto</small>${bs(a.monto)}</div><div><small>Gastos</small>${a.n}</div>${ultimo ? `<div><small>Último</small>${ultimo}</div>` : ''}</div>
+    ${rows.some(r => r.errores.length) ? `<div class="f-err" style="margin-top:10px">⚠ ${rows.filter(r => r.errores.length).length} gasto(s) con palabras mal escritas en el Excel; se marcan abajo.</div>` : ''}
     ${rows.length ? `
     <div class="f-sec">Por tipo de gasto</div>${barras(porTipo, k => COLOR_TIPO[k] || '#8a8a8a')}
     ${segunda ? `<div class="f-sec">${segunda[0]}</div>${barras(segunda[1], () => '#F5A623')}` : ''}
@@ -1367,6 +1395,7 @@ function ficha() {
       <div class="g-top"><span>${r.fecha}</span>${grupoSel ? `<span>${esc(r.placa)}</span>` : ''}<span style="color:${COLOR_TIPO[r.tipo] || 'inherit'}">${esc(r.tipo)}</span><span class="g-m">${bs(parteDe(r))}</span></div>
       <div class="g-desc">${esc(r.descripcion) || '<span style="color:var(--text3)">sin descripción</span>'}</div>
       ${r.partes.length > 1 ? `<div class="g-tags"><span class="f-rep">Bs ${fmt2.format(r.monto)} repartido entre</span>${r.partes.map(id => `<span class="tag${id === S.parte ? ' on' : ''}">${esc(PARTE[id].nombre)}</span>`).join('')}</div>` : ''}
+      ${r.errores.length ? `<div class="f-err">⚠ Mal escrito en el Excel: ${r.errores.map(([mal, bien]) => `<b>${esc(mal.toLowerCase())}</b> → ${esc(bien.toLowerCase())}`).join(', ')}</div>` : ''}
     </div>`).join('')}
     ${rows.length > S.shown ? `<button class="link" id="mas">Mostrar ${Math.min(100, rows.length - S.shown)} más de ${rows.length - S.shown}</button>` : ''}
     ` : '<div class="nota" style="margin-top:12px">Sin gastos para esta pieza con estos filtros.</div>'}`;
