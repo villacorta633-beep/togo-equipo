@@ -68,6 +68,20 @@ async function initDB() {
     await pool.query("INSERT INTO users (username, password_hash, role) VALUES ('admin', $1, 'admin')", [hash]);
     console.log('[DB] Usuario admin creado — password: togo2026');
   }
+
+  // Restablecer la contraseña de admin: se pone ADMIN_RESET_PASSWORD en las variables de Render,
+  // se reinicia el servicio, se entra con esa contraseña y luego se BORRA la variable.
+  // Mientras la variable exista, cada reinicio vuelve a aplicar la contraseña y cierra las sesiones de admin.
+  const reset = process.env.ADMIN_RESET_PASSWORD || '';
+  if (reset) {
+    if (reset.length < 8) {
+      console.warn('[DB] ADMIN_RESET_PASSWORD ignorada: debe tener al menos 8 caracteres');
+    } else {
+      await pool.query("UPDATE users SET password_hash=$1, role='admin' WHERE username='admin'", [hashPassword(reset)]);
+      await pool.query("DELETE FROM sessions WHERE username='admin'");
+      console.log('[DB] Contraseña de admin restablecida desde ADMIN_RESET_PASSWORD. Borra esa variable en Render.');
+    }
+  }
   console.log('[DB] Tablas listas');
 }
 
