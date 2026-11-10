@@ -49,6 +49,19 @@ button,select{font-family:inherit;}
 .tip b{display:block;font-weight:600;margin-bottom:2px;}
 .tip span{font-family:var(--mono);color:var(--amber);font-size:11px;}
 .estado{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--text2);font-size:13px;line-height:1.6;padding:24px;}
+.spin{width:30px;height:30px;border:3px solid var(--border2);border-top-color:var(--amber);border-radius:50%;animation:gira 0.9s linear infinite;margin:0 auto 14px;}
+@keyframes gira{to{transform:rotate(360deg)}}
+.carga-sub{font-size:11px;color:var(--text3);max-width:320px;margin:6px auto 0;}
+/* Etiquetas flotantes de las piezas que más gastan */
+.etiquetas{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden;}
+.etq{position:absolute;left:0;top:0;will-change:transform;}
+.etq-in{position:absolute;bottom:-4px;left:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;}
+.etq-caja{pointer-events:auto;cursor:pointer;display:flex;gap:7px;align-items:center;white-space:nowrap;background:#0f0f10e6;border:1px solid var(--border2);border-radius:6px;padding:4px 9px;font:500 11px var(--font);color:var(--text);box-shadow:0 4px 14px #0007;}
+.etq-caja:hover{border-color:var(--amber);}
+.etq-caja .sw{width:8px;height:8px;border-radius:2px;}
+.etq-caja .etq-m{font-family:var(--mono);color:var(--amber);}
+.etq-linea{width:1px;background:#ffffff66;display:block;}
+.etq-punto{width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px #ffffff2e;display:block;}
 
 .panel{border-left:1px solid var(--border);background:var(--bg2);overflow-y:auto;min-height:0;}
 .p-sec{padding:18px 20px;border-bottom:1px solid var(--border);}
@@ -153,7 +166,8 @@ button,select{font-family:inherit;}
     </div>
     <div class="tip" id="tip"></div>
     <div class="ficha" id="ficha"></div>
-    <div class="estado" id="estado">Cargando gastos…</div>
+    <div class="etiquetas" id="etiquetas"></div>
+    <div class="estado" id="estado"><div><div class="spin"></div><div id="cargaTxt">Cargando gastos…</div><div class="carga-sub" id="cargaSub"></div></div></div>
   </div>
   <div class="panel" id="panel"></div>
 </div>
@@ -257,16 +271,27 @@ const ETIQUETA = { moto: 'Honda CB160 Hornet', apv: 'Suzuki APV', ram: 'RAM 700 
 
 async function cargar() {
   if (!token()) return goLogin();
+  // Si el servidor estaba dormido (plan gratuito de Render) tarda hasta un minuto: avisarlo
+  const t0 = Date.now();
+  const aviso = setInterval(() => {
+    const s = Math.round((Date.now() - t0) / 1000);
+    if (s < 5) return;
+    const txt = document.getElementById('cargaTxt'), sub = document.getElementById('cargaSub');
+    if (txt) txt.textContent = 'Iniciando el servidor…';
+    if (sub) sub.textContent = `El servidor se apaga cuando nadie lo usa y tarda hasta un minuto en arrancar. Espera un momento (${s} s).`;
+  }, 1000);
   let d;
   try {
     const r = await fetch('/api/gastos', { headers: { 'x-auth-token': token() } });
-    if (r.status === 401) return goLogin();
+    if (r.status === 401) { clearInterval(aviso); return goLogin(); }
     d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.error || 'Error ' + r.status);
   } catch (e) {
+    clearInterval(aviso);
     estado(`No se pudieron cargar los gastos.<br>${esc(e.message)}`);
     return;
   }
+  clearInterval(aviso);
   (d.flota?.placas || []).forEach(p => FLOTA.set(p.placa, p));
   ROWS = d.rows.filter(r => MANT.includes(r.tipo) && r.placa && r.placa !== 'SIN PLACA')
     .map(r => { const { d, errores } = corregir(r.descripcion); return { ...r, partes: clasificar(d), errores }; });
@@ -525,77 +550,121 @@ const bajoArcos = (base, ruedas, yR, r) => x => {
   return y;
 };
 
-// Materiales de la carrocería: cada cara toma uno según su zona. Las ópticas (faro, ámbar,
-// stop, cristal) salen como piezas aparte, al ras de la carrocería, para el sistema eléctrico.
-const MAT_CASCO = {
-  pintura: () => new THREE.MeshPhysicalMaterial({ color: '#f3f4f5', roughness: 0.28, metalness: 0.05, clearcoat: 1, clearcoatRoughness: 0.06 }),
-  vidrio: () => new THREE.MeshPhysicalMaterial({ color: '#0c1420', roughness: 0.18, metalness: 0.2, clearcoat: 0.4, clearcoatRoughness: 0.2, flatShading: true }),
-  plastico: () => new THREE.MeshStandardMaterial({ color: '#1b1b1b', roughness: 0.75, metalness: 0 }),
-  parrilla: () => new THREE.MeshStandardMaterial({ color: '#0e0e0e', roughness: 0.5, metalness: 0.2 }),
-  faro: () => new THREE.MeshPhysicalMaterial({ color: '#e9eef4', roughness: 0.08, metalness: 0.6, clearcoat: 1, emissive: '#fff4c2', emissiveIntensity: 0.25 }),
-  ambar: () => new THREE.MeshPhysicalMaterial({ color: '#f59e0b', roughness: 0.15, clearcoat: 1, emissive: '#f59e0b', emissiveIntensity: 0.35 }),
-  stop: () => new THREE.MeshPhysicalMaterial({ color: '#b91c1c', roughness: 0.12, clearcoat: 1, emissive: '#ff3b30', emissiveIntensity: 0.4 }),
-  cristal: () => new THREE.MeshPhysicalMaterial({ color: '#e5e7ea', roughness: 0.08, metalness: 0.4, clearcoat: 1 }),
+// Zonas de la carrocería: color (sRGB) y propiedades de la superficie (laca, rugosidad, metal, 0-255).
+// Se pintan en una imagen que envuelve la carrocería, así los bordes (ventanas, pilares, parrilla,
+// ópticas) quedan nítidos a nivel de píxel y no en escalones de la malla.
+const ZONAS = {
+  pintura:  { c: [243, 244, 245], p: [255, 72, 13] },
+  vidrio:   { c: [12, 20, 32],    p: [40, 64, 51] },
+  plastico: { c: [27, 27, 27],    p: [0, 190, 0] },
+  parrilla: { c: [14, 14, 14],    p: [0, 128, 51] },
+  faro:     { c: [233, 238, 244], p: [255, 20, 150], luz: true },
+  ambar:    { c: [245, 158, 11],  p: [255, 38, 0], luz: true },
+  stop:     { c: [185, 28, 28],   p: [255, 31, 0], luz: true },
+  cristal:  { c: [229, 231, 234], p: [255, 20, 100], luz: true },
 };
-const ORDEN_MAT = ['pintura', 'vidrio', 'plastico', 'parrilla'];
-const ORDEN_LUZ = ['faro', 'ambar', 'stop', 'cristal'];
 
 // Genera la carrocería uniendo secciones transversales (superelipses) a lo largo de X.
 // En cada sección: alto/bajo, ancho en la cintura y en el techo (los costados se inclinan
-// hacia adentro sobre la cintura) y qué tan cuadrada es (n). zona() decide el material.
-function casco({ x0, x1, bajo, alto, ancho, anchoTecho, cintura, n, zona, paso = 0.01, N = 180 }) {
+// hacia adentro sobre la cintura) y qué tan cuadrada es (n). zona() decide qué hay en cada punto
+// (pintura, vidrio, plástico, parrilla u ópticas). Las ópticas salen además como piezas aparte,
+// recortadas de la misma imagen, para el sistema eléctrico.
+function casco({ x0, x1, bajo, alto, ancho, anchoTecho, cintura, n, zona, paso = 0.015, N = 160, TW = 2048, TH = 1024 }) {
   const xs = []; for (let x = x0; x < x1 - 1e-6; x += paso) xs.push(x); xs.push(x1);
-  const pos = [], info = [];
   const anchoEn = (x, y) => {
     const ht = alto(x), ci = Math.min(cintura(x), ht - 0.02);
     const t = Math.min(1, Math.max(0, (y - ci) / Math.max(0.01, ht - ci)));
     return ancho(x) + (anchoTecho(x) - ancho(x)) * t * t;
   };
-  xs.forEach(x => {
-    const hb = bajo(x), ht = alto(x), cy = (hb + ht) / 2, hh = (ht - hb) / 2, ne = typeof n === 'function' ? n(x) : n;
-    for (let j = 0; j < N; j++) {
-      const th = j / N * Math.PI * 2, c = Math.cos(th), s = Math.sin(th);
-      const fz = Math.sign(c) * Math.abs(c) ** (2 / ne), fy = Math.sign(s) * Math.abs(s) ** (2 / ne);
-      const y = cy + hh * fy;
-      pos.push(x, y, fz * anchoEn(x, y)); info.push([x, y, fz, fy]);
+  // Sección en x: la superelipse amontona sus puntos en las esquinas y deja muy pocos a media
+  // altura de los costados. Se reparte por distancia recorrida sobre el borde (v = fracción del
+  // perímetro, desde abajo al centro), así la malla y la imagen tienen la misma resolución en todos lados.
+  const NS = 480;
+  const seccion = x => {
+    const hb = bajo(x), ht = alto(x), cy = (hb + ht) / 2, hh = (ht - hb) / 2, ne = typeof n === 'function' ? n(x) : n, w = ancho(x);
+    const th = new Float32Array(NS + 1), cum = new Float32Array(NS + 1);
+    let pz = 0, py = 0, L = 0;
+    for (let k = 0; k <= NS; k++) {
+      const t = -Math.PI / 2 + k / NS * Math.PI * 2, c = Math.cos(t), si = Math.sin(t);
+      const zz = Math.sign(c) * Math.abs(c) ** (2 / ne) * w, yy = cy + hh * Math.sign(si) * Math.abs(si) ** (2 / ne);
+      if (k) L += Math.hypot(zz - pz, yy - py);
+      th[k] = t; cum[k] = L; pz = zz; py = yy;
     }
-  });
-  const R = xs.length;
-  const vacio = () => Object.fromEntries([...ORDEN_MAT, ...ORDEN_LUZ].map(k => [k, []]));
-  const tris = vacio(), luzAdelante = vacio(), luzAtras = vacio();
-  const agregar = (ids, ...t) => {
-    const m = ids.reduce((a, i) => a.map((v, k) => v + info[i][k] / ids.length), [0, 0, 0, 0]);
-    const z = zona(...m) || 'pintura';
-    { const l = (ORDEN_LUZ.includes(z) ? (m[0] > 0 ? luzAdelante : luzAtras) : tris)[z]; for (const v of t) l.push(v); }
+    for (let k = 0; k <= NS; k++) cum[k] /= L || 1;
+    return { cy, hh, ne, th, cum };
   };
+  // Punto de la sección para una fracción v del perímetro (búsqueda binaria en la tabla;
+  // con 'desde' se avanza desde un tramo ya conocido, para recorridos de abajo hacia arriba)
+  const punto = (s, v, desde) => {
+    let lo = 0, hi = NS;
+    if (desde) { lo = desde.k; while (lo < NS - 1 && s.cum[lo + 1] <= v) lo++; hi = lo + 1; desde.k = lo; }
+    else while (hi - lo > 1) { const m = (lo + hi) >> 1; if (s.cum[m] <= v) lo = m; else hi = m; }
+    const f = (v - s.cum[lo]) / Math.max(1e-9, s.cum[hi] - s.cum[lo]);
+    const t = s.th[lo] + (s.th[hi] - s.th[lo]) * Math.min(1, Math.max(0, f)), c = Math.cos(t), si = Math.sin(t);
+    const fz = Math.sign(c) * Math.abs(c) ** (2 / s.ne), fy = Math.sign(si) * Math.abs(si) ** (2 / s.ne);
+    return { y: s.cy + s.hh * fy, fz, fy };
+  };
+
+  // Malla: N+1 vértices por sección (la costura queda abajo, donde no se ve)
+  const M = N + 1, pos = [], uv = [], secciones = xs.map(seccion);
+  xs.forEach((x, i) => {
+    const s = secciones[i], u = (x - x0) / (x1 - x0);
+    for (let j = 0; j <= N; j++) { const v = j / N, p = punto(s, v); pos.push(x, p.y, p.fz * anchoEn(x, p.y)); uv.push(u, v); }
+  });
+  const R = xs.length, cuerpo = [], luzAdelante = [], luzAtras = [];
+  const esLuz = (i, v) => { const p = punto(secciones[i], v); return !!ZONAS[zona(xs[i], p.y, p.fz, p.fy)]?.luz; };
   for (let i = 0; i < R - 1; i++) for (let j = 0; j < N; j++) {
-    const a = i * N + j, b = i * N + (j + 1) % N, c = (i + 1) * N + j, d = (i + 1) * N + (j + 1) % N;
-    agregar([a, b, c, d], a, c, b, b, c, d);
+    const a = i * M + j, b = a + 1, c = a + M, d = c + 1;
+    cuerpo.push(a, c, b, b, c, d);
+    // Las caras que tocan una óptica también van a la pieza eléctrica (la imagen recorta el contorno)
+    const va = j / N, vb = (j + 1) / N;
+    if (esLuz(i, va) || esLuz(i + 1, va) || esLuz(i, vb) || esLuz(i + 1, vb) || esLuz(i, (va + vb) / 2))
+      (xs[i] > 0 ? luzAdelante : luzAtras).push(a, c, b, b, c, d);
   }
   // Tapas delantera y trasera
   [[0, -1], [R - 1, 1]].forEach(([i, dir]) => {
-    const x = xs[i], ci = pos.length / 3;
-    pos.push(x + dir * 0.002, (bajo(x) + alto(x)) / 2, 0); info.push([x, (bajo(x) + alto(x)) / 2, 0, 0]);
-    for (let j = 0; j < N; j++) {
-      const p = i * N + j, q = i * N + (j + 1) % N;
-      if (dir > 0) agregar([p, q], ci, q, p); else agregar([p, q], ci, p, q);
-    }
+    const x = xs[i], s = secciones[i], ci = pos.length / 3;
+    pos.push(x + dir * 0.002, s.cy, 0); uv.push((x - x0) / (x1 - x0), 0.25);
+    for (let j = 0; j < N; j++) { const p = i * M + j, q = p + 1; if (dir > 0) cuerpo.push(ci, q, p); else cuerpo.push(ci, p, q); }
   });
-  const posAttr = new THREE.Float32BufferAttribute(pos, 3);
-  const armar = (lista, orden, fabrica) => {
+
+  // Imágenes: color de la carrocería, propiedades de la superficie y ópticas (con transparencia)
+  const lienzo = () => { const cv = document.createElement('canvas'); cv.width = TW; cv.height = TH; const ctx = cv.getContext('2d'); return { cv, ctx, img: ctx.createImageData(TW, TH) }; };
+  const col = lienzo(), prop = lienzo(), luz = lienzo();
+  for (let px = 0; px < TW; px++) {
+    const x = x0 + (px + 0.5) / TW * (x1 - x0), s = seccion(x), desde = { k: 0 };
+    for (let py = 0; py < TH; py++) {
+      const p = punto(s, (py + 0.5) / TH, desde), z = ZONAS[zona(x, p.y, p.fz, p.fy)] || ZONAS.pintura, k = (py * TW + px) * 4;
+      const dc = col.img.data, dp = prop.img.data;
+      dc[k] = z.c[0]; dc[k + 1] = z.c[1]; dc[k + 2] = z.c[2]; dc[k + 3] = 255;
+      dp[k] = z.p[0]; dp[k + 1] = z.p[1]; dp[k + 2] = z.p[2]; dp[k + 3] = 255;
+      if (z.luz) { const dl = luz.img.data; dl[k] = z.c[0]; dl[k + 1] = z.c[1]; dl[k + 2] = z.c[2]; dl[k + 3] = 255; }
+    }
+  }
+  const textura = (l, color) => {
+    l.ctx.putImageData(l.img, 0, 0);
+    const t = new THREE.CanvasTexture(l.cv);
+    t.flipY = false; t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    if (color) t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  };
+  const tCol = textura(col, true), tProp = textura(prop, false), tLuz = textura(luz, true);
+  const posAttr = new THREE.Float32BufferAttribute(pos, 3), uvAttr = new THREE.Float32BufferAttribute(uv, 2);
+  const armar = (idx, material) => {
     const g = new THREE.BufferGeometry();
-    g.setAttribute('position', posAttr);
-    const idx = []; let ini = 0;
-    orden.forEach((k, mi) => { g.addGroup(ini, lista[k].length, mi); for (const v of lista[k]) idx.push(v); ini += lista[k].length; });
+    g.setAttribute('position', posAttr); g.setAttribute('uv', uvAttr);
     g.setIndex(idx); g.computeVertexNormals();
-    return new THREE.Mesh(g, orden.map(k => fabrica[k]()));
+    // Las ópticas comparten los vértices de la carrocería: su caja de medidas se calcula solo con los suyos
+    if (idx.length) {
+      const bb = new THREE.Box3(), v = new THREE.Vector3();
+      for (const i of idx) bb.expandByPoint(v.fromBufferAttribute(posAttr, i));
+      g.boundingBox = bb; g.boundingSphere = bb.getBoundingSphere(new THREE.Sphere());
+    }
+    return new THREE.Mesh(g, material);
   };
-  return {
-    mesh: armar(tris, ORDEN_MAT, MAT_CASCO),
-    lucesAdelante: armar(luzAdelante, ORDEN_LUZ, MAT_CASCO),
-    lucesAtras: armar(luzAtras, ORDEN_LUZ, MAT_CASCO),
-    zEn: anchoEn,
-  };
+  const matCuerpo = () => new THREE.MeshPhysicalMaterial({ map: tCol, roughnessMap: tProp, metalnessMap: tProp, clearcoatMap: tProp, roughness: 1, metalness: 1, clearcoat: 1, clearcoatRoughness: 0.06 });
+  const matLuz = () => new THREE.MeshPhysicalMaterial({ map: tLuz, alphaTest: 0.5, emissiveMap: tLuz, emissive: '#ffffff', emissiveIntensity: 0.3, roughness: 0.1, metalness: 0.3, clearcoat: 1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  return { mesh: armar(cuerpo, matCuerpo()), lucesAdelante: armar(luzAdelante, matLuz()), lucesAtras: armar(luzAtras, matLuz()), zEn: anchoEn };
 }
 
 // Elementos pegados al costado de la carrocería (a los dos lados), según el ancho en ese punto
@@ -821,11 +890,12 @@ function construirAPV() {
     bajo: bajoArcos(lin([[-2.08, 0.52], [-2.04, 0.36], [-1.92, 0.33], [1.92, 0.33], [2.04, 0.37], [2.08, 0.52]]), [XT, XF], YR, 0.38),
     ancho: suavizar(lin([[-2.08, 0.72], [-2.04, 0.8], [-1.92, 0.825], [1.7, 0.83], [1.95, 0.8], [2.05, 0.75], [2.08, 0.66]])),
     anchoTecho: lin([[-2.08, 0.66], [-1.95, 0.72], [0.9, 0.72], [1.0, 0.735], [1.58, 0.79], [2.08, 0.66]]),
-    cintura: lin([[-2.08, 1.2], [0.95, 1.2], [1.55, 1.12], [1.65, 1.0], [2.08, 0.75]]),
-    n: x => x > 1.6 ? 4.2 : 7,
-    zona: (x, y, fz) => {
-      const lado = Math.abs(fz) > 0.88;
-      if (x > 1.0 && x < 1.55 && y > 1.17 && Math.abs(fz) < 0.9) return 'vidrio';
+    cintura: suavizar(lin([[-2.08, 1.2], [1.6, 1.2], [1.75, 1.0], [2.08, 0.75]]), 0.06),   // pareja en las ventanas
+    n: lin([[-2.08, 7], [1.25, 7], [1.75, 4.2], [2.08, 4.2]]),   // transición gradual: sin escalones
+    zona: (x, y, fz, fy) => {
+      // Costado: el punto mira más hacia el lado que hacia arriba (borde diagonal estable, como un pilar)
+      const lado = Math.abs(fz) > Math.abs(fy);
+      if (x > 1.0 && x < 1.55 && y > 1.17 && !lado) return 'vidrio';
       if (lado && y > 1.25 && y < 1.79 && x > 0.2 && x < xParab(y) - 0.08) return 'vidrio';
       if (lado && y > 1.21 && y < 1.82 && x > 0.16 && x < xParab(y) - 0.04) return 'plastico';
       if (Math.abs(fz) > 0.72 && y > 1.16 && y < 1.84 && x > xParab(y) - 0.06 && x < xParab(y) + 0.05) return 'plastico';
@@ -922,11 +992,12 @@ function construirRAM() {
     bajo: bajoArcos(lin([[-1.985, 0.5], [-1.95, 0.37], [-1.82, 0.34], [1.82, 0.34], [1.95, 0.38], [1.985, 0.5]]), [XT, XF], YR, 0.37),
     ancho: suavizar(lin([[-1.985, 0.74], [-1.95, 0.8], [-1.82, 0.815], [1.55, 0.81], [1.85, 0.76], [1.96, 0.68], [1.985, 0.6]])),
     anchoTecho: lin([[-1.985, 0.7], [-1.85, 0.765], [-0.05, 0.765], [0.2, 0.72], [0.5, 0.66], [0.66, 0.67], [1.12, 0.74], [1.985, 0.6]]),
-    cintura: lin([[-1.985, 1.78], [-0.05, 1.78], [0.25, 1.06], [1.12, 1.02], [1.3, 0.92], [1.985, 0.75]]),
-    n: x => x < 0 ? 8 : x > 1.4 ? 4.2 : 6,
-    zona: (x, y, fz) => {
-      const lado = Math.abs(fz) > 0.88;
-      if (x > 0.68 && x < 1.09 && y > 1.06 && Math.abs(fz) < 0.9) return 'vidrio';
+    cintura: suavizar(lin([[-1.985, 1.78], [-0.05, 1.78], [0.25, 1.04], [1.15, 1.04], [1.35, 0.92], [1.985, 0.75]]), 0.06),
+    n: lin([[-1.985, 8], [-0.15, 8], [0.2, 6], [1.15, 6], [1.6, 4.2], [1.985, 4.2]]),
+    zona: (x, y, fz, fy) => {
+      // Costado: el punto mira más hacia el lado que hacia arriba (borde diagonal estable, como un pilar)
+      const lado = Math.abs(fz) > Math.abs(fy);
+      if (x > 0.68 && x < 1.09 && y > 1.06 && !lado) return 'vidrio';
       if (lado && y > 1.08 && y < 1.45 && x > 0.22 && x < xParab(y) - 0.07) return 'vidrio';
       if (lado && y > 1.05 && y < 1.48 && x > 0.18 && x < xParab(y) - 0.03) return 'plastico';
       if (Math.abs(fz) > 0.72 && y > 1.04 && y < 1.5 && x > xParab(y) - 0.05 && x < xParab(y) + 0.05) return 'plastico';
@@ -1204,14 +1275,22 @@ function encuadrar() {
   if (!ENCUADRE) return;
   const { centro, camara } = ENCUADRE;
   controls.target.copy(centro);
-  camera.position.copy(centro).addScaledVector(camara.clone().sub(centro), Math.max(1, 1.5 / (camera.aspect || 1.5)));
+  camera.position.copy(centro).addScaledVector(camara.clone().sub(centro), 0.86 * Math.max(1, 1.35 / (camera.aspect || 1.5)));
 }
+// Cada modelo se arma una sola vez (la carrocería con su imagen tarda ~1 s) y queda guardado:
+// volver a un vehículo ya visto es instantáneo.
+const ARMADOS = {};
 function construir(modelo) {
   if (modeloActual === modelo) return;
-  if (root) { scene.remove(root); root.traverse(o => { if (o.isMesh) { o.geometry.dispose(); mats(o).forEach(mt => { mt.map?.dispose(); mt.dispose(); }); } }); }
-  root = new THREE.Group(); piezas = [];
+  if (root) scene.remove(root);
+  if (!ARMADOS[modelo]) {
+    root = new THREE.Group(); piezas = [];
+    const encuadre = { moto: construirMoto, apv: construirAPV, ram: construirRAM }[modelo]();
+    ARMADOS[modelo] = { root, piezas, encuadre };
+  }
+  ({ root, piezas } = ARMADOS[modelo]);
   scene.add(root);
-  const { centro, camara } = { moto: construirMoto, apv: construirAPV, ram: construirRAM }[modelo]();
+  const { centro, camara } = ARMADOS[modelo].encuadre;
   ENCUADRE = { centro, camara };
   encuadrar();
   const lejos = camara.distanceTo(centro);
@@ -1237,12 +1316,15 @@ function colorParte(id) {
 }
 const AMBAR = new THREE.Color('#F5A623');
 function pintar() {
-  const cols = Object.fromEntries(PARTES.map(p => [p.id, colorParte(p.id)]));
+  // Solo se tiñen las piezas con gasto; las que no tienen gasto quedan con su color real
+  const cols = Object.fromEntries(PARTES.filter(p => (AGG[p.id]?.monto || 0) > 0).map(p => [p.id, colorParte(p.id)]));
   root?.traverse(m => {
     if (!m.isMesh) return;
     const p = m.userData.parte;
     const marcado = p === S.parte || (p === S.hover && p !== 'chasis');
     const fantasma = S.parte && S.parte !== 'general' && p !== S.parte;
+    // Mapa de calor en "rayos X": la carrocería se vuelve translúcida para ver las piezas de adentro
+    const rayosX = !fantasma && S.calor && p === 'carroceria' && S.parte !== 'carroceria' && S.hover !== 'carroceria';
     mats(m).forEach(mt => {
       const u = mt.userData;
       if (S.calor && cols[p] && !u.fijo) {
@@ -1251,9 +1333,10 @@ function pintar() {
       } else mt.color.copy(u.c0);
       if (marcado) { mt.emissive.copy(AMBAR); mt.emissiveIntensity = p === S.parte ? 0.35 : 0.2; }
       else { mt.emissive.copy(u.e0); mt.emissiveIntensity = u.ei0; }
-      const tr = !!(fantasma || u.t0);
+      const tr = !!(fantasma || rayosX || u.t0);
       if (mt.transparent !== tr) { mt.transparent = tr; mt.needsUpdate = true; }   // cambia el shader: hay que recompilar
-      mt.opacity = fantasma ? 0.1 : u.o0; mt.depthWrite = !fantasma && !u.t0;
+      mt.opacity = fantasma ? 0.1 : rayosX ? (u.fijo ? 0.14 : 0.16) : u.o0;
+      mt.depthWrite = !fantasma && !rayosX && !u.t0;
     });
   });
 }
@@ -1332,8 +1415,63 @@ renderer.setAnimationLoop(() => {
   const meta = S.desarmar ? 1 : 0;
   if (DES.t !== meta) { DES.t = meta > DES.t ? Math.min(1, DES.t + dt / 1.6) : Math.max(0, DES.t - dt / 1.6); moverPiezas(); }
   controls.update();
+  moverEtiquetas();
   renderer.render(scene, camera);
 });
+
+// ── Etiquetas flotantes: las 3 piezas que más gastan, apuntando a su lugar en el vehículo ──
+const capaEtq = document.getElementById('etiquetas');
+let ETQ = [];
+function armarEtiquetas() {
+  capaEtq.innerHTML = '';
+  const top = PARTES.map(p => ({ p, a: AGG[p.id] })).filter(x => x.a.monto > 0).sort((x, y) => y.a.monto - x.a.monto).slice(0, 3);
+  ETQ = top.map(({ p, a }, i) => {
+    const hex = '#' + colorParte(p.id).getHexString();
+    const el = document.createElement('div');
+    el.className = 'etq';
+    el.innerHTML = `<div class="etq-in"><button class="etq-caja" title="Ver el desglose"><span class="sw" style="background:${hex}"></span><b>${esc(p.nombre)}</b><span class="etq-m">${bs(a.monto)}</span></button><i class="etq-linea" style="height:${24 + i * 30}px"></i><i class="etq-punto"></i></div>`;
+    el.querySelector('button').onclick = () => elegir(p.id);
+    capaEtq.appendChild(el);
+    // La etiqueta apunta a la pieza principal de la parte: la primera que se armó (bloque del motor,
+    // faros, caja de cambios…), no al centro de todo el conjunto (que incluye tanque, escape, etc.)
+    const primera = piezas.find(o => o.userData.parte === p.id);
+    let ancla = null; primera?.traverse(m => { if (!ancla && m.isMesh) ancla = m; });
+    return { el, objs: ancla ? [ancla] : [] };
+  });
+}
+const cajaEtq = new THREE.Box3(), cajaPieza = new THREE.Box3(), puntoEtq = new THREE.Vector3();
+function moverEtiquetas() {
+  const ver = !S.parte && ETQ.length > 0;
+  capaEtq.style.display = ver ? '' : 'none';
+  if (!ver) return;
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  // 1) Dónde cae cada pieza en la pantalla
+  const pts = ETQ.map(e => {
+    cajaEtq.makeEmpty();
+    e.objs.forEach(o => cajaEtq.union(cajaPieza.setFromObject(o)));
+    if (cajaEtq.isEmpty()) return null;
+    cajaEtq.getCenter(puntoEtq).project(camera);
+    if (puntoEtq.z > 1 || Math.abs(puntoEtq.x) > 1.02 || Math.abs(puntoEtq.y) > 1.02) return null;
+    return { x: (puntoEtq.x + 1) / 2 * w, y: (1 - puntoEtq.y) / 2 * h };
+  });
+  // 2) Cada recuadro va en su propia fila, encima de la pieza más alta, para que nunca se tapen
+  const visibles = pts.filter(Boolean);
+  const techo = visibles.length ? Math.min(...visibles.map(p => p.y)) : 0;
+  let fila = 0;
+  ETQ.forEach((e, i) => {
+    const pt = pts[i];
+    e.el.style.display = pt ? '' : 'none';
+    if (!pt) return;
+    const baseCaja = Math.max(34, techo - 26 - fila * 30); fila++;
+    e.el.querySelector('.etq-linea').style.height = Math.max(8, pt.y - baseCaja - 4).toFixed(0) + 'px';
+    const x = pt.x;
+    e.el.style.transform = `translate(${x.toFixed(1)}px, ${pt.y.toFixed(1)}px)`;
+    // Si el recuadro se sale por un costado, se corre hacia adentro (la línea sigue apuntando a la pieza)
+    const caja = e.el.querySelector('.etq-caja'), mitad = caja.offsetWidth / 2;
+    const dx = x - mitad < 8 ? 8 - (x - mitad) : x + mitad > w - 8 ? (w - 8) - (x + mitad) : 0;
+    caja.style.transform = dx ? `translateX(${dx.toFixed(1)}px)` : '';
+  });
+}
 
 // ══ PANEL ═══════════════════════════════════════════════════════════════════
 function actualizar() {
@@ -1348,7 +1486,7 @@ function actualizar() {
     ? `${[...VEH.values()].filter(v => v.tipo === tipo).length} vehículos`
     : `${VEH.get(S.veh).etiqueta}${FLOTA.get(S.veh)?.proxi ? ' · ' + FLOTA.get(S.veh).proxi : ''}`;
   document.getElementById('hTotal').innerHTML = `${bs(total)} <span>en mantenimiento · ${rows.length} gastos${S.anio ? ' · ' + S.anio : ''}</span>`;
-  moverPiezas(); pintar(); panel();
+  moverPiezas(); pintar(); panel(); armarEtiquetas();
 }
 
 function panel() {

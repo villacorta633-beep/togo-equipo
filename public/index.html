@@ -254,8 +254,14 @@ async function api(path, opts = {}) {
 // ── CARGA DE DATOS ───────────────────────────────────────────────────────────
 async function load() {
   if (!token()) return goLogin();
+  // Si el servidor estaba dormido (plan gratuito de Render) tarda hasta un minuto: avisarlo
+  const t0 = Date.now();
+  const aviso = setInterval(() => {
+    const s = Math.round((Date.now() - t0) / 1000), el = document.querySelector('#app .loading');
+    if (s >= 5 && el) el.innerHTML = `Iniciando el servidor…<br><span style="font-size:11px">Se apaga cuando nadie lo usa y tarda hasta un minuto en arrancar. Espera un momento (${s} s).</span>`;
+  }, 1000);
   try {
-    const d = await api('/api/gastos');
+    const d = await api('/api/gastos').finally(() => clearInterval(aviso));
     ROWS = d.rows; META = d.meta || {};
     FLOTA = d.flota || {};
     FLOTA_SET = new Set((FLOTA.placas || []).map(p => p.placa));
