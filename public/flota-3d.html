@@ -95,8 +95,18 @@ button,select{font-family:inherit;}
 .tag.on{background:var(--amber-dim);color:var(--amber);}
 .f-err{margin-top:5px;font-size:11px;color:#fbbf24;background:#f59e0b14;border:1px solid #f59e0b40;border-radius:5px;padding:4px 7px;line-height:1.45;}
 .f-err b{font-family:var(--mono);font-weight:600;}
+@media (max-width:1150px){
+  .ficha{width:min(340px, 62%);}
+}
 @media (max-width:900px){
-  .ficha{top:auto;bottom:62px;left:10px;right:10px;width:auto;max-height:55%;}
+  /* En celular la ficha sube desde abajo como un panel y deja ver el vehículo arriba */
+  .ficha{position:fixed;top:auto;bottom:0;left:0;right:0;width:auto;max-height:45vh;border-radius:14px 14px 0 0;border-bottom:none;z-index:50;}
+  .hud-br{display:none;}
+  .toolbar{padding:10px 16px;}
+  .toolbar .f-group{min-width:0;max-width:100%;}
+  .toolbar .f-group:first-child{flex:1 1 100%;}
+  .toolbar .f-group:first-child .sel{flex:1;min-width:0;width:100%;}
+  .header{padding:0 16px;}
   body{overflow:auto;}
   .main{grid-template-columns:1fr;grid-template-rows:60vh auto;}
   .panel{border-left:none;border-top:1px solid var(--border);overflow:visible;}
@@ -491,6 +501,7 @@ function calco(ancho, alto, dibujar, x, y, z) {
   const geo = new THREE.PlaneGeometry(ancho, alto);
   return [1, -1].map(s => {
     const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: tex, alphaTest: 0.35, roughness: 0.4, polygonOffset: true, polygonOffsetFactor: -2 }));
+    m.material.userData.fijo = true;   // el logo y los textos conservan sus colores en el mapa de calor
     m.position.set(x, y, s * z); if (s < 0) m.rotation.y = Math.PI;
     return m;
   });
@@ -1151,7 +1162,7 @@ function construirMoto() {
     caja(0.46, 0.42, 0.44, '#f2c200', [-0.62, 1.25, 0], undefined, { roughness: 0.5 }),
     caja(0.47, 0.012, 0.45, '#111', [-0.62, 1.36, 0]),
     calco(0.38, 0.1, marca, -0.62, 1.22, 0.223),
-  ), [-0.1, 0.85, 0]);
+  ), [-0.35, 0.5, 0]);
   pz('carroceria', barra([-0.12, 0.28, ZC - 0.02], [-0.24, 0.02, ZC - 0.16], 0.012, '#1a1a1a'), [0, 0, -0.3]);
 
   // Detalle interno: estriberas, pedal de freno, palanca de cambios
@@ -1234,7 +1245,7 @@ function pintar() {
     const fantasma = S.parte && S.parte !== 'general' && p !== S.parte;
     mats(m).forEach(mt => {
       const u = mt.userData;
-      if (S.calor && cols[p]) {
+      if (S.calor && cols[p] && !u.fijo) {
         const lum = u.c0.r * 0.3 + u.c0.g * 0.59 + u.c0.b * 0.11;
         mt.color.copy(cols[p]).multiplyScalar(0.45 + 0.55 * Math.min(1, lum * 1.6));
       } else mt.color.copy(u.c0);
@@ -1359,6 +1370,7 @@ function panel() {
 
 // ── Ficha flotante: desglose de los gastos de la pieza elegida ──
 const COLOR_TIPO = { PREVENTIVO: '#245ea8', CORRECTIVO: '#3987e5', REPUESTOS: '#7db3f2' };
+const fechaCorta = f => { const [y, m, d] = String(f).split('-'); return d ? `${d}/${m}/${y}` : f; };
 function ficha() {
   const el = document.getElementById('ficha');
   if (!S.parte) { el.style.display = 'none'; return; }
@@ -1386,14 +1398,14 @@ function ficha() {
       <div><div class="f-tit">${esc(p.nombre)}</div><div class="f-sub">Incluye ${esc(p.incluye)}.</div></div>
       <button class="f-x" id="fCerrar" title="Cerrar">×</button>
     </div>
-    <div class="det-kpi"><div><small>Gasto</small>${bs(a.monto)}</div><div><small>Gastos</small>${a.n}</div>${ultimo ? `<div><small>Último</small>${ultimo}</div>` : ''}</div>
+    <div class="det-kpi"><div><small>Gasto</small>${bs(a.monto)}</div><div><small>Gastos</small>${a.n}</div>${ultimo ? `<div><small>Último</small>${fechaCorta(ultimo)}</div>` : ''}</div>
     ${rows.some(r => r.errores.length) ? `<div class="f-err" style="margin-top:10px">⚠ ${rows.filter(r => r.errores.length).length} gasto(s) con palabras mal escritas en el Excel; se marcan abajo.</div>` : ''}
     ${rows.length ? `
     <div class="f-sec">Por tipo de gasto</div>${barras(porTipo, k => COLOR_TIPO[k] || '#8a8a8a')}
     ${segunda ? `<div class="f-sec">${segunda[0]}</div>${barras(segunda[1], () => '#F5A623')}` : ''}
     <div class="f-sec">Detalle de gastos</div>
     ${rows.slice(0, S.shown).map(r => `<div class="g-row">
-      <div class="g-top"><span>${r.fecha}</span>${grupoSel ? `<span>${esc(r.placa)}</span>` : ''}<span style="color:${COLOR_TIPO[r.tipo] || 'inherit'}">${esc(r.tipo)}</span><span class="g-m">${bs(parteDe(r))}</span></div>
+      <div class="g-top"><span>${fechaCorta(r.fecha)}</span>${grupoSel ? `<span>${esc(r.placa)}</span>` : ''}<span style="color:${COLOR_TIPO[r.tipo] || 'inherit'}">${esc(r.tipo)}</span><span class="g-m">${bs(parteDe(r))}</span></div>
       <div class="g-desc">${esc(r.descripcion) || '<span style="color:var(--text3)">sin descripción</span>'}</div>
       ${r.partes.length > 1 ? `<div class="g-tags"><span class="f-rep">Bs ${fmt2.format(r.monto)} repartido entre</span>${r.partes.map(id => `<span class="tag${id === S.parte ? ' on' : ''}">${esc(PARTE[id].nombre)}</span>`).join('')}</div>` : ''}
       ${r.errores.length ? `<div class="f-err">⚠ Mal escrito en el Excel: ${r.errores.map(([mal, bien]) => `<b>${esc(mal.toLowerCase())}</b> → ${esc(bien.toLowerCase())}`).join(', ')}</div>` : ''}
