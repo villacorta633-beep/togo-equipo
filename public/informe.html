@@ -122,7 +122,7 @@ table.t th.n{text-align:right;}
   <div class="f-group"><span class="f-label">Vehículo</span><select class="sel" id="fVeh"></select></div>
   <div class="f-group"><span class="f-label">Período</span><select class="sel" id="fPer"></select></div>
   <span class="sep"></span>
-  <a class="btn" id="bTaller" href="/taller.html">Mi taller</a>
+  <a class="btn" id="bTaller" href="/taller.html" style="display:none">Mi taller</a>
   <a class="btn" id="b3d" href="/flota-3d.html">Ver en 3D</a>
   <button class="btn" id="bLink">Copiar enlace</button>
   <button class="btn btn-primary" id="bPrint">Imprimir / PDF</button>
@@ -210,6 +210,7 @@ function guardarEnDireccion() {
   if (S.per) q.set('periodo', S.per);
   history.replaceState(null, '', '?' + q);
   document.getElementById('bTaller').href = '/taller.html#vehiculo/' + encodeURIComponent(S.placa);
+  document.getElementById('bTaller').style.display = isAdmin() ? '' : 'none';   // Mi taller: por ahora solo admin
   document.getElementById('b3d').href = `/flota-3d.html?placa=${encodeURIComponent(S.placa)}${/^\d{4}$/.test(S.per) ? '&anio=' + S.per : ''}`;
   document.title = `TOGO · Informe ${S.placa}`;
 }
@@ -326,7 +327,7 @@ function mostrar() {
       <ol class="recos">${inf.recomendaciones.map(x => `<li>${esc(x)}</li>`).join('')}</ol>
     </div>
 
-    ${preguntas.length ? `<div class="sec"><div class="sec-t"><span>07</span>Preguntas para llevar al taller</div>
+    ${preguntas.length && isAdmin() ? `<div class="sec"><div class="sec-t"><span>07</span>Preguntas para llevar al taller</div>
       ${preguntas.map(x => `<div style="margin-bottom:10px;break-inside:avoid"><b>${esc(x.p.nombre)}</b><ul class="recos" style="margin-top:4px">${x.p.taller.slice(0, 3).map(q => `<li>${esc(q)}</li>`).join('')}</ul></div>`).join('')}
     </div>` : ''}
 
@@ -348,6 +349,9 @@ function mostrar() {
     <div class="pie">Informe generado por el panel TOGO a partir de los gastos registrados en el Excel de la flota. Se actualiza solo cada vez que se cargan gastos nuevos.
       Los hallazgos son indicios que salen de las descripciones, las fechas y los montos: antes de tomar una medida, confírmalos con el taller y con el conductor.</div>
   </div>`;
+
+  // Las secciones se numeran según las que se muestran (algunas dependen de los datos o del usuario)
+  document.querySelectorAll('.sec-t span').forEach((s, i) => s.textContent = String(i + 1).padStart(2, '0'));
 
   if (isAdmin()) {
     const btn = document.getElementById('notaGuardar'), txt = document.getElementById('notaTxt'), msg = document.getElementById('notaMsg');

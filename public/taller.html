@@ -144,6 +144,14 @@ async function api(path) {
 
 async function cargar() {
   if (!token()) return goLogin();
+  // Mi taller está en preparación: por ahora solo lo ve el admin (el rol lo confirma el servidor)
+  const yo = await api('/api/me').catch(() => null);
+  if (!yo) { document.getElementById('app').innerHTML = '<div class="estado">No se pudo verificar el usuario. Intenta de nuevo en un momento.</div>'; return; }
+  if (yo.role !== 'admin') {
+    document.getElementById('tabs').style.display = 'none';
+    document.getElementById('app').innerHTML = '<div class="estado">Mi taller todavía está en preparación.<br>Por ahora solo lo ve el administrador.</div>';
+    return;
+  }
   const t0 = Date.now();
   const aviso = setInterval(() => {
     const s = Math.round((Date.now() - t0) / 1000), el = document.querySelector('#app .estado');

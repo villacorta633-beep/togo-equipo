@@ -194,7 +194,7 @@ button,select,input{font-family:inherit;}
   <span class="header-title">Gastos de flota</span>
   <span class="header-sep"></span>
   <span class="last-update" id="meta"></span>
-  <a class="btn hdr-btn" href="/taller.html" id="lnkTaller" style="text-decoration:none">Mi taller</a>
+  <a class="btn hdr-btn" href="/taller.html" id="lnkTaller" style="text-decoration:none;display:none">Mi taller</a>
   <a class="btn hdr-btn" href="/flota-3d.html" style="text-decoration:none">Vista 3D</a>
   <span class="hdr-user" id="hdrUser"></span>
   <button class="btn hdr-btn" id="usersBtn" style="display:none">Usuarios</button>
@@ -298,6 +298,8 @@ async function load() {
   document.getElementById('toolbar').style.display = 'flex';
   document.getElementById('uploadBtn').style.display = isAdmin() ? '' : 'none';
   document.getElementById('usersBtn').style.display = isAdmin() ? '' : 'none';
+  // Mi taller está en preparación: por ahora solo lo ve el admin
+  document.getElementById('lnkTaller').style.display = isAdmin() ? '' : 'none';
   document.getElementById('hdrUser').textContent = localStorage.getItem('togo_user') || '';
   renderMeta();
   if (!ROWS.length) {
@@ -381,7 +383,7 @@ function buildLayout() {
   <div class="notes" id="notes"></div>
   <div class="cards" id="cards"></div>
   <div class="grid">
-    <div class="panel full" id="tallerPanel">
+    <div class="panel full" id="tallerPanel" ${isAdmin() ? '' : 'style="display:none"'}>
       <div class="panel-head"><span class="panel-title">Mi taller</span><a class="btn" id="tallerBtn" href="/taller.html">Abrir Mi taller</a></div>
       <div id="taller"></div>
     </div>
@@ -498,7 +500,7 @@ function render() {
 // Se recalcula con cada carga del Excel, así los consejos cambian solos.
 function renderTaller() {
   const el = document.getElementById('taller');
-  if (!el || !TALLER) return;
+  if (!el || !TALLER || !isAdmin()) return;
   const btn = document.getElementById('tallerBtn');
   // Con una placa elegida, el botón abre directo su diagnóstico
   if (F.placa && TALLER.veh.has(F.placa)) {
