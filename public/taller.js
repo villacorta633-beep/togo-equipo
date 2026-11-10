@@ -529,7 +529,7 @@ function consejos(ctx, { placas = null, dias = 365 } = {}) {
 }
 
 const api = { norm, MANT, PARTES, GENERAL, PARTE, CORRECCIONES, corregir, clasificar, PLACAS_RAM, ETIQUETA,
-  tipoVehiculo, modeloVehiculo, CAUSAS, COMPONENTES, preparar, informe, consejos, aceite, dia, fechaCorta, mesAnio };
+  tipoVehiculo, modeloVehiculo, CAUSAS, COMPONENTES, preparar, informe, consejos, aceite, eventos, esAceite, dia, fechaCorta, mesAnio };
 global.Taller = api;
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

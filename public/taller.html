@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOGO · Mi taller</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0D0D0D;--bg2:#141414;--bg3:#1A1A1A;--bg4:#222;--border:#2A2A2A;--border2:#333;
+  --amber:#F5A623;--amber-dim:#F5A6231a;--text:#E8E8E8;--text2:#A3A3A3;--text3:#6b6b6b;
+  --red:#FF5A4E;--green:#3fb68b;--blue:#5b8def;
+  --font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;font-size:14px;}
+button,select,input{font-family:inherit;}
+a{color:inherit;}
+.header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 24px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5;}
+.logo{background:var(--amber);color:#000;font-weight:700;font-size:13px;padding:4px 10px;border-radius:4px;letter-spacing:1px;font-family:var(--mono);text-decoration:none;}
+.titulo{display:flex;flex-direction:column;line-height:1.2;}
+.titulo b{font-size:15px;}
+.titulo span{font-size:11px;color:var(--text3);font-family:var(--mono);letter-spacing:.5px;}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;}
+.tab{padding:7px 12px;border-radius:6px;font-size:13px;color:var(--text2);text-decoration:none;border:1px solid transparent;}
+.tab:hover{color:var(--text);background:var(--bg3);}
+.tab.on{color:var(--amber);background:var(--amber-dim);border-color:#F5A62355;}
+.sep{flex:1;}
+.btn{padding:6px 12px;font-size:11px;font-family:var(--mono);font-weight:500;border:1px solid var(--border2);background:transparent;color:var(--text2);border-radius:4px;cursor:pointer;letter-spacing:.5px;text-transform:uppercase;text-decoration:none;white-space:nowrap;}
+.btn:hover{border-color:var(--amber);color:var(--amber);}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 24px 60px;}
+.estado{display:flex;align-items:center;justify-content:center;min-height:60vh;text-align:center;color:var(--text2);line-height:1.7;padding:24px;}
+h2{font-size:20px;font-weight:700;letter-spacing:-.2px;}
+.sub{color:var(--text2);font-size:13px;margin-top:4px;line-height:1.5;}
+.h3{font-size:11px;font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;color:var(--text3);font-weight:600;margin:26px 0 10px;display:flex;align-items:center;gap:8px;}
+.h3 .n{color:var(--text2);}
+.resumen{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+.res{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;min-width:150px;}
+.res b{font-size:22px;font-family:var(--mono);display:block;}
+.res span{font-size:12px;color:var(--text2);}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.item{display:block;text-decoration:none;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--c,var(--border2));border-radius:6px;padding:11px 14px;margin-bottom:8px;transition:border-color .15s,background .15s;}
+a.item:hover{border-color:var(--amber);background:var(--bg3);}
+.item-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.placa{font-family:var(--mono);font-weight:700;font-size:13px;}
+.causa{font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px;color:var(--c);margin-left:auto;}
+.item-t{font-weight:600;margin-top:4px;font-size:13.5px;}
+.item-d{color:var(--text2);font-size:12.5px;margin-top:3px;line-height:1.5;}
+.vacio{color:var(--text3);font-size:13px;padding:10px 0;}
+.grid-veh{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
+.veh{display:block;text-decoration:none;background:var(--bg2);border:1px solid var(--border);border-top:3px solid var(--c);border-radius:8px;padding:14px 16px;transition:border-color .15s,transform .15s;}
+.veh:hover{border-color:var(--amber);}
+.veh .m{font-size:12px;color:var(--text2);}
+.veh .v{font-weight:600;margin-top:10px;font-size:13px;}
+.veh .x{font-size:12px;color:var(--text2);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap;}
+.semaforo{width:9px;height:9px;border-radius:50%;background:var(--c);display:inline-block;}
+.veredicto{border-left:4px solid var(--c);background:var(--bg2);border-radius:0 8px 8px 0;padding:14px 18px;margin-top:16px;}
+.veredicto b{font-size:16px;}
+.veredicto p{color:var(--text2);margin-top:6px;line-height:1.55;font-size:13.5px;}
+.diag{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--c);border-radius:6px;margin-bottom:10px;}
+.diag summary{list-style:none;cursor:pointer;padding:12px 16px;display:flex;flex-direction:column;gap:3px;}
+.diag summary::-webkit-details-marker{display:none;}
+.diag summary .item-top::after{content:'Ver diagnóstico ▾';font-size:11px;color:var(--text3);font-family:var(--mono);margin-left:12px;}
+.diag[open] summary .item-top::after{content:'Ocultar ▴';}
+.diag .cuerpo{padding:0 16px 16px;border-top:1px solid var(--border);}
+.bloques{display:grid;grid-template-columns:1fr 1fr;gap:12px 22px;margin-top:12px;}
+.bloque h5{font-size:10.5px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.7px;color:var(--amber);margin-bottom:6px;font-weight:600;}
+.bloque ul{padding-left:16px;}
+.bloque li{font-size:12.5px;color:var(--text);line-height:1.5;margin-bottom:5px;}
+.bloque li span{color:var(--text2);}
+.bloque.full{grid-column:1/-1;}
+.evid{font-family:var(--mono);font-size:11px;color:var(--text2);margin-top:10px;line-height:1.6;}
+.evid div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.que{color:var(--text2);font-size:12.5px;margin-top:10px;line-height:1.55;}
+table.plan{width:100%;border-collapse:collapse;font-size:12.5px;}
+table.plan th{text-align:left;font-size:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.6px;color:var(--text3);font-weight:600;padding:7px 8px;border-bottom:1px solid var(--border);white-space:nowrap;}
+table.plan td{padding:8px;border-bottom:1px solid var(--border);vertical-align:top;}
+.tabla-scroll{overflow-x:auto;background:var(--bg2);border:1px solid var(--border);border-radius:8px;}
+.chip{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap;font-family:var(--mono);}
+.chip.ok{background:#3fb68b22;color:var(--green);}
+.chip.pronto{background:#F5A62322;color:var(--amber);}
+.chip.toca{background:#FF5A4E22;color:var(--red);}
+.chip.sin{background:#8a8a8a22;color:#b5b5b5;}
+.chip.verificar{background:#5b8def22;color:var(--blue);}
+.ley{display:flex;gap:12px;flex-wrap:wrap;margin:8px 0 12px;font-size:12px;color:var(--text2);align-items:center;}
+.ficha{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 18px;}
+.ficha li{font-size:13px;line-height:1.55;margin:0 0 6px 16px;color:var(--text);}
+.notas{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 18px;white-space:pre-wrap;font-size:13.5px;line-height:1.55;}
+.notas.vacia{color:var(--text3);font-style:italic;}
+.filtros{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:16px;}
+.fbtn{padding:6px 12px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;}
+.fbtn.on{border-color:var(--amber);color:var(--amber);background:var(--amber-dim);}
+.buscar{background:var(--bg3);border:1px solid var(--border2);border-radius:20px;color:var(--text);padding:7px 14px;font-size:13px;min-width:220px;flex:1;max-width:340px;}
+.lib-sis{font-size:10px;font-family:var(--mono);color:var(--text3);text-transform:uppercase;letter-spacing:.6px;}
+.sel{background:var(--bg3);color:var(--text);border:1px solid var(--border2);border-radius:4px;padding:6px 10px;font-size:13px;font-family:var(--mono);}
+.cab-veh{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;}
+.cab-veh .acc{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;}
+.pie{margin-top:40px;font-size:11.5px;color:var(--text3);line-height:1.6;border-top:1px solid var(--border);padding-top:14px;}
+@media (max-width:820px){
+  .cols,.bloques{grid-template-columns:1fr;}
+  .wrap{padding:16px 16px 48px;}
+  .header{padding:10px 16px;}
+  .cab-veh .acc{margin-left:0;}
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <a class="logo" href="/">TOGO</a>
+  <div class="titulo"><b>Mi taller</b><span>MECÁNICO VIRTUAL</span></div>
+  <nav class="tabs" id="tabs">
+    <a class="tab" href="#hoy" data-v="hoy">Hoy</a>
+    <a class="tab" href="#vehiculos" data-v="vehiculos">Vehículos</a>
+    <a class="tab" href="#plan" data-v="plan">Plan de mantenimiento</a>
+    <a class="tab" href="#biblioteca" data-v="biblioteca">Biblioteca</a>
+  </nav>
+  <span class="sep"></span>
+  <a class="btn" href="/">← Gastos</a>
+</div>
+<div class="wrap" id="app"><div class="estado">Cargando gastos…</div></div>
+
+<script src="/taller.js"></script>
+<script src="/mecanico.js"></script>
+<script>
+const T = window.Taller, M = window.Mecanico;
+const fmt0 = new Intl.NumberFormat('es-BO', { maximumFractionDigits: 0 });
+const bs = v => 'Bs ' + fmt0.format(v);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const token = () => localStorage.getItem('togo_token');
+const goLogin = () => { ['togo_token', 'togo_user', 'togo_role'].forEach(k => localStorage.removeItem(k)); location.href = '/login.html?volver=' + encodeURIComponent(location.pathname + location.search + location.hash); };
+const ROJO = 'var(--red)', AMBAR = 'var(--amber)', VERDE = 'var(--green)';
+const ESTADO = { ok: 'Al día', pronto: 'Pronto', toca: 'Toca', sin: 'Sin registro', verificar: 'Verificar' };
+
+let CTX = null, NOTAS = new Map(), ACTIVAS = [], DIAG = new Map();
+const LIB = { tipo: '', q: '' };
+
+async function api(path) {
+  const r = await fetch(path, { headers: { 'x-auth-token': token() } });
+  if (r.status === 401) { goLogin(); throw new Error('Sesión vencida'); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'Error ' + r.status);
+  return d;
+}
+
+async function cargar() {
+  if (!token()) return goLogin();
+  const t0 = Date.now();
+  const aviso = setInterval(() => {
+    const s = Math.round((Date.now() - t0) / 1000), el = document.querySelector('#app .estado');
+    if (s >= 5 && el) el.innerHTML = `Iniciando el servidor…<br><span style="font-size:12px">Se apaga cuando nadie lo usa y tarda hasta un minuto en arrancar. Espera un momento (${s} s).</span>`;
+  }, 1000);
+  let d;
+  try {
+    [d] = await Promise.all([api('/api/gastos'), api('/api/notas').then(n => n.notas.forEach(x => NOTAS.set(x.placa, x))).catch(() => {})]);
+  } catch (e) {
+    document.getElementById('app').innerHTML = `<div class="estado">No se pudieron cargar los gastos.<br>${esc(e.message)}</div>`;
+    return;
+  } finally { clearInterval(aviso); }
+  CTX = T.preparar(d.rows, d.flota?.placas || []);
+  // Vehículos que están trabajando: la flota actual, o los que tuvieron gastos en los últimos 90 días
+  ACTIVAS = M.activas(CTX);
+  ACTIVAS.forEach(v => DIAG.set(v.placa, diagnostico(v.placa)));
+  ACTIVAS.sort((a, b) => peso(DIAG.get(b.placa)) - peso(DIAG.get(a.placa)));
+  window.addEventListener('hashchange', mostrar);
+  mostrar();
+}
+
+// Todo lo que el taller sabe de una placa
+function diagnostico(placa) {
+  const inf = T.informe(CTX, placa);
+  const anio = T.informe(CTX, placa, { desde: CTX.ref - 365 });
+  const cruces = M.cruzar(CTX, placa);
+  const plan = M.plan(CTX, placa);
+  const altos = inf.hallazgos.filter(h => h.nivel === 'alto' && (h.ultimo || 0) >= CTX.ref - 365 && h.causa !== 'desgaste').length;
+  const medios = inf.hallazgos.filter(h => h.nivel === 'medio' && (h.ultimo || 0) >= CTX.ref - 365 && h.causa !== 'desgaste').length + cruces.filter(c => c.ultimo >= CTX.ref - 365).length;
+  const toca = plan.filter(p => p.estado === 'toca').length;
+  const color = altos || plan.some(p => p.estado === 'toca' && p.id === 'aceite') ? ROJO : (medios || toca) ? AMBAR : VERDE;
+  return { inf, anio, cruces, plan, altos, medios, toca, color };
+}
+const peso = d => (d.color === ROJO ? 100 : d.color === AMBAR ? 50 : 0) + d.altos * 5 + d.medios;
+
+function mostrar() {
+  const h = decodeURIComponent(location.hash.slice(1) || 'hoy');
+  const [vista, arg] = h.split('/');
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.v === (vista === 'vehiculo' ? 'vehiculos' : vista)));
+  const app = document.getElementById('app');
+  if (vista === 'vehiculo' && CTX.veh.has(arg)) app.innerHTML = vVehiculo(arg);
+  else if (vista === 'vehiculos') app.innerHTML = vVehiculos();
+  else if (vista === 'plan') app.innerHTML = vPlan();
+  else if (vista === 'biblioteca') { app.innerHTML = vBiblioteca(); armarBiblioteca(); }
+  else app.innerHTML = vHoy();
+  const sel = document.getElementById('selVeh');
+  if (sel) sel.onchange = () => location.hash = 'vehiculo/' + sel.value;
+  window.scrollTo(0, 0);
+}
+
+// ── HOY ──────────────────────────────────────────────────────────────────────
+function vHoy() {
+  const { ahora, revisar } = M.hoy(CTX, ACTIVAS.map(v => v.placa));
+  ahora.concat(revisar).forEach(x => x.c = x.color);
+  const rojos = ACTIVAS.filter(v => DIAG.get(v.placa).color === ROJO).length;
+  const item = x => `<a class="item" style="--c:${x.c}" href="#vehiculo/${encodeURIComponent(x.placa)}">
+      <div class="item-top"><span class="placa">${esc(x.placa)}</span><span class="causa" style="color:${x.c}">${esc(x.etiqueta)}</span></div>
+      <div class="item-t">${esc(x.t)}</div><div class="item-d">${esc(x.d)}</div></a>`;
+  return `<h2>Hoy en el taller</h2>
+    <div class="sub">Lo que hay que hacer y lo que conviene revisar en los ${ACTIVAS.length} vehículos que están trabajando. Se actualiza solo con cada carga de gastos · datos hasta ${T.fechaCorta(CTX.ref)}.</div>
+    <div class="resumen">
+      <div class="res"><b style="color:var(--red)">${ahora.filter(x => x.orden < 2).length}</b><span>vehículos con mantenimiento pendiente</span></div>
+      <div class="res"><b style="color:var(--amber)">${revisar.length}</b><span>para revisar</span></div>
+      <div class="res"><b>${rojos}</b><span>vehículos en rojo</span></div>
+    </div>
+    <div class="cols">
+      <div><div class="h3">Para hacer ahora <span class="n">(${ahora.length})</span></div>${ahora.length ? ahora.map(item).join('') : '<div class="vacio">Todo el mantenimiento está al día.</div>'}</div>
+      <div><div class="h3">Para revisar <span class="n">(${revisar.length})</span></div>${revisar.length ? revisar.map(item).join('') : '<div class="vacio">Sin señales de mal uso ni reparaciones repetidas en el último año.</div>'}</div>
+    </div>
+    ${pie()}`;
+}
+
+// ── VEHÍCULOS ────────────────────────────────────────────────────────────────
+function vVehiculos() {
+  const card = v => {
+    const d = DIAG.get(v.placa), a = d.anio;
+    return `<a class="veh" style="--c:${d.color}" href="#vehiculo/${encodeURIComponent(v.placa)}">
+      <div class="item-top"><span class="semaforo"></span><span class="placa">${esc(v.placa)}</span><span class="m" style="margin-left:auto">${esc(v.proxi)}</span></div>
+      <div class="m" style="margin-top:2px">${esc(v.etiqueta)}</div>
+      <div class="v">${esc(d.inf.veredicto.titulo)}</div>
+      <div class="x"><span>${bs(a.porMes)}/mes (último año)</span>${a.comp.n >= 3 && a.ratio ? `<span>${a.ratio >= 1.3 ? a.ratio.toFixed(1).replace('.', ',') + '× lo normal' : a.ratio <= 0.75 ? 'bajo lo normal' : 'normal'}</span>` : ''}
+        ${d.altos ? `<span style="color:var(--red)">${d.altos} importante${d.altos > 1 ? 's' : ''}</span>` : ''}${d.toca ? `<span style="color:var(--amber)">${d.toca} mant. pendiente${d.toca > 1 ? 's' : ''}</span>` : ''}</div></a>`;
+  };
+  const grupo = (tipo, titulo) => { const vs = ACTIVAS.filter(v => v.tipo === tipo); return vs.length ? `<div class="h3">${titulo} <span class="n">(${vs.length})</span></div><div class="grid-veh">${vs.map(card).join('')}</div>` : ''; };
+  return `<h2>Vehículos</h2>
+    <div class="sub">Rojo: hay algo importante o el aceite ya pasó. Ámbar: hay cosas para revisar o mantenimientos pendientes. Verde: todo en orden. Toca un vehículo para ver su diagnóstico.</div>
+    ${grupo('furgon', 'Furgones')}${grupo('moto', 'Motos')}${pie()}`;
+}
+
+// ── CONSULTA DE UN VEHÍCULO ──────────────────────────────────────────────────
+function vVehiculo(placa) {
+  const v = CTX.veh.get(placa);
+  const d = DIAG.get(placa) || diagnostico(placa);
+  const inf = d.inf, C = T.CAUSAS;
+  const modelo = M.VEHICULOS[v.modelo];
+  const opciones = [...ACTIVAS, ...(ACTIVAS.some(a => a.placa === placa) ? [] : [v])].map(x => `<option value="${esc(x.placa)}" ${x.placa === placa ? 'selected' : ''}>${esc(x.placa)} · ${esc(x.etiqueta)}</option>`).join('');
+
+  const evid = filas => {
+    const vistos = [...new Map(filas.map(e => [e.id, e])).values()];
+    return vistos.length ? `<div class="evid">${vistos.slice(0, 4).map(e => `<div>${T.fechaCorta(e.dia)} · ${bs(e.monto)} · ${esc(e.descripcion.trim() || e.tipo)}</div>`).join('')}${vistos.length > 4 ? `<div>… y ${vistos.length - 4} más</div>` : ''}</div>` : '';
+  };
+  const lista = (arr, f) => `<ul>${arr.map(f).join('')}</ul>`;
+  const saber = (id, abierto) => {
+    const p = M.PIEZAS[id];
+    if (!p) return '';
+    const vida = p.vida[v.modelo] || p.vida[v.tipo] || '';
+    // Lo que es solo de motos no se muestra en un furgón, y al revés
+    const otro = v.tipo === 'moto' ? /^Furg[oó]n\b|\(furg[oó]n\)/i : /^Moto:|\(moto\)/i;
+    const propio = x => !otro.test(x.t || x.p || x);
+    return `<div class="bloques">
+      <div class="bloque"><h5>¿Por qué suele fallar?</h5>${lista(p.causas.filter(propio), c => `<li><b>${esc(c.t)}.</b> <span>${esc(c.d)}</span></li>`)}</div>
+      <div class="bloque"><h5>¿Qué más puede afectar?</h5>${lista(p.afecta.filter(propio), c => `<li><b>${esc(c.p)}:</b> <span>${esc(c.d)}</span></li>`)}</div>
+      <div class="bloque"><h5>Qué revisar</h5>${lista(p.revisar.filter(propio), x => `<li>${esc(x)}</li>`)}${vida ? `<div class="que"><b>Vida normal:</b> ${esc(vida)}</div>` : ''}</div>
+      <div class="bloque"><h5>Preguntas para el taller</h5>${lista(p.taller, x => `<li>${esc(x)}</li>`)}<h5 style="margin-top:12px">Preguntas para el conductor</h5>${lista(p.conductor, x => `<li>${esc(x)}</li>`)}</div>
+    </div>`;
+  };
+  const tarjeta = (h, i) => {
+    const pieza = M.piezaDe(h);
+    return `<details class="diag" style="--c:${h.nivel === 'alto' ? ROJO : C[h.causa].color}" ${i === 0 ? 'open' : ''}>
+      <summary><div class="item-top"><span class="causa" style="margin:0;color:${C[h.causa].color}">${esc(C[h.causa].nombre)}</span><span class="causa" style="color:var(--text3)">${h.nivel === 'alto' ? 'Importante' : h.nivel === 'medio' ? 'A revisar' : 'Informativo'}</span></div>
+        <div class="item-t">${esc(h.titulo)}</div></summary>
+      <div class="cuerpo"><div class="que">${esc(h.detalle)}</div>${h.consejo ? `<div class="que"><b style="color:var(--text)">Qué hacer:</b> ${esc(h.consejo)}</div>` : ''}${evid(h.evidencias)}
+        ${pieza ? saber(pieza) : ''}</div></details>`;
+  };
+  const hall = inf.hallazgos.filter(h => h.nivel !== 'bajo' || h.causa !== 'desgaste');
+  const cruces = d.cruces.map(x => `<details class="diag" style="--c:var(--blue)">
+      <summary><div class="item-top"><span class="causa" style="margin:0;color:var(--blue)">Pregunta del mecánico</span></div><div class="item-t">${esc(x.titulo)}</div></summary>
+      <div class="cuerpo"><div class="que">${esc(x.detalle)}</div>${evid(x.filas)}${saber(x.pieza)}</div></details>`).join('');
+  const normales = inf.hallazgos.find(h => h.titulo === 'Cambios normales por desgaste');
+
+  const plan = d.plan.map(p => `<tr><td><b>${esc(p.nombre)}</b>${p.nota ? `<div class="item-d">${esc(p.nota)}</div>` : ''}</td><td>${esc(p.cada)}</td>
+      <td>${p.ultimo ? `${T.fechaCorta(p.ultimo.dia)}<div class="item-d">hace ${fmt0.format(p.dias)} días · ${p.veces} ${p.veces === 1 ? 'vez' : 'veces'}</div>` : '<span class="item-d">—</span>'}</td>
+      <td><span class="chip ${p.estado}">${ESTADO[p.estado]}</span></td></tr>`).join('');
+  const nota = NOTAS.get(placa);
+
+  return `<div class="cab-veh">
+      <div><h2>${esc(placa)}</h2><div class="sub">${esc(v.etiqueta)} · ${esc(v.proxi)} · ${fmt0.format(inf.n)} gastos de mantenimiento desde ${T.fechaCorta(v.primero)}</div></div>
+      <div class="acc"><select class="sel" id="selVeh">${opciones}</select>
+        <a class="btn" href="/informe.html?placa=${encodeURIComponent(placa)}">Informe para imprimir</a>
+        <a class="btn" href="/flota-3d.html?placa=${encodeURIComponent(placa)}">Ver en 3D</a></div>
+    </div>
+    <div class="veredicto" style="--c:${C[inf.veredicto.causa].color}"><b>${esc(inf.veredicto.titulo)}</b><p>${esc(inf.veredicto.texto)}</p></div>
+
+    <div class="h3">Diagnóstico del mecánico <span class="n">(${hall.length})</span></div>
+    ${hall.length ? hall.map(tarjeta).join('') : '<div class="vacio">No se ven señales de mal uso, falta de mantenimiento ni reparaciones repetidas.</div>'}
+    ${normales ? `<div class="item" style="--c:var(--blue)"><div class="item-t">Desgaste normal</div><div class="item-d">${esc(normales.detalle)}</div></div>` : ''}
+
+    ${d.cruces.length ? `<div class="h3">Lo que el mecánico preguntaría <span class="n">(${d.cruces.length})</span></div>
+      <div class="sub" style="margin:-4px 0 10px">Arreglos que normalmente van juntos y no aparecen en los gastos. Puede que se hayan hecho y no se anotaron: vale la pena preguntar.</div>${cruces}` : ''}
+
+    <div class="h3">Plan de mantenimiento</div>
+    <div class="tabla-scroll"><table class="plan"><thead><tr><th>Tarea</th><th>Cada</th><th>Último registrado</th><th>Estado</th></tr></thead><tbody>${plan}</tbody></table></div>
+    <div class="ley"><span class="chip sin">Sin registro</span> no aparece en los gastos: averiguar si se hizo y anotarlo · <span class="chip verificar">Verificar</span> faltan registros de casi toda la flota en esos meses</div>
+
+    <div class="h3">Cómo es este vehículo</div>
+    <div class="ficha"><ul>${modelo.ficha.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
+
+    <div class="h3">Observaciones del responsable</div>
+    <div class="notas ${nota?.texto ? '' : 'vacia'}">${nota?.texto ? esc(nota.texto) : 'Sin observaciones. Se escriben desde el informe para imprimir.'}</div>
+    ${pie()}`;
+}
+
+// ── PLAN DE TODA LA FLOTA ────────────────────────────────────────────────────
+function vPlan() {
+  const tabla = tipo => {
+    const vs = ACTIVAS.filter(v => v.tipo === tipo);
+    if (!vs.length) return '';
+    const tareas = M.PLAN[tipo];
+    const cab = tareas.map(t => `<th title="${esc(t.nombre)} · cada ${esc(t.cada)}">${esc(t.nombre.split(' (')[0].replace('Revisión de ', '').replace('Cambio de ', ''))}</th>`).join('');
+    const filas = vs.map(v => {
+      const pl = new Map(DIAG.get(v.placa).plan.map(p => [p.id, p]));
+      return `<tr><td><a href="#vehiculo/${encodeURIComponent(v.placa)}" class="placa" style="text-decoration:none">${esc(v.placa)}</a><div class="item-d">${esc(v.etiqueta)}</div></td>${tareas.map(t => {
+        const p = pl.get(t.id);
+        if (!p) return '<td><span class="item-d">—</span></td>';
+        return `<td title="${p.ultimo ? 'Último: ' + T.fechaCorta(p.ultimo.dia) : 'Sin registro'}"><span class="chip ${p.estado}">${ESTADO[p.estado]}</span>${p.dias != null ? `<div class="item-d">${fmt0.format(p.dias)} d</div>` : ''}</td>`;
+      }).join('')}</tr>`;
+    }).join('');
+    return `<div class="h3">${tipo === 'moto' ? 'Motos' : 'Furgones'}</div>
+      <div class="tabla-scroll"><table class="plan"><thead><tr><th>Placa</th>${cab}</tr></thead><tbody>${filas}</tbody></table></div>
+      <div class="sub" style="margin-top:8px">${tareas.map(t => `<b>${esc(t.nombre)}</b>: cada ${esc(t.cada)}`).join(' · ')}</div>`;
+  };
+  return `<h2>Plan de mantenimiento</h2>
+    <div class="sub">Cuándo se hizo por última vez cada tarea, según los gastos cargados. Los días son desde ese registro hasta ${T.fechaCorta(CTX.ref)}. Los intervalos son referencias de taller para reparto urbano: confirmarlos con el manual de cada vehículo.</div>
+    <div class="ley"><span class="chip ok">Al día</span><span class="chip pronto">Pronto</span><span class="chip toca">Toca</span><span class="chip sin">Sin registro</span><span class="chip verificar">Verificar</span></div>
+    ${tabla('furgon')}${tabla('moto')}${pie()}`;
+}
+
+// ── BIBLIOTECA ───────────────────────────────────────────────────────────────
+function vBiblioteca() {
+  return `<h2>Biblioteca del mecánico</h2>
+    <div class="sub">Cómo funciona cada sistema, por qué falla, qué arrastra cuando falla y qué preguntar. Sirve para entender lo que dice el taller y para hacer las preguntas correctas.</div>
+    <div class="filtros"><button class="fbtn" data-t="">Todo</button><button class="fbtn" data-t="moto">Motos</button><button class="fbtn" data-t="furgon">Furgones</button>
+      <input class="buscar" id="libQ" placeholder="Buscar: embrague, recalienta, pinchazo…" value="${esc(LIB.q)}"></div>
+    <div class="h3">Los vehículos de la flota</div>
+    <div class="grid-veh">${Object.entries(M.VEHICULOS).map(([k, x]) => `<div class="ficha"><b>${esc(x.nombre)}</b><ul style="margin-top:8px">${x.ficha.map(f => `<li style="font-size:12.5px">${esc(f)}</li>`).join('')}</ul></div>`).join('')}</div>
+    <div class="h3">Piezas y sistemas</div><div id="libLista"></div>${pie()}`;
+}
+function armarBiblioteca() {
+  const pintar = () => {
+    document.querySelectorAll('.fbtn').forEach(b => b.classList.toggle('on', b.dataset.t === LIB.tipo));
+    const q = T.norm(LIB.q).trim();
+    const piezas = Object.entries(M.PIEZAS).filter(([, p]) => (!LIB.tipo || p.aplica.includes(LIB.tipo)) && (!q || T.norm(JSON.stringify(p)).includes(q)));
+    const vidas = p => Object.entries(p.vida).filter(([k]) => !LIB.tipo || (LIB.tipo === 'moto' ? k === 'moto' : k !== 'moto'))
+      .map(([k, x]) => `<li><b>${{ moto: 'Moto', apv: 'APV', ram: 'RAM 700' }[k]}:</b> <span>${esc(x)}</span></li>`).join('');
+    document.getElementById('libLista').innerHTML = piezas.length ? piezas.map(([id, p]) => `<details class="diag" style="--c:var(--amber)">
+      <summary><div class="lib-sis">${esc(p.sistema)} · ${p.aplica.map(a => a === 'moto' ? 'motos' : 'furgones').join(' y ')}</div><div class="item-t">${esc(p.nombre)}</div><div class="item-d">${esc(p.para)}</div></summary>
+      <div class="cuerpo"><div class="bloques">
+        <div class="bloque"><h5>Síntomas</h5><ul>${p.sintomas.map(x => `<li>${esc(x)}</li>`).join('')}</ul>${vidas(p) ? `<h5 style="margin-top:12px">Vida normal</h5><ul>${vidas(p)}</ul>` : ''}</div>
+        <div class="bloque"><h5>¿Por qué falla?</h5><ul>${p.causas.map(c => `<li><b>${esc(c.t)}.</b> <span>${esc(c.d)}</span></li>`).join('')}</ul></div>
+        <div class="bloque"><h5>¿Qué más afecta?</h5><ul>${p.afecta.map(c => `<li><b>${esc(c.p)}:</b> <span>${esc(c.d)}</span></li>`).join('')}</ul><h5 style="margin-top:12px">Qué revisar</h5><ul>${p.revisar.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
+        <div class="bloque"><h5>Preguntas para el taller</h5><ul>${p.taller.map(x => `<li>${esc(x)}</li>`).join('')}</ul><h5 style="margin-top:12px">Preguntas para el conductor</h5><ul>${p.conductor.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
+      </div></div></details>`).join('') : '<div class="vacio">No hay nada con esa búsqueda.</div>';
+  };
+  document.querySelectorAll('.fbtn').forEach(b => b.onclick = () => { LIB.tipo = b.dataset.t; pintar(); });
+  document.getElementById('libQ').oninput = e => { LIB.q = e.target.value; pintar(); };
+  pintar();
+}
+
+const pie = () => `<div class="pie">El mecánico virtual saca sus conclusiones de las descripciones, fechas y montos del Excel de gastos, y de referencias de mantenimiento para estos modelos. Son indicios para preguntar y revisar, no un peritaje: confírmalos con el taller y con el conductor. Los intervalos varían según el manual, el aceite y el uso.</div>`;
+
+cargar();
+</script>
+</body>
+</html>

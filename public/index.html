@@ -138,6 +138,9 @@ button,select,input{font-family:inherit;}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;}
 
 /* TALLER: consejos que salen de los gastos */
+.tl-resumen{display:flex;gap:18px;flex-wrap:wrap;align-items:baseline;font-size:13px;color:var(--text2);}
+.tl-resumen b{font-family:var(--mono);font-size:16px;}
+.tl-hint{font-size:11px;color:var(--text3);}
 .taller-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 .taller-col h4{font-size:10px;font-family:var(--mono);color:var(--text3);letter-spacing:.8px;text-transform:uppercase;font-weight:600;margin-bottom:8px;}
 .tl-item{display:block;text-decoration:none;color:inherit;background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--c);border-radius:4px;padding:9px 12px;margin-bottom:8px;transition:border-color .15s,background .15s;}
@@ -191,7 +194,7 @@ button,select,input{font-family:inherit;}
   <span class="header-title">Gastos de flota</span>
   <span class="header-sep"></span>
   <span class="last-update" id="meta"></span>
-  <a class="btn hdr-btn" href="/informe.html" id="lnkInforme" style="text-decoration:none">Informes</a>
+  <a class="btn hdr-btn" href="/taller.html" id="lnkTaller" style="text-decoration:none">Mi taller</a>
   <a class="btn hdr-btn" href="/flota-3d.html" style="text-decoration:none">Vista 3D</a>
   <span class="hdr-user" id="hdrUser"></span>
   <button class="btn hdr-btn" id="usersBtn" style="display:none">Usuarios</button>
@@ -225,6 +228,7 @@ button,select,input{font-family:inherit;}
 
 <script src="/lector-excel.js"></script>
 <script src="/taller.js"></script>
+<script src="/mecanico.js"></script>
 <script>
 const API = '';
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -252,7 +256,6 @@ const F = { vista: 'TOTAL', anio: null, mes: 0, proxi: 'TODOS', placa: '', tipo:
 const T = { q: '', sort: 'fecha', dir: -1, shown: 100 };
 let rankAll = false;
 let TALLER = null;         // gastos ya leídos por el taller (se arma una vez por carga)
-let tallerTodos = false;
 let chMes = null, chTipo = null, chDona = null;
 
 // ── AUTH ─────────────────────────────────────────────────────────────────────
@@ -379,7 +382,7 @@ function buildLayout() {
   <div class="cards" id="cards"></div>
   <div class="grid">
     <div class="panel full" id="tallerPanel">
-      <div class="panel-head"><span class="panel-title">Taller · consejos</span><span class="panel-hint" id="tallerHint"></span><a class="btn" id="tallerBtn" href="/informe.html">Ver informe</a></div>
+      <div class="panel-head"><span class="panel-title">Mi taller</span><a class="btn" id="tallerBtn" href="/taller.html">Abrir Mi taller</a></div>
       <div id="taller"></div>
     </div>
     <div class="panel full">
@@ -496,47 +499,21 @@ function render() {
 function renderTaller() {
   const el = document.getElementById('taller');
   if (!el || !TALLER) return;
-  const C = Taller.CAUSAS;
-  const informe = p => '/informe.html?placa=' + encodeURIComponent(p);
-  const ref = Taller.fechaCorta(TALLER.ref);
   const btn = document.getElementById('tallerBtn');
-
-  // Con una placa elegida: su diagnóstico y lo que hay que revisar
+  // Con una placa elegida, el botón abre directo su diagnóstico
   if (F.placa && TALLER.veh.has(F.placa)) {
     const inf = Taller.informe(TALLER, F.placa);
-    btn.href = informe(F.placa); btn.textContent = `Informe de ${F.placa}`;
-    document.getElementById('tallerHint').textContent = `${inf.etiqueta} · todo su historial · datos hasta ${ref}`;
-    const items = inf.hallazgos.filter(h => h.nivel !== 'bajo');
-    const ac = inf.aceite;
-    el.innerHTML = `<div class="tl-ver" style="--c:${C[inf.veredicto.causa].color}"><b>${esc(inf.veredicto.titulo)}</b><p>${esc(inf.veredicto.texto)}</p></div>
-      <div class="taller-cols">
-        <div class="taller-col"><h4>Para hacer</h4>${inf.recomendaciones.slice(0, 4).map(r => `<div class="tl-item" style="--c:var(--amber)"><div class="tl-d" style="margin:0;color:var(--text)">${esc(r)}</div></div>`).join('')}
-          ${ac.ultimo != null ? `<div class="tl-d">Último cambio de aceite: ${Taller.fechaCorta(ac.ultimo)} · suele hacerse cada ${ac.cada} días.</div>` : ''}</div>
-        <div class="taller-col"><h4>Hallazgos (${items.length})</h4>${items.length ? items.slice(0, 4).map(h => `<a class="tl-item" style="--c:${C[h.causa].color}" href="${informe(F.placa)}">
-            <div class="tl-top"><span class="tl-t" style="margin:0">${esc(h.titulo)}</span><span class="tl-causa">${esc(C[h.causa].nombre)}</span></div></a>`).join('') +
-            (items.length > 4 ? `<div class="tl-d"><a class="link" href="${informe(F.placa)}">Ver los ${items.length} en el informe</a></div>` : '')
-          : '<div class="tl-vacio">Sin señales de mal uso ni de falta de mantenimiento.</div>'}</div>
-      </div>`;
+    btn.href = '/taller.html#vehiculo/' + encodeURIComponent(F.placa); btn.textContent = `Diagnóstico de ${F.placa}`;
+    const n = inf.hallazgos.filter(h => h.nivel !== 'bajo' && h.causa !== 'desgaste').length;
+    el.innerHTML = `<div class="tl-resumen"><b style="color:${Taller.CAUSAS[inf.veredicto.causa].color}">${esc(inf.veredicto.titulo)}</b><span>${n ? n + ' punto' + (n > 1 ? 's' : '') + ' a revisar' : 'Sin puntos a revisar'}</span></div>`;
     return;
   }
-
-  // Sin placa: consejos de toda la flota (respeta la vista Flota actual y el PROXI elegidos)
-  btn.href = '/informe.html'; btn.textContent = 'Ver informes';
+  btn.href = '/taller.html'; btn.textContent = 'Abrir Mi taller';
   const placas = new Set(ROWS.filter(r => match(r, { anio: null, mes: 0, placa: '', tipo: '' })).map(r => r.placa));
-  const lista = Taller.consejos(TALLER, { placas: F.vista === 'FLOTA' || F.proxi !== 'TODOS' ? placas : null });
-  const ahora = lista.filter(c => c.clase === 'aceite');
-  const revisar = lista.filter(c => c.clase !== 'aceite');
-  document.getElementById('tallerHint').textContent = `Se actualiza solo con cada carga de gastos · datos hasta ${ref} · último año`;
-  const item = c => `<a class="tl-item" style="--c:${c.nivel === 'alto' ? 'var(--red)' : C[c.causa].color}" href="${informe(c.placa)}">
-      <div class="tl-top"><span class="tl-placa">${esc(c.placa)}</span><span class="tl-causa" style="color:${C[c.causa].color}">${esc(C[c.causa].nombre)}</span></div>
-      <div class="tl-t">${esc(c.titulo)}</div><div class="tl-d">${esc(c.detalle)}</div></a>`;
-  const n = tallerTodos ? Infinity : 5;
-  el.innerHTML = `<div class="taller-cols">
-      <div class="taller-col"><h4>Para hacer ahora (${ahora.length})</h4>${ahora.length ? ahora.slice(0, n).map(item).join('') : '<div class="tl-vacio">Todos los cambios de aceite están al día.</div>'}</div>
-      <div class="taller-col"><h4>Para revisar (${revisar.length})</h4>${revisar.length ? revisar.slice(0, n).map(item).join('') : '<div class="tl-vacio">Sin señales de mal uso ni reparaciones repetidas en el último año.</div>'}</div>
-    </div>` + (Math.max(ahora.length, revisar.length) > 5 ? `<div class="more"><button class="link" id="tallerMas">${tallerTodos ? 'Ver menos' : 'Ver todos los consejos'}</button></div>` : '');
-  const mas = document.getElementById('tallerMas');
-  if (mas) mas.onclick = () => { tallerTodos = !tallerTodos; renderTaller(); };
+  // Lo mismo que muestra Mi taller en "Hoy", respetando el PROXI elegido
+  const { ahora, revisar } = Mecanico.hoy(TALLER, Mecanico.activas(TALLER).map(v => v.placa).filter(p => placas.has(p)));
+  el.innerHTML = `<div class="tl-resumen"><span><b style="color:var(--red)">${ahora.filter(x => x.orden < 2).length}</b> vehículos con mantenimiento pendiente</span><span><b style="color:var(--amber)">${revisar.length}</b> para revisar</span>
+    <span class="tl-hint">Tu mecánico virtual: diagnóstico por vehículo, plan de mantenimiento y biblioteca</span></div>`;
 }
 
 function renderNotes() {
