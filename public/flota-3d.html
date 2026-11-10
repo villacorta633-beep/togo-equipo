@@ -49,6 +49,19 @@ button,select{font-family:inherit;}
 .tip b{display:block;font-weight:600;margin-bottom:2px;}
 .tip span{font-family:var(--mono);color:var(--amber);font-size:11px;}
 .estado{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--text2);font-size:13px;line-height:1.6;padding:24px;}
+.spin{width:30px;height:30px;border:3px solid var(--border2);border-top-color:var(--amber);border-radius:50%;animation:gira 0.9s linear infinite;margin:0 auto 14px;}
+@keyframes gira{to{transform:rotate(360deg)}}
+.carga-sub{font-size:11px;color:var(--text3);max-width:320px;margin:6px auto 0;}
+/* Etiquetas flotantes de las piezas que más gastan */
+.etiquetas{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden;}
+.etq{position:absolute;left:0;top:0;will-change:transform;}
+.etq-in{position:absolute;bottom:-4px;left:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;}
+.etq-caja{pointer-events:auto;cursor:pointer;display:flex;gap:7px;align-items:center;white-space:nowrap;background:#0f0f10e6;border:1px solid var(--border2);border-radius:6px;padding:4px 9px;font:500 11px var(--font);color:var(--text);box-shadow:0 4px 14px #0007;}
+.etq-caja:hover{border-color:var(--amber);}
+.etq-caja .sw{width:8px;height:8px;border-radius:2px;}
+.etq-caja .etq-m{font-family:var(--mono);color:var(--amber);}
+.etq-linea{width:1px;background:#ffffff66;display:block;}
+.etq-punto{width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px #ffffff2e;display:block;}
 
 .panel{border-left:1px solid var(--border);background:var(--bg2);overflow-y:auto;min-height:0;}
 .p-sec{padding:18px 20px;border-bottom:1px solid var(--border);}
@@ -153,7 +166,8 @@ button,select{font-family:inherit;}
     </div>
     <div class="tip" id="tip"></div>
     <div class="ficha" id="ficha"></div>
-    <div class="estado" id="estado">Cargando gastos…</div>
+    <div class="etiquetas" id="etiquetas"></div>
+    <div class="estado" id="estado"><div><div class="spin"></div><div id="cargaTxt">Cargando gastos…</div><div class="carga-sub" id="cargaSub"></div></div></div>
   </div>
   <div class="panel" id="panel"></div>
 </div>
@@ -257,16 +271,27 @@ const ETIQUETA = { moto: 'Honda CB160 Hornet', apv: 'Suzuki APV', ram: 'RAM 700 
 
 async function cargar() {
   if (!token()) return goLogin();
+  // Si el servidor estaba dormido (plan gratuito de Render) tarda hasta un minuto: avisarlo
+  const t0 = Date.now();
+  const aviso = setInterval(() => {
+    const s = Math.round((Date.now() - t0) / 1000);
+    if (s < 5) return;
+    const txt = document.getElementById('cargaTxt'), sub = document.getElementById('cargaSub');
+    if (txt) txt.textContent = 'Iniciando el servidor…';
+    if (sub) sub.textContent = `El servidor se apaga cuando nadie lo usa y tarda hasta un minuto en arrancar. Espera un momento (${s} s).`;
+  }, 1000);
   let d;
   try {
     const r = await fetch('/api/gastos', { headers: { 'x-auth-token': token() } });
-    if (r.status === 401) return goLogin();
+    if (r.status === 401) { clearInterval(aviso); return goLogin(); }
     d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.error || 'Error ' + r.status);
   } catch (e) {
+    clearInterval(aviso);
     estado(`No se pudieron cargar los gastos.<br>${esc(e.message)}`);
     return;
   }
+  clearInterval(aviso);
   (d.flota?.placas || []).forEach(p => FLOTA.set(p.placa, p));
   ROWS = d.rows.filter(r => MANT.includes(r.tipo) && r.placa && r.placa !== 'SIN PLACA')
     .map(r => { const { d, errores } = corregir(r.descripcion); return { ...r, partes: clasificar(d), errores }; });
@@ -588,6 +613,12 @@ function casco({ x0, x1, bajo, alto, ancho, anchoTecho, cintura, n, zona, paso =
     const idx = []; let ini = 0;
     orden.forEach((k, mi) => { g.addGroup(ini, lista[k].length, mi); for (const v of lista[k]) idx.push(v); ini += lista[k].length; });
     g.setIndex(idx); g.computeVertexNormals();
+    // Las ópticas comparten los vértices de la carrocería: su caja de medidas se calcula solo con los suyos
+    if (idx.length) {
+      const bb = new THREE.Box3(), v = new THREE.Vector3();
+      for (const i of idx) bb.expandByPoint(v.fromBufferAttribute(posAttr, i));
+      g.boundingBox = bb; g.boundingSphere = bb.getBoundingSphere(new THREE.Sphere());
+    }
     return new THREE.Mesh(g, orden.map(k => fabrica[k]()));
   };
   return {
@@ -1204,7 +1235,7 @@ function encuadrar() {
   if (!ENCUADRE) return;
   const { centro, camara } = ENCUADRE;
   controls.target.copy(centro);
-  camera.position.copy(centro).addScaledVector(camara.clone().sub(centro), Math.max(1, 1.5 / (camera.aspect || 1.5)));
+  camera.position.copy(centro).addScaledVector(camara.clone().sub(centro), 0.86 * Math.max(1, 1.35 / (camera.aspect || 1.5)));
 }
 function construir(modelo) {
   if (modeloActual === modelo) return;
@@ -1237,12 +1268,15 @@ function colorParte(id) {
 }
 const AMBAR = new THREE.Color('#F5A623');
 function pintar() {
-  const cols = Object.fromEntries(PARTES.map(p => [p.id, colorParte(p.id)]));
+  // Solo se tiñen las piezas con gasto; las que no tienen gasto quedan con su color real
+  const cols = Object.fromEntries(PARTES.filter(p => (AGG[p.id]?.monto || 0) > 0).map(p => [p.id, colorParte(p.id)]));
   root?.traverse(m => {
     if (!m.isMesh) return;
     const p = m.userData.parte;
     const marcado = p === S.parte || (p === S.hover && p !== 'chasis');
     const fantasma = S.parte && S.parte !== 'general' && p !== S.parte;
+    // Mapa de calor en "rayos X": la carrocería se vuelve translúcida para ver las piezas de adentro
+    const rayosX = !fantasma && S.calor && p === 'carroceria' && S.parte !== 'carroceria' && S.hover !== 'carroceria';
     mats(m).forEach(mt => {
       const u = mt.userData;
       if (S.calor && cols[p] && !u.fijo) {
@@ -1251,9 +1285,10 @@ function pintar() {
       } else mt.color.copy(u.c0);
       if (marcado) { mt.emissive.copy(AMBAR); mt.emissiveIntensity = p === S.parte ? 0.35 : 0.2; }
       else { mt.emissive.copy(u.e0); mt.emissiveIntensity = u.ei0; }
-      const tr = !!(fantasma || u.t0);
+      const tr = !!(fantasma || rayosX || u.t0);
       if (mt.transparent !== tr) { mt.transparent = tr; mt.needsUpdate = true; }   // cambia el shader: hay que recompilar
-      mt.opacity = fantasma ? 0.1 : u.o0; mt.depthWrite = !fantasma && !u.t0;
+      mt.opacity = fantasma ? 0.1 : rayosX ? (u.fijo ? 0.14 : 0.16) : u.o0;
+      mt.depthWrite = !fantasma && !rayosX && !u.t0;
     });
   });
 }
@@ -1332,8 +1367,63 @@ renderer.setAnimationLoop(() => {
   const meta = S.desarmar ? 1 : 0;
   if (DES.t !== meta) { DES.t = meta > DES.t ? Math.min(1, DES.t + dt / 1.6) : Math.max(0, DES.t - dt / 1.6); moverPiezas(); }
   controls.update();
+  moverEtiquetas();
   renderer.render(scene, camera);
 });
+
+// ── Etiquetas flotantes: las 3 piezas que más gastan, apuntando a su lugar en el vehículo ──
+const capaEtq = document.getElementById('etiquetas');
+let ETQ = [];
+function armarEtiquetas() {
+  capaEtq.innerHTML = '';
+  const top = PARTES.map(p => ({ p, a: AGG[p.id] })).filter(x => x.a.monto > 0).sort((x, y) => y.a.monto - x.a.monto).slice(0, 3);
+  ETQ = top.map(({ p, a }, i) => {
+    const hex = '#' + colorParte(p.id).getHexString();
+    const el = document.createElement('div');
+    el.className = 'etq';
+    el.innerHTML = `<div class="etq-in"><button class="etq-caja" title="Ver el desglose"><span class="sw" style="background:${hex}"></span><b>${esc(p.nombre)}</b><span class="etq-m">${bs(a.monto)}</span></button><i class="etq-linea" style="height:${24 + i * 30}px"></i><i class="etq-punto"></i></div>`;
+    el.querySelector('button').onclick = () => elegir(p.id);
+    capaEtq.appendChild(el);
+    // La etiqueta apunta a la pieza principal de la parte: la primera que se armó (bloque del motor,
+    // faros, caja de cambios…), no al centro de todo el conjunto (que incluye tanque, escape, etc.)
+    const primera = piezas.find(o => o.userData.parte === p.id);
+    let ancla = null; primera?.traverse(m => { if (!ancla && m.isMesh) ancla = m; });
+    return { el, objs: ancla ? [ancla] : [] };
+  });
+}
+const cajaEtq = new THREE.Box3(), cajaPieza = new THREE.Box3(), puntoEtq = new THREE.Vector3();
+function moverEtiquetas() {
+  const ver = !S.parte && ETQ.length > 0;
+  capaEtq.style.display = ver ? '' : 'none';
+  if (!ver) return;
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  // 1) Dónde cae cada pieza en la pantalla
+  const pts = ETQ.map(e => {
+    cajaEtq.makeEmpty();
+    e.objs.forEach(o => cajaEtq.union(cajaPieza.setFromObject(o)));
+    if (cajaEtq.isEmpty()) return null;
+    cajaEtq.getCenter(puntoEtq).project(camera);
+    if (puntoEtq.z > 1 || Math.abs(puntoEtq.x) > 1.02 || Math.abs(puntoEtq.y) > 1.02) return null;
+    return { x: (puntoEtq.x + 1) / 2 * w, y: (1 - puntoEtq.y) / 2 * h };
+  });
+  // 2) Cada recuadro va en su propia fila, encima de la pieza más alta, para que nunca se tapen
+  const visibles = pts.filter(Boolean);
+  const techo = visibles.length ? Math.min(...visibles.map(p => p.y)) : 0;
+  let fila = 0;
+  ETQ.forEach((e, i) => {
+    const pt = pts[i];
+    e.el.style.display = pt ? '' : 'none';
+    if (!pt) return;
+    const baseCaja = Math.max(34, techo - 26 - fila * 30); fila++;
+    e.el.querySelector('.etq-linea').style.height = Math.max(8, pt.y - baseCaja - 4).toFixed(0) + 'px';
+    const x = pt.x;
+    e.el.style.transform = `translate(${x.toFixed(1)}px, ${pt.y.toFixed(1)}px)`;
+    // Si el recuadro se sale por un costado, se corre hacia adentro (la línea sigue apuntando a la pieza)
+    const caja = e.el.querySelector('.etq-caja'), mitad = caja.offsetWidth / 2;
+    const dx = x - mitad < 8 ? 8 - (x - mitad) : x + mitad > w - 8 ? (w - 8) - (x + mitad) : 0;
+    caja.style.transform = dx ? `translateX(${dx.toFixed(1)}px)` : '';
+  });
+}
 
 // ══ PANEL ═══════════════════════════════════════════════════════════════════
 function actualizar() {
@@ -1348,7 +1438,7 @@ function actualizar() {
     ? `${[...VEH.values()].filter(v => v.tipo === tipo).length} vehículos`
     : `${VEH.get(S.veh).etiqueta}${FLOTA.get(S.veh)?.proxi ? ' · ' + FLOTA.get(S.veh).proxi : ''}`;
   document.getElementById('hTotal').innerHTML = `${bs(total)} <span>en mantenimiento · ${rows.length} gastos${S.anio ? ' · ' + S.anio : ''}</span>`;
-  moverPiezas(); pintar(); panel();
+  moverPiezas(); pintar(); panel(); armarEtiquetas();
 }
 
 function panel() {
