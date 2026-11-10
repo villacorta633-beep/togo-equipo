@@ -144,6 +144,7 @@ button,select{font-family:inherit;}
 <div class="toolbar">
   <div class="f-group"><span class="f-label">Vehículo</span><select class="sel" id="fVeh"></select></div>
   <div class="f-group"><span class="f-label">Año</span><select class="sel" id="fAnio"></select></div>
+  <div class="f-group"><span class="f-label">Mes</span><select class="sel" id="fMes"></select></div>
   <span class="nota" id="flotaNota"></span>
 </div>
 
@@ -247,7 +248,7 @@ const goLogin = () => { ['togo_token', 'togo_user', 'togo_role'].forEach(k => lo
 let ROWS = [];               // gastos de mantenimiento con .partes
 let FLOTA = new Map();       // placa → {tipo, marca, modelo, proxi}
 let VEH = new Map();         // placa → {placa, tipo:'moto'|'furgon', etiqueta, total, n}
-const S = { veh: '', anio: 0, parte: '', hover: '', desarmar: false, calor: true, girar: true, shown: 60 };
+const S = { veh: '', anio: 0, mes: 0, parte: '', hover: '', desarmar: false, calor: true, girar: true, shown: 60 };
 
 function tipoVehiculo(placa, descs) {
   const f = FLOTA.get(placa);
@@ -308,9 +309,12 @@ async function cargar() {
   ROWS.forEach(r => r.vtipo = VEH.get(r.placa).tipo);
 
   // Vehículo inicial: ?placa=XXX, o el furgón con más gasto
-  const q = new URLSearchParams(location.search).get('placa');
+  const params = new URLSearchParams(location.search), q = params.get('placa');
   const lista = [...VEH.values()].sort((a, b) => b.total - a.total);
-  S.veh = q && VEH.has(q) ? q : (lista.find(v => v.tipo === 'furgon') || lista[0]).placa;
+  S.veh = q && (VEH.has(q) || q === '@furgon' || q === '@moto') ? q : (lista.find(v => v.tipo === 'furgon') || lista[0]).placa;
+  const anioQ = +params.get('anio'), mesQ = +params.get('mes');
+  if (ROWS.some(r => r.anio === anioQ)) S.anio = anioQ;
+  if (mesQ >= 1 && mesQ <= 12) S.mes = mesQ;
 
   armarFiltros(lista);
   // Las calcomanías se dibujan con la fuente Inter: esperar a que cargue
@@ -335,7 +339,12 @@ function armarFiltros(lista) {
   const anios = [...new Set(ROWS.map(r => r.anio))].sort((a, b) => b - a);
   const sA = document.getElementById('fAnio');
   sA.innerHTML = '<option value="0">Todos</option>' + anios.map(a => `<option value="${a}">${a}</option>`).join('');
+  sA.value = S.anio;
   sA.onchange = () => { S.anio = +sA.value; S.shown = 60; actualizar(); };
+  const sM = document.getElementById('fMes');
+  sM.innerHTML = '<option value="0">Todos</option>' + MESES.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('');
+  sM.value = S.mes;
+  sM.onchange = () => { S.mes = +sM.value; S.shown = 60; actualizar(); };
   if (FLOTA.size) document.getElementById('flotaNota').textContent = '● = en la flota actual';
 }
 
@@ -343,7 +352,16 @@ const tipoSel = () => S.veh.startsWith('@') ? S.veh.slice(1) : VEH.get(S.veh).ti
 // En "Todos los furgones" se muestra la APV, que es la mayoría
 const modeloSel = () => S.veh.startsWith('@') ? (S.veh === '@moto' ? 'moto' : 'apv') : VEH.get(S.veh).modelo;
 function filasSel() {
-  return ROWS.filter(r => (S.veh.startsWith('@') ? r.vtipo === S.veh.slice(1) : r.placa === S.veh) && (!S.anio || r.anio === S.anio));
+  return ROWS.filter(r => (S.veh.startsWith('@') ? r.vtipo === S.veh.slice(1) : r.placa === S.veh) && (!S.anio || r.anio === S.anio) && (!S.mes || r.mes === S.mes));
+}
+const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+// Período elegido en palabras: "mayo 2026", "2026", "mayo (todos los años)" o "" si es todo
+const periodo = () => S.mes && S.anio ? `${MESES[S.mes - 1].toLowerCase()} ${S.anio}` : S.mes ? `${MESES[S.mes - 1].toLowerCase()} (todos los años)` : S.anio ? String(S.anio) : '';
+// La dirección guarda vehículo, año y mes: el enlace se puede compartir tal cual
+function guardarEnDireccion() {
+  const p = new URLSearchParams();
+  p.set('placa', S.veh); if (S.anio) p.set('anio', S.anio); if (S.mes) p.set('mes', S.mes);
+  history.replaceState(null, '', location.pathname + '?' + p.toString().replace('%40', '@'));
 }
 let AGG = {};
 function agregar(rows) {
@@ -1485,7 +1503,8 @@ function actualizar() {
   document.getElementById('hModelo').textContent = grupoSel
     ? `${[...VEH.values()].filter(v => v.tipo === tipo).length} vehículos`
     : `${VEH.get(S.veh).etiqueta}${FLOTA.get(S.veh)?.proxi ? ' · ' + FLOTA.get(S.veh).proxi : ''}`;
-  document.getElementById('hTotal').innerHTML = `${bs(total)} <span>en mantenimiento · ${rows.length} gastos${S.anio ? ' · ' + S.anio : ''}</span>`;
+  document.getElementById('hTotal').innerHTML = `${bs(total)} <span>en mantenimiento · ${rows.length} gasto${rows.length === 1 ? '' : 's'}${periodo() ? ' · ' + periodo() : ''}</span>`;
+  guardarEnDireccion();
   moverPiezas(); pintar(); panel(); armarEtiquetas();
 }
 
@@ -1529,7 +1548,10 @@ function ficha() {
     </div>`).join('');
   };
   const porTipo = sumarPor(r => r.tipo);
-  const segunda = grupoSel ? ['Por placa', sumarPor(r => r.placa).slice(0, 8)] : !S.anio ? ['Por año', sumarPor(r => String(r.anio)).sort((x, y) => y[0] - x[0])] : null;
+  const segunda = grupoSel ? ['Por placa', sumarPor(r => r.placa).slice(0, 8)]
+    : !S.anio && !S.mes ? ['Por año', sumarPor(r => String(r.anio)).sort((x, y) => y[0] - x[0])]
+    : S.anio && !S.mes ? ['Por mes', sumarPor(r => MESES[r.mes - 1]).sort((x, y) => MESES.indexOf(x[0]) - MESES.indexOf(y[0]))]
+    : null;
   const ultimo = rows[0]?.fecha;
   el.innerHTML = `
     <div class="f-head">
