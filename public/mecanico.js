@@ -577,13 +577,13 @@ function hoy(ctx, placas) {
     const verificar = pl.filter(p => p.estado === 'verificar');
     if (toca.length || averiguar.length || verificar.length) {
       const partes = [];
-      if (toca.length) partes.push(toca.map(p => `${corto(p)} (último hace ${fmt0.format(p.dias)} días)`).join(', '));
+      if (toca.length) partes.push(toca.map(p => `${corto(p)} (último cargado hace ${fmt0.format(p.dias)} días)`).join(', ') + '. Si alguno ya se hizo, falta cargarlo en el Excel');
       if (averiguar.length) partes.push(`averiguar ${averiguar.map(corto).join(', ')}: no hay registro y si se corta el arreglo es muy caro`);
       if (verificar.length) partes.push(`confirmar si se hizo el ${verificar.map(corto).join(', ')} (faltan registros de esos meses)`);
       const aceite = toca.some(p => p.id === 'aceite');
       ahora.push({ placa, color: aceite ? COLOR.rojo : toca.length ? COLOR.ambar : COLOR.azul,
-        etiqueta: aceite ? 'Aceite vencido' : toca.length ? 'Mantenimiento' : 'Averiguar',
-        t: toca.length ? `${toca.length} ${toca.length === 1 ? 'tarea pendiente' : 'tareas pendientes'}${averiguar.length ? ' y datos por averiguar' : ''}` : 'Datos por averiguar',
+        etiqueta: aceite ? 'Aceite sin registro' : toca.length ? 'Mantenimiento' : 'Averiguar',
+        t: toca.length ? `${toca.length} ${toca.length === 1 ? 'tarea sin registro reciente' : 'tareas sin registro reciente'}${averiguar.length ? ' y datos por averiguar' : ''}` : 'Datos por averiguar',
         d: partes.join('. ') + '.', orden: aceite ? 0 : toca.length ? 1 : 2, n: toca.length });
     }
     cruzar(ctx, placa).filter(x => x.ultimo >= ctx.ref - 365 && x.pieza !== 'distribucion').forEach(x => revisar.push({

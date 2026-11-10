@@ -129,7 +129,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const token = () => localStorage.getItem('togo_token');
 const goLogin = () => { ['togo_token', 'togo_user', 'togo_role'].forEach(k => localStorage.removeItem(k)); location.href = '/login.html?volver=' + encodeURIComponent(location.pathname + location.search + location.hash); };
 const ROJO = 'var(--red)', AMBAR = 'var(--amber)', VERDE = 'var(--green)';
-const ESTADO = { ok: 'Al día', pronto: 'Pronto', toca: 'Toca', sin: 'Sin registro', verificar: 'Verificar' };
+const ESTADO = { ok: 'Al día', pronto: 'Pronto', toca: 'Pasó el plazo', sin: 'Sin registro', verificar: 'Verificar' };
 
 let CTX = null, NOTAS = new Map(), ACTIVAS = [], DIAG = new Map();
 const LIB = { tipo: '', q: '' };
@@ -174,7 +174,7 @@ function diagnostico(placa) {
   const altos = inf.hallazgos.filter(h => h.nivel === 'alto' && (h.ultimo || 0) >= CTX.ref - 365 && h.causa !== 'desgaste').length;
   const medios = inf.hallazgos.filter(h => h.nivel === 'medio' && (h.ultimo || 0) >= CTX.ref - 365 && h.causa !== 'desgaste').length + cruces.filter(c => c.ultimo >= CTX.ref - 365).length;
   const toca = plan.filter(p => p.estado === 'toca').length;
-  const color = altos || plan.some(p => p.estado === 'toca' && p.id === 'aceite') ? ROJO : (medios || toca) ? AMBAR : VERDE;
+  const color = altos ? ROJO : (medios || toca) ? AMBAR : VERDE;
   return { inf, anio, cruces, plan, altos, medios, toca, color };
 }
 const peso = d => (d.color === ROJO ? 100 : d.color === AMBAR ? 50 : 0) + d.altos * 5 + d.medios;
@@ -203,14 +203,14 @@ function vHoy() {
       <div class="item-top"><span class="placa">${esc(x.placa)}</span><span class="causa" style="color:${x.c}">${esc(x.etiqueta)}</span></div>
       <div class="item-t">${esc(x.t)}</div><div class="item-d">${esc(x.d)}</div></a>`;
   return `<h2>Hoy en el taller</h2>
-    <div class="sub">Lo que hay que hacer y lo que conviene revisar en los ${ACTIVAS.length} vehículos que están trabajando. Se actualiza solo con cada carga de gastos · datos hasta ${T.fechaCorta(CTX.ref)}.</div>
+    <div class="sub">Lo que hay que confirmar o hacer y lo que conviene revisar en los ${ACTIVAS.length} vehículos que están trabajando. Se actualiza solo con cada carga de gastos · datos hasta ${T.fechaCorta(CTX.ref)}.<br>Todo sale de lo cargado en el Excel: un trabajo que se hizo y no se cargó aparece aquí como pendiente.</div>
     <div class="resumen">
-      <div class="res"><b style="color:var(--red)">${ahora.filter(x => x.orden < 2).length}</b><span>vehículos con mantenimiento pendiente</span></div>
+      <div class="res"><b style="color:var(--red)">${ahora.filter(x => x.orden < 2).length}</b><span>vehículos con mantenimiento por confirmar o hacer</span></div>
       <div class="res"><b style="color:var(--amber)">${revisar.length}</b><span>para revisar</span></div>
       <div class="res"><b>${rojos}</b><span>vehículos en rojo</span></div>
     </div>
     <div class="cols">
-      <div><div class="h3">Para hacer ahora <span class="n">(${ahora.length})</span></div>${ahora.length ? ahora.map(item).join('') : '<div class="vacio">Todo el mantenimiento está al día.</div>'}</div>
+      <div><div class="h3">Para confirmar o hacer <span class="n">(${ahora.length})</span></div>${ahora.length ? ahora.map(item).join('') : '<div class="vacio">Todo el mantenimiento está al día.</div>'}</div>
       <div><div class="h3">Para revisar <span class="n">(${revisar.length})</span></div>${revisar.length ? revisar.map(item).join('') : '<div class="vacio">Sin señales de mal uso ni reparaciones repetidas en el último año.</div>'}</div>
     </div>
     ${pie()}`;
@@ -225,11 +225,11 @@ function vVehiculos() {
       <div class="m" style="margin-top:2px">${esc(v.etiqueta)}</div>
       <div class="v">${esc(d.inf.veredicto.titulo)}</div>
       <div class="x"><span>${bs(a.porMes)}/mes (último año)</span>${a.comp.n >= 3 && a.ratio ? `<span>${a.ratio >= 1.3 ? a.ratio.toFixed(1).replace('.', ',') + '× lo normal' : a.ratio <= 0.75 ? 'bajo lo normal' : 'normal'}</span>` : ''}
-        ${d.altos ? `<span style="color:var(--red)">${d.altos} importante${d.altos > 1 ? 's' : ''}</span>` : ''}${d.toca ? `<span style="color:var(--amber)">${d.toca} mant. pendiente${d.toca > 1 ? 's' : ''}</span>` : ''}</div></a>`;
+        ${d.altos ? `<span style="color:var(--red)">${d.altos} importante${d.altos > 1 ? 's' : ''}</span>` : ''}${d.toca ? `<span style="color:var(--amber)">${d.toca} sin registro reciente</span>` : ''}</div></a>`;
   };
   const grupo = (tipo, titulo) => { const vs = ACTIVAS.filter(v => v.tipo === tipo); return vs.length ? `<div class="h3">${titulo} <span class="n">(${vs.length})</span></div><div class="grid-veh">${vs.map(card).join('')}</div>` : ''; };
   return `<h2>Vehículos</h2>
-    <div class="sub">Rojo: hay algo importante o el aceite ya pasó. Ámbar: hay cosas para revisar o mantenimientos pendientes. Verde: todo en orden. Toca un vehículo para ver su diagnóstico.</div>
+    <div class="sub">Rojo: hay algo importante en el último año. Ámbar: hay cosas para revisar o mantenimientos sin registro reciente. Verde: todo en orden. Toca un vehículo para ver su diagnóstico.</div>
     ${grupo('furgon', 'Furgones')}${grupo('moto', 'Motos')}${pie()}`;
 }
 
@@ -296,7 +296,7 @@ function vVehiculo(placa) {
 
     <div class="h3">Plan de mantenimiento</div>
     <div class="tabla-scroll"><table class="plan"><thead><tr><th>Tarea</th><th>Cada</th><th>Último registrado</th><th>Estado</th></tr></thead><tbody>${plan}</tbody></table></div>
-    <div class="ley"><span class="chip sin">Sin registro</span> no aparece en los gastos: averiguar si se hizo y anotarlo · <span class="chip verificar">Verificar</span> faltan registros de casi toda la flota en esos meses</div>
+    <div class="ley"><span class="chip toca">Pasó el plazo</span> no hay registro dentro del plazo: si se hizo, falta cargarlo; si no, toca · <span class="chip sin">Sin registro</span> nunca aparece en los gastos: averiguar si se hizo · <span class="chip verificar">Verificar</span> faltan registros de casi toda la flota en esos meses</div>
 
     <div class="h3">Cómo es este vehículo</div>
     <div class="ficha"><ul>${modelo.ficha.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
@@ -327,7 +327,8 @@ function vPlan() {
   };
   return `<h2>Plan de mantenimiento</h2>
     <div class="sub">Cuándo se hizo por última vez cada tarea, según los gastos cargados. Los días son desde ese registro hasta ${T.fechaCorta(CTX.ref)}. Los intervalos son referencias de taller para reparto urbano: confirmarlos con el manual de cada vehículo.</div>
-    <div class="ley"><span class="chip ok">Al día</span><span class="chip pronto">Pronto</span><span class="chip toca">Toca</span><span class="chip sin">Sin registro</span><span class="chip verificar">Verificar</span></div>
+    <div class="ley"><span class="chip ok">Al día</span><span class="chip pronto">Pronto</span><span class="chip toca">Pasó el plazo</span><span class="chip sin">Sin registro</span><span class="chip verificar">Verificar</span></div>
+    <div class="sub">"Pasó el plazo" quiere decir que no hay registro dentro del plazo: si se hizo, falta cargarlo en el Excel; si no, toca.</div>
     ${tabla('furgon')}${tabla('moto')}${pie()}`;
 }
 

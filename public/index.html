@@ -512,7 +512,7 @@ function renderTaller() {
   const placas = new Set(ROWS.filter(r => match(r, { anio: null, mes: 0, placa: '', tipo: '' })).map(r => r.placa));
   // Lo mismo que muestra Mi taller en "Hoy", respetando el PROXI elegido
   const { ahora, revisar } = Mecanico.hoy(TALLER, Mecanico.activas(TALLER).map(v => v.placa).filter(p => placas.has(p)));
-  el.innerHTML = `<div class="tl-resumen"><span><b style="color:var(--red)">${ahora.filter(x => x.orden < 2).length}</b> vehículos con mantenimiento pendiente</span><span><b style="color:var(--amber)">${revisar.length}</b> para revisar</span>
+  el.innerHTML = `<div class="tl-resumen"><span><b style="color:var(--red)">${ahora.filter(x => x.orden < 2).length}</b> vehículos con mantenimiento por confirmar o hacer</span><span><b style="color:var(--amber)">${revisar.length}</b> para revisar</span>
     <span class="tl-hint">Tu mecánico virtual: diagnóstico por vehículo, plan de mantenimiento y biblioteca</span></div>`;
 }
 

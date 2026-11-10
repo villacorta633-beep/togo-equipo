@@ -262,7 +262,7 @@ function mostrar() {
   const proxDia = ac.ultimo != null ? ac.ultimo + ac.cada : null;
   const actual = r.hasta >= CTX.ref;
   const estadoAceite = ac.ultimo == null ? '<span class="chip mal">Sin registros</span>'
-    : !actual ? '—' : ac.vencido ? `<span class="chip mal">Vencido hace ${fmt0.format(ac.dias - ac.cada)} días</span>` : '<span class="chip ok">Al día</span>';
+    : !actual ? '—' : ac.vencido ? `<span class="chip mal">Sin registro: pasó el plazo hace ${fmt0.format(ac.dias - ac.cada)} días</span>` : '<span class="chip ok">Al día</span>';
 
   const top = inf.principales.map(g => `<tr><td style="white-space:nowrap">${T.fechaCorta(g.dia)}</td><td>${esc(g.tipo)}</td><td>${esc(g.descripcion.trim() || '—')}</td><td class="n">${bs(g.monto)}</td></tr>`).join('');
 

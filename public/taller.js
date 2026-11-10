@@ -351,10 +351,10 @@ function informe(ctx, placa, { desde = -Infinity, hasta = Infinity } = {}) {
           'lo más probable es que falten registros, así que no se puede saber si fue descuido o desgaste.',
         consejo: 'Registrar todos los cambios de aceite en el Excel para que el análisis pueda separar descuido de desgaste.' });
     } else if (hueco > esperado * 2) {
-      add({ ...base, causa: 'mantenimiento', nivel: 'alto', titulo: `Reparación mayor de motor tras ${fmt0.format(hueco)} días sin cambio de aceite (${cuando})`,
-        detalle: `En los 6 meses anteriores a esta reparación pasaron ${fmt0.format(hueco)} días sin cambio de aceite registrado (del ${fechaCorta(hA)} al ${fechaCorta(hB)}), cuando lo normal es cada ${esperado}; en esos meses el resto de la flota sí tiene sus cambios registrados. ` +
-          'Un motor que trabaja con aceite vencido se gasta mucho más rápido: este gasto probablemente se pudo evitar.',
-        consejo: `Cumplir el cambio de aceite cada ${esperado} días aproximadamente (o según el kilometraje) y no dejarlo pasar.` });
+      add({ ...base, causa: 'mantenimiento', nivel: 'alto', titulo: `Reparación mayor de motor tras ${fmt0.format(hueco)} días sin cambio de aceite registrado (${cuando})`,
+        detalle: `En los 6 meses anteriores a esta reparación pasaron ${fmt0.format(hueco)} días sin cambio de aceite cargado en el Excel (del ${fechaCorta(hA)} al ${fechaCorta(hB)}), cuando lo normal es cada ${esperado}; en esos meses el resto de la flota sí tiene sus cambios cargados. ` +
+          'Si de verdad no se cambió, el motor trabajó con aceite vencido y este gasto probablemente se pudo evitar. Si se cambió y no se cargó, el comprobante lo demuestra.',
+        consejo: `Buscar si hubo un cambio de aceite entre el ${fechaCorta(hA)} y el ${fechaCorta(hB)} que no se cargó; si no lo hubo, cumplir el cambio cada ${esperado} días aproximadamente (o según el kilometraje).` });
     } else if (repetida) {
       add({ ...base, causa: 'reparacion', nivel: 'alto', titulo: `El motor se volvió a reparar al poco tiempo (${cuando})`,
         detalle: `Ya había tenido una reparación de motor en ${mesAnio(arr[i - 1].dia)}. ${cMotor.porque}`,
@@ -438,7 +438,7 @@ function informe(ctx, placa, { desde = -Infinity, hasta = Infinity } = {}) {
   const veredicto = conclusion(v, { total, causas, hallazgos, ratio, comp, porMes, principales, sistemas });
   const recomendaciones = [...new Set(hallazgos.filter(h => h.consejo && h.nivel !== 'bajo').map(h => h.consejo))];
   if (ac.vencido && hasta >= ctx.ref)
-    recomendaciones.unshift(`Hacer el cambio de aceite: el último fue el ${fechaCorta(ac.ultimo)} (hace ${ac.dias} días) y se suele hacer cada ${ac.cada}.`);
+    recomendaciones.unshift(`Confirmar el cambio de aceite: el último cargado en el Excel es del ${fechaCorta(ac.ultimo)} (hace ${ac.dias} días) y se suele hacer cada ${ac.cada}. Si se hizo, cargarlo; si no, hacerlo.`);
   if (!recomendaciones.length) recomendaciones.push('Seguir con los mantenimientos preventivos como hasta ahora.');
 
   const km = [...v.filas].reverse().find(r => +r.km > 0);
@@ -510,8 +510,8 @@ function consejos(ctx, { placas = null, dias = 365 } = {}) {
     const ac = inf.aceite;
     if (ac.vencido)
       lista.push({ placa: v.placa, nivel: ac.atraso >= 1.6 ? 'alto' : 'medio', causa: 'mantenimiento', clase: 'aceite', monto: 0, ultimo: ctx.ref,
-        titulo: 'Toca cambio de aceite',
-        detalle: `El último registrado fue el ${fechaCorta(ac.ultimo)}, hace ${ac.dias} días; ${ac.desdeHistorial ? 'este vehículo lo hace' : 'lo normal es'} cada ${ac.cada} días.` +
+        titulo: 'Cambio de aceite sin registro reciente',
+        detalle: `El último cambio cargado es del ${fechaCorta(ac.ultimo)}, hace ${ac.dias} días; ${ac.desdeHistorial ? 'este vehículo lo hace' : 'lo normal es'} cada ${ac.cada} días. Si ya se hizo, falta cargarlo en el Excel; si no, ya toca.` +
           (ctx.parteCompleta(v.tipo, ac.ultimo, ctx.ref) < 0.6 ? ' Puede que ya se haya hecho y falte registrarlo: en estos meses faltan cambios de aceite de casi toda la flota.' : '') });
     inf.hallazgos.filter(h => h.nivel !== 'bajo' && h.causa !== 'desgaste' && (h.ultimo || 0) >= desde)
       .forEach(h => lista.push({ placa: v.placa, nivel: h.nivel, causa: h.causa, clase: h.componente || h.causa, monto: h.monto, ultimo: h.ultimo, titulo: h.titulo, detalle: h.consejo || h.detalle }));
