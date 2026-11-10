@@ -138,6 +138,7 @@ button,select{font-family:inherit;}
   <a class="logo" href="/">TOGO</a>
   <span class="header-title">Vehículo 3D · gasto por pieza</span>
   <span class="sep"></span>
+  <a class="btn" id="lnkInforme" href="/informe.html">Informe</a>
   <a class="btn" href="/">← Gastos</a>
 </div>
 
@@ -173,68 +174,16 @@ button,select{font-family:inherit;}
   <div class="panel" id="panel"></div>
 </div>
 
+<script src="/taller.js"></script>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 // ══ PIEZAS ══════════════════════════════════════════════════════════════════
-// Cada gasto se asigna a las piezas que nombra su descripción (sin tildes, en mayúsculas).
-// Si nombra varias, el monto se reparte en partes iguales entre ellas.
-const PARTES = [
-  { id: 'carroceria', nombre: 'Carrocería', incluye: 'puertas, parrilla, parador, asiento, tanque, soldaduras',
-    re: /PUERTA|PARRILLA|PARILLA|CHAPA(?! DE ENCENDIDO)|SOLDADUR|SOLDAR|LATERAL|PARADOR|\bPATA\b|CARROCER|PINTURA|PARACHOQUE|GUARDABARRO|GUARDAFANGO|ASIENTO|VIDRIO|PARABRISA|PLUMILLA|TANQUE|CAJON|MALETERO/ },
-  { id: 'mandos', nombre: 'Mandos y cables', incluye: 'chicotillos, acelerador, palancas, puños, espejos',
-    re: /CHICOTILLO|ACELERADOR|ACELERACI|PALANCA|PUNO|\bCABLES?\b|MANILLAR|MANUBRIO|ESPEJO|PEDAL|VOLANTE(?! (DE )?INERCIA)/ },
-  { id: 'electrico', nombre: 'Sistema eléctrico', incluye: 'focos, faroles, batería, bobina, arranque, aire acondicionado',
-    re: /FOCO|\bFOTOS?\b|FAROL|BATERIA|BOBINA|ALTERNADOR|ARRANQUE|BENDIX|\bSTOP\b|SENSOR|ELECTRIC|REGULADOR(?! DE BALANCIN)|HALOGENO|\bLUC|\bLUZ\b|CORRIENTE|(?<!BUJIAS? DE? ?)ENCENDIDO|FUSIBLE|BOCINA|DESTILADA|AIRE ACONDICIONADO|INTERMITENTE|DIRECCIONAL|GUINADOR|TABLERO|VELOCIMETRO|\bCDI\b|\bRELAY\b/ },
-  { id: 'motor', nombre: 'Motor y aceite', incluye: 'aceite, arandela y tapón, filtros, carburador, bujías, culata, distribución',
-    re: /(?<!BOBINAS? DE )MOTOR|ACEITE|ACIETE|ARANDELA(?!S? PARA SOPORTE)|TAPON|FILTRO|CULATA|BALANCIN|(?<!TRANSMISION O )DISTRIBUCI|CORREA|VALVULA|CIGUENAL|CARBURA|BUJIA|INYECTOR|EMPAQUETADURA|CARTER|(?<!C.)O-?RING|ANILLO|EMBOLO|PISTON|RECTIFICAD(?!O DE (TAMBOR|DISCO|CORRIENTE))|CADENILLA|INERCIA|PICOS(?! DE LLANTA)|REFRIGERANTE|COMBUSTIBLE|RADIADOR|ESCAPE|SILENCIADOR/ },
-  { id: 'transmision', nombre: 'Transmisión', incluye: 'kit de transmisión, cadena, piñón, corona, embrague, caja',
-    re: /TRANSMISI|TRANSIMICI|TRASMISI|EMBRAGUE|EMRAGUE|\bCADENA\b|PINON|CORONA|\bCAJA\b|SELECTOR|NEUTRO|TE?N?SADOR DE CADENA|CARDAN|DIFERENCIAL|PALIER|SEMIEJE|CRUCETA|ARRASTRE|ROSETA/ },
-  { id: 'suspension', nombre: 'Suspensión y dirección', incluye: 'telescopios, amortiguadores, bujes, dirección, muelles',
-    re: /TELESCOPIO|TEELESCOPIO|AMORTIGUA|\bBUJES?\b(?! DE ROSETA)|SUSPENSI|HIDR(AU|UA)LIC|DIRECCION\b|ROTULA|TERMINAL|MUELLE|BALLESTA|ESPIRAL|ESTABILIZ|HORQUILLA|BASCULANTE/ },
-  { id: 'frenos', nombre: 'Frenos', incluye: 'pastillas, balatas, discos, zapatas',
-    re: /FRENO|BALATA|BALTA|PASTILLA|POASTILLA|\bDISCOS?\b(?! DE EMB?RAGUE)|ZAPATA|TAMBOR/ },
-  { id: 'ruedas', nombre: 'Llantas y ruedas', incluye: 'llantas, cámaras, parchados, rodamientos, rotación',
-    re: /LLANTA|CAMARA|PARCHAD|RUEDA|RODAMIENTOS?(?! (DE )?(CORREA|DIRECCION))|\bAROS?\b|\bRINES?\b|ROTACION|ALINEA|BALANCEO|NEUMATICO|RINALDI|MAC?S?ERO/ },
-];
-PARTES.forEach((p, i) => p.orden = i);
-const GENERAL = { id: 'general', nombre: 'Servicio general', incluye: 'mantenimientos y mano de obra que no nombran una pieza' };
-const PARTE = Object.fromEntries([...PARTES, GENERAL].map(p => [p.id, p]));
-const MANT = ['PREVENTIVO', 'CORRECTIVO', 'REPUESTOS'];
-
-const norm = s => String(s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-// Errores de escritura encontrados en el Excel: se corrigen antes de clasificar
-// y la ficha avisa en cada gasto qué palabra hay que arreglar en el Excel.
-const CORRECCIONES = [
-  [/\bACIETE\b/, 'ACEITE'], [/\bARA?NA?DELA(S?)\b/, 'ARANDELA$1'], [/\bASI?PI?RADO\b/, 'ASPIRADO'],
-  [/\bBALTA(S?)\b/, 'BALATA$1'], [/\bBARRILLA\b/, 'VARILLA'], [/\bBLOK\b/, 'BLOCK'],
-  [/\bCARBURADR\b/, 'CARBURADOR'], [/\bCARYY\b/, 'CARRY'], [/\bCOMR[PR]A\b/, 'COMPRA'],
-  [/\bDESMONTAGE\b/, 'DESMONTAJE'], [/MONTAGUE\b/, 'MONTAJE'], [/\bEMB?REAGU[ER]\b|\bEMRAGUE\b/, 'EMBRAGUE'],
-  [/\bFOTO\b/, 'FOCO'], [/\bHIDRUALIC/, 'HIDRAULIC'], [/\bLIUMPIEZA\b/, 'LIMPIEZA'],
-  [/\bMANTENIEMIENTO\b/, 'MANTENIMIENTO'], [/MANTENIMIENTO PREVENTIVA\b/, 'MANTENIMIENTO PREVENTIVO'],
-  [/\bPACHADO\b/, 'PARCHADO'], [/\bPARRILA(S?)\b|\bPARILLA(S?)\b/, 'PARRILLA$1$2'], [/\bPOASTILLA(S?)\b/, 'PASTILLA$1'],
-  [/\bREEEMPLAZO\b/, 'REEMPLAZO'], [/\bREVICION\b/, 'REVISION'], [/\bSUSPENCION\b/, 'SUSPENSION'],
-  [/\bTEELESCOPIO(S?)\b/, 'TELESCOPIO$1'], [/\bTRABAJAO?\b|\bTRABJAO\b/, 'TRABAJO'],
-  [/\bTRANSIMICION\b|\bTRANSMICION\b|\bTRASN?MISION\b/, 'TRANSMISION'], [/\bVALANCINES\b/, 'BALANCINES'],
-  [/\bM OTO\b/, 'MOTO'],
-];
-function corregir(desc) {
-  let d = norm(desc); const errores = [];
-  CORRECCIONES.forEach(([re, ok]) => {
-    d = d.replace(new RegExp(re.source, 'g'), (m, ...g) => {
-      const bien = ok.replace(/\$(\d)/g, (_, i) => g[i - 1] || '');
-      if (m !== bien && !errores.some(e => e[0] === m)) errores.push([m, bien]);
-      return bien;
-    });
-  });
-  return { d, errores };
-}
-function clasificar(d) {
-  const ids = PARTES.filter(p => p.re.test(d)).map(p => p.id);
-  return ids.length ? ids : ['general'];
-}
+// Las piezas, las correcciones de escritura y la clasificación viven en /taller.js,
+// así la vista 3D, el tablero y el informe reparten cada gasto igual.
+const { PARTES, GENERAL, PARTE, MANT, norm, corregir, clasificar, PLACAS_RAM, ETIQUETA } = window.Taller;
 
 // ══ DATOS ═══════════════════════════════════════════════════════════════════
 const fmt0 = new Intl.NumberFormat('es-BO', { maximumFractionDigits: 0 });
@@ -250,25 +199,8 @@ let FLOTA = new Map();       // placa → {tipo, marca, modelo, proxi}
 let VEH = new Map();         // placa → {placa, tipo:'moto'|'furgon', etiqueta, total, n}
 const S = { veh: '', anio: 0, mes: 0, parte: '', hover: '', desarmar: false, calor: true, girar: true, shown: 60 };
 
-function tipoVehiculo(placa, descs) {
-  const f = FLOTA.get(placa);
-  const t = f ? norm(`${f.tipo} ${f.marca} ${f.modelo}`) : '';
-  if (/MOTO|CB ?1|HONDA|YAMAHA|BAJAJ/.test(t)) return 'moto';
-  if (/CARRY|APV|FURG|CAMION|VAN\b|RAM\b|SUZUKI|CAMIONETA|AUTO/.test(t)) return 'furgon';
-  let m = 0, c = 0;
-  descs.forEach(d => { d = norm(d); if (/\bMOTOS?\b|MOTOCICLETA|CB ?160/.test(d)) m++; if (/CARRY|FURGON|\bAPV\b|\bRAM\b|CAMION/.test(d)) c++; });
-  return m > c ? 'moto' : 'furgon';
-}
-// La flota de TOGO: furgones Suzuki APV (en los Excel a veces figuran como "Carry"),
-// una RAM 700 modificada a furgón (5264PUB) y motos Honda CB160.
-const PLACAS_RAM = new Set(['5264PUB']);
-function modeloVehiculo(placa, tipo, descs) {
-  if (tipo === 'moto') return 'moto';
-  const f = FLOTA.get(placa);
-  const t = norm(`${f ? f.marca + ' ' + f.modelo : ''} ${descs.join(' ')}`);
-  return PLACAS_RAM.has(placa) || /\bRAM\b|RAPID/.test(t) ? 'ram' : 'apv';
-}
-const ETIQUETA = { moto: 'Honda CB160 Hornet', apv: 'Suzuki APV', ram: 'RAM 700 · furgón modificado' };
+const tipoVehiculo = (placa, descs) => window.Taller.tipoVehiculo(placa, descs, FLOTA.get(placa));
+const modeloVehiculo = (placa, tipo, descs) => window.Taller.modeloVehiculo(placa, tipo, descs, FLOTA.get(placa));
 
 async function cargar() {
   if (!token()) return goLogin();
@@ -362,6 +294,9 @@ function guardarEnDireccion() {
   const p = new URLSearchParams();
   p.set('placa', S.veh); if (S.anio) p.set('anio', S.anio); if (S.mes) p.set('mes', S.mes);
   history.replaceState(null, '', location.pathname + '?' + p.toString().replace('%40', '@'));
+  // El informe es de una placa: con "todas las motos/furgones" abre el de la que más gasta
+  const placa = S.veh.startsWith('@') ? ([...VEH.values()].filter(v => v.tipo === S.veh.slice(1)).sort((a, b) => b.total - a.total)[0] || {}).placa : S.veh;
+  document.getElementById('lnkInforme').href = '/informe.html' + (placa ? '?placa=' + encodeURIComponent(placa) + (S.anio ? '&periodo=' + S.anio : '') : '');
 }
 let AGG = {};
 function agregar(rows) {

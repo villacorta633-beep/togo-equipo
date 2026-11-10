@@ -57,6 +57,12 @@ async function initDB() {
     ALTER TABLE gastos ADD COLUMN IF NOT EXISTS km TEXT DEFAULT '';
     ALTER TABLE gastos ADD COLUMN IF NOT EXISTS prox TEXT DEFAULT '';
     ALTER TABLE gastos ADD COLUMN IF NOT EXISTS solicitud TEXT DEFAULT '';
+    CREATE TABLE IF NOT EXISTS notas (
+      placa TEXT PRIMARY KEY,
+      texto TEXT NOT NULL DEFAULT '',
+      por TEXT NOT NULL DEFAULT '',
+      fecha TIMESTAMPTZ DEFAULT NOW()
+    );
     INSERT INTO config (key, value) VALUES ('gastos_meta', '{}') ON CONFLICT (key) DO NOTHING;
     INSERT INTO config (key, value) VALUES ('flota_actual', '{}') ON CONFLICT (key) DO NOTHING;
   `);
@@ -260,6 +266,28 @@ app.post('/api/flota', requireAdminOSync, seguro(async (req, res) => {
   await pool.query(`INSERT INTO config (key, value) VALUES ('flota_actual', $1)
                     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`, [JSON.stringify(flota)]);
   res.json({ ok: true, placas: flota.placas.length });
+}));
+
+// Observaciones del responsable en el informe de cada placa: todos las leen, solo admin las escribe.
+const PLACA_OK = /^[A-Z0-9]{3,12}$/;
+app.get('/api/notas', requireAuth, seguro(async (req, res) => {
+  const { rows } = await pool.query('SELECT placa, texto, por, fecha FROM notas ORDER BY placa');
+  res.json({ notas: rows });
+}));
+app.put('/api/notas/:placa', requireAdmin, seguro(async (req, res) => {
+  const placa = String(req.params.placa || '').toUpperCase();
+  const texto = String(req.body?.texto ?? '');
+  if (!PLACA_OK.test(placa)) return res.status(400).json({ error: 'Placa no válida' });
+  if (texto.length > 5000) return res.status(400).json({ error: 'La nota es muy larga (máximo 5.000 caracteres)' });
+  if (!texto.trim()) {
+    await pool.query('DELETE FROM notas WHERE placa=$1', [placa]);
+    return res.json({ ok: true, placa, texto: '' });
+  }
+  const { rows } = await pool.query(
+    `INSERT INTO notas (placa, texto, por, fecha) VALUES ($1, $2, $3, NOW())
+     ON CONFLICT (placa) DO UPDATE SET texto = EXCLUDED.texto, por = EXCLUDED.por, fecha = NOW()
+     RETURNING placa, texto, por, fecha`, [placa, texto, req.user.username]);
+  res.json({ ok: true, ...rows[0] });
 }));
 
 // Health check: también prueba la base para ver la causa sin entrar a los logs de Render

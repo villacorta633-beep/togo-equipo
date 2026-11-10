@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOGO · Informe del taller</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0D0D0D;--bg2:#141414;--bg3:#1A1A1A;--border:#2A2A2A;--border2:#333;
+  --amber:#F5A623;--amber-dim:#F5A6231a;--text:#E8E8E8;--text2:#999;--text3:#666;
+  --font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+  /* la hoja del informe es siempre papel blanco */
+  --p-text:#1b1b1b;--p-text2:#555;--p-text3:#8a8a8a;--p-line:#e3e3e3;--p-soft:#f6f6f4;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;}
+button,select,textarea{font-family:inherit;}
+.header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 24px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5;}
+.logo{background:var(--amber);color:#000;font-weight:700;font-size:13px;padding:4px 10px;border-radius:4px;letter-spacing:1px;font-family:var(--mono);text-decoration:none;}
+.header-title{font-size:13px;color:var(--text2);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;}
+.sep{flex:1;}
+.f-label{font-size:10px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.8px;}
+.f-group{display:flex;align-items:center;gap:6px;}
+.sel{background:var(--bg3);color:var(--text);border:1px solid var(--border2);border-radius:4px;padding:6px 10px;font-size:12px;font-family:var(--mono);cursor:pointer;max-width:260px;}
+.btn{padding:6px 14px;font-size:11px;font-family:var(--mono);font-weight:500;border:1px solid var(--border2);background:transparent;color:var(--text2);border-radius:4px;cursor:pointer;letter-spacing:.5px;text-transform:uppercase;text-decoration:none;transition:all .15s;white-space:nowrap;}
+.btn:hover{border-color:var(--amber);color:var(--amber);}
+.btn-primary{background:var(--amber);border-color:var(--amber);color:#000;font-weight:700;}
+.btn-primary:hover{color:#000;filter:brightness(1.08);}
+.estado{display:flex;align-items:center;justify-content:center;min-height:60vh;text-align:center;color:var(--text2);font-size:14px;line-height:1.7;padding:24px;}
+.aviso-copia{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--amber);color:var(--amber);font-family:var(--mono);font-size:12px;padding:8px 14px;border-radius:6px;opacity:0;transition:opacity .2s;pointer-events:none;}
+.aviso-copia.on{opacity:1;}
+
+/* ── Hoja ── */
+.hoja{width:min(860px,calc(100% - 32px));margin:24px auto 48px;background:#fff;color:var(--p-text);border-radius:6px;box-shadow:0 10px 40px #0008;padding:44px 52px;font-size:13px;line-height:1.55;}
+.h-top{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;padding-bottom:18px;border-bottom:3px solid var(--p-text);}
+.h-marca{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.h-logo{background:var(--amber);color:#000;font-weight:700;font-family:var(--mono);font-size:13px;padding:3px 9px;border-radius:3px;letter-spacing:1px;}
+.h-org{font-size:11px;color:var(--p-text2);letter-spacing:.6px;text-transform:uppercase;font-weight:600;}
+.h-titulo{font-size:24px;font-weight:700;letter-spacing:-.3px;line-height:1.15;}
+.h-sub{font-size:13px;color:var(--p-text2);margin-top:4px;}
+.h-meta{text-align:right;font-family:var(--mono);font-size:11px;color:var(--p-text2);line-height:1.8;white-space:nowrap;}
+.h-meta b{color:var(--p-text);font-weight:700;}
+.sec{margin-top:26px;break-inside:avoid-page;}
+.sec-t{display:flex;align-items:baseline;gap:10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--p-text);padding-bottom:6px;border-bottom:1px solid var(--p-line);margin-bottom:12px;}
+.sec-t span{font-family:var(--mono);color:var(--amber);font-size:12px;}
+.datos{display:grid;grid-template-columns:repeat(2,1fr);gap:0 28px;}
+.dato{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px dashed var(--p-line);}
+.dato .k{color:var(--p-text2);}
+.dato .v{font-weight:600;text-align:right;}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.kpi{background:var(--p-soft);border-radius:6px;padding:12px 14px;}
+.kpi .k{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--p-text2);font-weight:600;}
+.kpi .v{font-size:19px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;}
+.kpi .s{font-size:11px;color:var(--p-text3);margin-top:2px;}
+.veredicto{margin-top:12px;border-left:5px solid var(--c,#5b8def);background:color-mix(in srgb,var(--c,#5b8def) 9%,#fff);border-radius:0 6px 6px 0;padding:14px 18px;}
+.veredicto .t{font-size:16px;font-weight:700;color:var(--p-text);}
+.veredicto .x{margin-top:6px;color:#333;}
+.barra{display:flex;height:22px;border-radius:5px;overflow:hidden;background:var(--p-soft);}
+.barra div{height:100%;}
+.leyenda{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 28px;margin-top:10px;}
+@media (max-width:700px){.leyenda{grid-template-columns:1fr;}}
+.ley{display:flex;align-items:center;gap:8px;font-size:12px;}
+.ley i{width:11px;height:11px;border-radius:3px;flex:none;}
+.ley b{margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.nota{font-size:11px;color:var(--p-text3);margin-top:8px;}
+table.t{width:100%;border-collapse:collapse;font-size:12px;}
+table.t th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--p-text2);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--p-line);}
+table.t td{padding:7px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top;}
+table.t td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+table.t th.n{text-align:right;}
+.minibar{height:7px;border-radius:4px;background:#5b8def;min-width:2px;}
+.hall{border:1px solid var(--p-line);border-left:4px solid var(--c);border-radius:0 6px 6px 0;padding:12px 14px;margin-bottom:10px;break-inside:avoid;}
+.hall-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:20px;color:#fff;background:var(--c);}
+.nivel{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--p-text2);border:1px solid var(--p-line);padding:1px 7px;border-radius:20px;}
+.nivel.alto{color:#b42318;border-color:#f3c5c0;background:#fdf1ef;}
+.hall-t{font-weight:700;font-size:13.5px;margin-top:6px;}
+.hall-d{color:#333;margin-top:3px;}
+.hall-c{margin-top:6px;font-size:12px;color:var(--p-text);}
+.hall-c::before{content:'Consejo: ';font-weight:700;}
+.evid{margin-top:8px;font-size:11px;color:var(--p-text2);font-family:var(--mono);line-height:1.6;}
+.evid div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.recos{padding-left:20px;}
+.recos li{margin-bottom:6px;padding-left:4px;}
+.prox{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.chip{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;}
+.chip.ok{background:#e7f6ee;color:#1d7a46;}
+.chip.mal{background:#fdf1ef;color:#b42318;}
+.obs{min-height:90px;border:1px solid var(--p-line);border-radius:6px;padding:12px 14px;white-space:pre-wrap;background:var(--p-soft);}
+.obs.vacia{color:var(--p-text3);font-style:italic;}
+.obs-edit textarea{width:100%;min-height:120px;border:1px solid #cfcfcf;border-radius:6px;padding:12px 14px;font-size:13px;line-height:1.55;color:var(--p-text);resize:vertical;}
+.obs-edit .acc{display:flex;align-items:center;gap:10px;margin-top:8px;}
+.obs-edit button{padding:7px 14px;border-radius:5px;border:1px solid var(--p-text);background:var(--p-text);color:#fff;font-size:12px;font-weight:600;cursor:pointer;}
+.obs-edit .msg{font-size:11px;color:var(--p-text2);}
+.obs-meta{font-size:11px;color:var(--p-text3);margin-top:6px;}
+.firmas{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:56px;}
+.firma{border-top:1px solid var(--p-text);padding-top:6px;font-size:11px;color:var(--p-text2);text-align:center;}
+.pie{margin-top:30px;padding-top:12px;border-top:1px solid var(--p-line);font-size:10.5px;color:var(--p-text3);line-height:1.6;}
+
+@media (max-width:700px){
+  .hoja{padding:24px 18px;width:calc(100% - 16px);margin:12px auto 32px;}
+  .h-top{flex-direction:column;} .h-meta{text-align:left;}
+  .datos{grid-template-columns:1fr;} .kpis{grid-template-columns:repeat(2,1fr);} .prox{grid-template-columns:1fr;}
+  .firmas{grid-template-columns:1fr;gap:40px;}
+  .header{padding:10px 16px;}
+}
+@media print{
+  @page{size:A4;margin:12mm;}
+  body{background:#fff;}
+  .header,.no-print,.aviso-copia{display:none !important;}
+  .hoja{width:auto;margin:0;padding:0;box-shadow:none;border-radius:0;}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .obs{background:#fff;}
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <a class="logo" href="/">TOGO</a>
+  <span class="header-title">Informe del taller</span>
+  <div class="f-group"><span class="f-label">Vehículo</span><select class="sel" id="fVeh"></select></div>
+  <div class="f-group"><span class="f-label">Período</span><select class="sel" id="fPer"></select></div>
+  <span class="sep"></span>
+  <a class="btn" id="b3d" href="/flota-3d.html">Ver en 3D</a>
+  <button class="btn" id="bLink">Copiar enlace</button>
+  <button class="btn btn-primary" id="bPrint">Imprimir / PDF</button>
+</div>
+<div id="app"><div class="estado">Cargando gastos…</div></div>
+<div class="aviso-copia" id="avisoCopia">Enlace copiado</div>
+
+<script src="/taller.js"></script>
+<script>
+const T = window.Taller;
+const fmt0 = new Intl.NumberFormat('es-BO', { maximumFractionDigits: 0 });
+const bs = v => 'Bs ' + fmt0.format(v);
+const pct = v => Math.round(v * 100) + '%';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const token = () => localStorage.getItem('togo_token');
+const isAdmin = () => localStorage.getItem('togo_role') === 'admin';
+const goLogin = () => { ['togo_token', 'togo_user', 'togo_role'].forEach(k => localStorage.removeItem(k)); location.href = '/login.html?volver=' + encodeURIComponent(location.pathname + location.search); };
+const NIVEL = { alto: 'Importante', medio: 'A revisar', bajo: 'Informativo' };
+
+let CTX = null, NOTAS = new Map();
+const S = { placa: '', per: '' };
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', 'x-auth-token': token(), ...(opts.headers || {}) } });
+  if (r.status === 401) { goLogin(); throw new Error('Sesión vencida'); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'Error ' + r.status);
+  return d;
+}
+
+async function cargar() {
+  if (!token()) return goLogin();
+  const t0 = Date.now();
+  const aviso = setInterval(() => {
+    const s = Math.round((Date.now() - t0) / 1000), el = document.querySelector('#app .estado');
+    if (s >= 5 && el) el.innerHTML = `Iniciando el servidor…<br><span style="font-size:12px">Se apaga cuando nadie lo usa y tarda hasta un minuto en arrancar. Espera un momento (${s} s).</span>`;
+  }, 1000);
+  let d;
+  try {
+    [d] = await Promise.all([
+      api('/api/gastos'),
+      api('/api/notas').then(n => n.notas.forEach(x => NOTAS.set(x.placa, x))).catch(() => {}),
+    ]);
+  } catch (e) {
+    document.getElementById('app').innerHTML = `<div class="estado">No se pudieron cargar los gastos.<br>${esc(e.message)}</div>`;
+    return;
+  } finally { clearInterval(aviso); }
+  CTX = T.preparar(d.rows, d.flota?.placas || []);
+  const conMant = [...CTX.veh.values()].filter(v => v.mant.length);
+  if (!conMant.length) { document.getElementById('app').innerHTML = '<div class="estado">Todavía no hay gastos de mantenimiento cargados.</div>'; return; }
+
+  const q = new URLSearchParams(location.search);
+  const lista = conMant.sort((a, b) => b.mant.reduce((s, r) => s + r.monto, 0) - a.mant.reduce((s, r) => s + r.monto, 0));
+  S.placa = CTX.veh.has(q.get('placa')) ? q.get('placa') : lista[0].placa;
+  const anios = [...new Set([...CTX.veh.values()].flatMap(v => v.filas.map(r => r.anio)))].sort((a, b) => b - a);
+  const per = q.get('periodo') || '';
+  S.per = per === '12m' || anios.includes(+per) ? per : '';
+
+  const sV = document.getElementById('fVeh');
+  const grupo = (tipo, titulo) => {
+    const vs = lista.filter(v => v.tipo === tipo);
+    return vs.length ? `<optgroup label="${titulo}">` + vs.map(v => `<option value="${esc(v.placa)}">${esc(v.placa)} · ${esc(v.etiqueta)}${v.enFlota ? ' ●' : ''}</option>`).join('') + '</optgroup>' : '';
+  };
+  sV.innerHTML = grupo('furgon', 'Furgones') + grupo('moto', 'Motos');
+  sV.value = S.placa;
+  sV.onchange = () => { S.placa = sV.value; mostrar(); };
+  const sP = document.getElementById('fPer');
+  sP.innerHTML = '<option value="">Todo el historial</option><option value="12m">Últimos 12 meses</option>' + anios.map(a => `<option value="${a}">${a}</option>`).join('');
+  sP.value = S.per;
+  sP.onchange = () => { S.per = sP.value; mostrar(); };
+  document.getElementById('bPrint').onclick = () => window.print();
+  document.getElementById('bLink').onclick = copiarEnlace;
+  mostrar();
+}
+
+function rango() {
+  if (S.per === '12m') return { desde: CTX.ref - 365, hasta: CTX.ref, texto: 'Últimos 12 meses' };
+  if (S.per) { const a = +S.per; return { desde: T.dia(`${a}-01-01`), hasta: T.dia(`${a}-12-31`), texto: `Año ${a}` }; }
+  return { desde: -Infinity, hasta: Infinity, texto: 'Todo el historial' };
+}
+
+function guardarEnDireccion() {
+  const q = new URLSearchParams({ placa: S.placa });
+  if (S.per) q.set('periodo', S.per);
+  history.replaceState(null, '', '?' + q);
+  document.getElementById('b3d').href = `/flota-3d.html?placa=${encodeURIComponent(S.placa)}${/^\d{4}$/.test(S.per) ? '&anio=' + S.per : ''}`;
+  document.title = `TOGO · Informe ${S.placa}`;
+}
+
+function copiarEnlace() {
+  const ok = () => { const a = document.getElementById('avisoCopia'); a.classList.add('on'); setTimeout(() => a.classList.remove('on'), 1600); };
+  navigator.clipboard?.writeText(location.href).then(ok, () => prompt('Copia este enlace:', location.href));
+}
+
+function mostrar() {
+  guardarEnDireccion();
+  const r = rango();
+  const inf = T.informe(CTX, S.placa, r);
+  const hoy = new Date();
+  const hoyTxt = `${String(hoy.getDate()).padStart(2, '0')}/${String(hoy.getMonth() + 1).padStart(2, '0')}/${hoy.getFullYear()}`;
+  const numero = `TOGO-${inf.placa}-${hoy.getFullYear()}${String(hoy.getMonth() + 1).padStart(2, '0')}${String(hoy.getDate()).padStart(2, '0')}`;
+  const C = T.CAUSAS;
+  const cv = C[inf.veredicto.causa];
+  const sinDatos = !inf.total;
+
+  const comp = inf.comp.n >= 3 && inf.ratio ? (inf.ratio >= 1.3 ? `${inf.ratio.toFixed(1).replace('.', ',')}×` : inf.ratio <= 0.75 ? 'Menos' : 'Parecido')
+    : '—';
+  const compSub = inf.comp.n >= 3 ? `vs ${bs(inf.comp.mediana)}/mes de ${inf.tipo === 'moto' ? 'una moto típica' : 'un furgón típico'}` : 'sin vehículos para comparar';
+
+  const causas = Object.entries(inf.causas).filter(([, v]) => v > 0).sort((a, b) => C[a[0]].orden - C[b[0]].orden);
+  const barra = causas.map(([k, v]) => `<div style="width:${v / inf.total * 100}%;background:${C[k].color}" title="${esc(C[k].nombre)}: ${bs(v)}"></div>`).join('');
+  const leyenda = causas.map(([k, v]) => `<div class="ley"><i style="background:${C[k].color}"></i>${esc(C[k].nombre)}${k === 'desgaste' ? ' y servicio normal' : ''}<b>${bs(v)} · ${pct(v / inf.total)}</b></div>`).join('');
+
+  const maxSis = inf.sistemas[0]?.monto || 1;
+  const sistemas = inf.sistemas.map(s => `<tr><td>${esc(s.nombre)}</td><td style="width:34%"><div class="minibar" style="width:${s.monto / maxSis * 100}%"></div></td>
+    <td class="n">${bs(s.monto)}</td><td class="n">${pct(s.pct)}</td><td class="n">${fmt0.format(s.n)}</td></tr>`).join('');
+
+  const evid = h => {
+    if (!h.evidencias.length) return '';
+    const vistos = [...new Map(h.evidencias.map(e => [e.id, e])).values()];
+    return `<div class="evid">${vistos.slice(0, 4).map(e => `<div>${T.fechaCorta(e.dia)} · ${bs(e.monto)} · ${esc(e.descripcion.trim() || e.tipo)}</div>`).join('')}${vistos.length > 4 ? `<div>… y ${vistos.length - 4} más</div>` : ''}</div>`;
+  };
+  const hallazgos = inf.hallazgos.length ? inf.hallazgos.map(h => `<div class="hall" style="--c:${C[h.causa].color}">
+      <div class="hall-top"><span class="tag">${esc(C[h.causa].nombre)}</span><span class="nivel ${h.nivel}">${NIVEL[h.nivel]}</span></div>
+      <div class="hall-t">${esc(h.titulo)}</div>
+      <div class="hall-d">${esc(h.detalle)}</div>
+      ${h.consejo ? `<div class="hall-c">${esc(h.consejo)}</div>` : ''}
+      ${evid(h)}</div>`).join('')
+    : '<p style="color:var(--p-text2)">No se encontraron señales de mal uso, falta de mantenimiento ni reparaciones repetidas en este período.</p>';
+
+  const ac = inf.aceite;
+  const proxDia = ac.ultimo != null ? ac.ultimo + ac.cada : null;
+  const actual = r.hasta >= CTX.ref;
+  const estadoAceite = ac.ultimo == null ? '<span class="chip mal">Sin registros</span>'
+    : !actual ? '—' : ac.vencido ? `<span class="chip mal">Vencido hace ${fmt0.format(ac.dias - ac.cada)} días</span>` : '<span class="chip ok">Al día</span>';
+
+  const top = inf.principales.map(g => `<tr><td style="white-space:nowrap">${T.fechaCorta(g.dia)}</td><td>${esc(g.tipo)}</td><td>${esc(g.descripcion.trim() || '—')}</td><td class="n">${bs(g.monto)}</td></tr>`).join('');
+
+  const nota = NOTAS.get(inf.placa);
+  const notaMeta = nota ? `Escrito por ${esc(nota.por)} el ${new Date(nota.fecha).toLocaleDateString('es-BO')}` : '';
+  const obs = isAdmin()
+    ? `<div class="obs-edit no-print"><textarea id="notaTxt" maxlength="5000" placeholder="Escribe aquí lo que sepas de este vehículo: qué pasó, quién lo maneja, qué dijo el taller…">${esc(nota?.texto || '')}</textarea>
+        <div class="acc"><button id="notaGuardar">Guardar observaciones</button><span class="msg" id="notaMsg">${notaMeta}</span></div></div>
+       <div class="obs only-print ${nota?.texto ? '' : 'vacia'}" id="notaPrint" style="display:none">${esc(nota?.texto || '')}</div>`
+    : `<div class="obs ${nota?.texto ? '' : 'vacia'}">${nota?.texto ? esc(nota.texto) : 'Sin observaciones del responsable.'}</div>${notaMeta ? `<div class="obs-meta">${notaMeta}</div>` : ''}`;
+
+  const periodoTxt = sinDatos ? r.texto : `${T.fechaCorta(inf.desde)} al ${T.fechaCorta(inf.hasta)} (${fmt0.format(inf.meses)} ${Math.round(inf.meses) === 1 ? 'mes' : 'meses'})`;
+
+  document.getElementById('app').innerHTML = `<div class="hoja">
+    <div class="h-top">
+      <div>
+        <div class="h-marca"><span class="h-logo">TOGO</span><span class="h-org">Flota de reparto · Taller</span></div>
+        <div class="h-titulo">Informe técnico de mantenimiento</div>
+        <div class="h-sub">${esc(inf.placa)} · ${esc(inf.etiqueta)} · ${esc(r.texto)}</div>
+      </div>
+      <div class="h-meta">N.º <b>${numero}</b><br>Emitido: <b>${hoyTxt}</b><br>Datos hasta: <b>${T.fechaCorta(CTX.ref)}</b></div>
+    </div>
+
+    <div class="sec"><div class="sec-t"><span>01</span>Datos del vehículo</div>
+      <div class="datos">
+        <div class="dato"><span class="k">Placa</span><span class="v">${esc(inf.placa)}</span></div>
+        <div class="dato"><span class="k">Vehículo</span><span class="v">${esc(inf.etiqueta)}</span></div>
+        <div class="dato"><span class="k">PROXI</span><span class="v">${esc(inf.proxi || '—')}</span></div>
+        <div class="dato"><span class="k">En la flota actual</span><span class="v">${inf.enFlota ? 'Sí' : CTX.enFlota ? 'No' : '—'}</span></div>
+        <div class="dato"><span class="k">Período analizado</span><span class="v">${periodoTxt}</span></div>
+        <div class="dato"><span class="k">Gastos de mantenimiento</span><span class="v">${fmt0.format(inf.n)} registros</span></div>
+        <div class="dato"><span class="k">Último km registrado</span><span class="v">${inf.km ? fmt0.format(inf.km.valor) + ' km (' + T.fechaCorta(inf.km.dia) + ')' : 'Sin registro'}</span></div>
+        <div class="dato"><span class="k">Próximo cambio (km)</span><span class="v">${inf.kmProx ? fmt0.format(inf.kmProx.valor) + ' km' : 'Sin registro'}</span></div>
+      </div>
+    </div>
+
+    <div class="sec"><div class="sec-t"><span>02</span>Resumen</div>
+      <div class="kpis">
+        <div class="kpi"><div class="k">Mantenimiento</div><div class="v">${bs(inf.total)}</div><div class="s">preventivo, correctivo y repuestos</div></div>
+        <div class="kpi"><div class="k">Promedio por mes</div><div class="v">${bs(inf.porMes)}</div><div class="s">en ${fmt0.format(inf.meses)} ${Math.round(inf.meses) === 1 ? 'mes' : 'meses'}</div></div>
+        <div class="kpi"><div class="k">Contra similares</div><div class="v">${comp}</div><div class="s">${compSub}</div></div>
+        <div class="kpi"><div class="k">Combustible</div><div class="v">${bs(inf.combustible)}</div><div class="s">gasolina y GNV, aparte</div></div>
+      </div>
+      <div class="veredicto" style="--c:${cv.color}"><div class="t">${esc(inf.veredicto.titulo)}</div><div class="x">${esc(inf.veredicto.texto)}</div></div>
+    </div>
+
+    ${sinDatos ? '' : `<div class="sec"><div class="sec-t"><span>03</span>¿De dónde viene el gasto?</div>
+      <div class="barra">${barra}</div>
+      <div class="leyenda">${leyenda}</div>
+      <div class="nota">Cada gasto cuenta una sola vez, en la causa más grave que lo explica. Lo que no aparece en ningún hallazgo se cuenta como desgaste y servicio normal.</div>
+    </div>
+
+    <div class="sec"><div class="sec-t"><span>04</span>Gasto por sistema</div>
+      <table class="t"><thead><tr><th>Sistema</th><th></th><th class="n">Monto</th><th class="n">%</th><th class="n">Gastos</th></tr></thead><tbody>${sistemas}</tbody></table>
+      <div class="nota">Si un gasto nombra varias piezas, su monto se reparte en partes iguales entre ellas.</div>
+    </div>`}
+
+    <div class="sec"><div class="sec-t"><span>05</span>Hallazgos del taller</div>${hallazgos}</div>
+
+    <div class="sec"><div class="sec-t"><span>06</span>Recomendaciones</div>
+      <ol class="recos">${inf.recomendaciones.map(x => `<li>${esc(x)}</li>`).join('')}</ol>
+    </div>
+
+    <div class="sec"><div class="sec-t"><span>07</span>Próximo mantenimiento</div>
+      <div class="prox">
+        <div class="kpi"><div class="k">Último cambio de aceite</div><div class="v" style="font-size:16px">${ac.ultimo != null ? T.fechaCorta(ac.ultimo) : '—'}</div><div class="s">${ac.ultimo != null && actual ? `hace ${fmt0.format(ac.dias)} días` : ''}</div></div>
+        <div class="kpi"><div class="k">Se hace cada</div><div class="v" style="font-size:16px">${ac.cada} días</div><div class="s">${ac.desdeHistorial ? 'según su propio historial' : 'valor normal para este tipo'}</div></div>
+        <div class="kpi"><div class="k">Próximo estimado</div><div class="v" style="font-size:16px">${proxDia != null ? T.fechaCorta(proxDia) : '—'}</div><div class="s">${estadoAceite}</div></div>
+      </div>
+    </div>
+
+    <div class="sec"><div class="sec-t"><span>08</span>Observaciones del responsable</div>${obs}</div>
+
+    ${top ? `<div class="sec"><div class="sec-t"><span>09</span>Anexo: gastos más altos del período</div>
+      <table class="t"><thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th class="n">Monto</th></tr></thead><tbody>${top}</tbody></table>
+    </div>` : ''}
+
+    <div class="firmas"><div class="firma">Elaborado por</div><div class="firma">Revisado por</div><div class="firma">Conductor asignado</div></div>
+    <div class="pie">Informe generado por el panel TOGO a partir de los gastos registrados en el Excel de la flota. Se actualiza solo cada vez que se cargan gastos nuevos.
+      Los hallazgos son indicios que salen de las descripciones, las fechas y los montos: antes de tomar una medida, confírmalos con el taller y con el conductor.</div>
+  </div>`;
+
+  if (isAdmin()) {
+    const btn = document.getElementById('notaGuardar'), txt = document.getElementById('notaTxt'), msg = document.getElementById('notaMsg');
+    const imp = document.getElementById('notaPrint');
+    const sync = () => { imp.textContent = txt.value || 'Sin observaciones del responsable.'; imp.classList.toggle('vacia', !txt.value); };
+    sync(); txt.oninput = () => { sync(); msg.textContent = 'Sin guardar'; };
+    btn.onclick = async () => {
+      btn.disabled = true; msg.textContent = 'Guardando…';
+      try {
+        const n = await api('/api/notas/' + encodeURIComponent(inf.placa), { method: 'PUT', body: JSON.stringify({ texto: txt.value }) });
+        if (n.texto) NOTAS.set(inf.placa, n); else NOTAS.delete(inf.placa);
+        msg.textContent = n.texto ? `Guardado · ${n.por}, ${new Date(n.fecha).toLocaleDateString('es-BO')}` : 'Observaciones borradas';
+      } catch (e) { msg.textContent = 'No se pudo guardar: ' + e.message; }
+      btn.disabled = false;
+    };
+  }
+}
+
+// Al imprimir, la nota del admin sale como texto (el cuadro de edición no se imprime)
+const estiloImpresion = document.createElement('style');
+estiloImpresion.textContent = '@media print{.only-print{display:block !important;}}';
+document.head.appendChild(estiloImpresion);
+cargar();
+</script>
+</body>
+</html>
