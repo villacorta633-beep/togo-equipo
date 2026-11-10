@@ -63,6 +63,17 @@ async function initDB() {
       por TEXT NOT NULL DEFAULT '',
       fecha TIMESTAMPTZ DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS revisiones (
+      id SERIAL PRIMARY KEY,
+      placa TEXT NOT NULL,
+      fecha DATE NOT NULL,
+      tipo TEXT NOT NULL,
+      km INTEGER,
+      items JSONB NOT NULL DEFAULT '{}',
+      nota TEXT NOT NULL DEFAULT '',
+      por TEXT NOT NULL DEFAULT '',
+      creado TIMESTAMPTZ DEFAULT NOW()
+    );
     INSERT INTO config (key, value) VALUES ('gastos_meta', '{}') ON CONFLICT (key) DO NOTHING;
     INSERT INTO config (key, value) VALUES ('flota_actual', '{}') ON CONFLICT (key) DO NOTHING;
   `);
@@ -288,6 +299,45 @@ app.put('/api/notas/:placa', requireAdmin, seguro(async (req, res) => {
      ON CONFLICT (placa) DO UPDATE SET texto = EXCLUDED.texto, por = EXCLUDED.por, fecha = NOW()
      RETURNING placa, texto, por, fecha`, [placa, texto, req.user.username]);
   res.json({ ok: true, ...rows[0] });
+}));
+
+// Revisiones periódicas de Mi taller (semanal / mensual) con el kilometraje.
+// Mi taller está en preparación: por ahora solo admin las lee y las escribe.
+const TIPOS_REVISION = ['semanal', 'mensual'];
+const ESTADOS_ITEM = ['ok', 'atencion', 'na'];
+app.get('/api/revisiones', requireAdmin, seguro(async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT id, placa, to_char(fecha, 'YYYY-MM-DD') AS fecha, tipo, km, items, nota, por, creado
+     FROM revisiones ORDER BY fecha DESC, id DESC LIMIT 5000`);
+  res.json({ revisiones: rows });
+}));
+app.post('/api/revisiones', requireAdmin, seguro(async (req, res) => {
+  const b = req.body || {};
+  const placa = String(b.placa || '').toUpperCase();
+  const fecha = String(b.fecha || '');
+  const tipo = String(b.tipo || '');
+  const km = b.km === '' || b.km == null ? null : Number(b.km);
+  const items = b.items && typeof b.items === 'object' && !Array.isArray(b.items) ? b.items : {};
+  const nota = String(b.nota ?? '');
+  if (!PLACA_OK.test(placa)) return res.status(400).json({ error: 'Placa no válida' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha) || isNaN(Date.parse(fecha))) return res.status(400).json({ error: 'Fecha no válida' });
+  if (!TIPOS_REVISION.includes(tipo)) return res.status(400).json({ error: 'Tipo de revisión no válido' });
+  if (km !== null && (!Number.isInteger(km) || km < 0 || km > 2000000)) return res.status(400).json({ error: 'Kilometraje no válido' });
+  const claves = Object.keys(items);
+  if (claves.length > 40 || claves.some(k => !/^[a-zA-Z]{1,30}$/.test(k) || !ESTADOS_ITEM.includes(items[k])))
+    return res.status(400).json({ error: 'Los puntos de la revisión no son válidos' });
+  if (nota.length > 2000) return res.status(400).json({ error: 'La nota es muy larga (máximo 2.000 caracteres)' });
+  const { rows } = await pool.query(
+    `INSERT INTO revisiones (placa, fecha, tipo, km, items, nota, por) VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING id, placa, to_char(fecha, 'YYYY-MM-DD') AS fecha, tipo, km, items, nota, por, creado`,
+    [placa, fecha, tipo, km, JSON.stringify(items), nota, req.user.username]);
+  res.json({ ok: true, revision: rows[0] });
+}));
+app.delete('/api/revisiones/:id', requireAdmin, seguro(async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Revisión no válida' });
+  const { rowCount } = await pool.query('DELETE FROM revisiones WHERE id=$1', [id]);
+  res.json({ ok: true, borradas: rowCount });
 }));
 
 // Health check: también prueba la base para ver la causa sin entrar a los logs de Render
