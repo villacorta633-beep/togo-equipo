@@ -122,6 +122,7 @@ table.t th.n{text-align:right;}
   <div class="f-group"><span class="f-label">Vehículo</span><select class="sel" id="fVeh"></select></div>
   <div class="f-group"><span class="f-label">Período</span><select class="sel" id="fPer"></select></div>
   <span class="sep"></span>
+  <a class="btn" id="bTaller" href="/taller.html">Mi taller</a>
   <a class="btn" id="b3d" href="/flota-3d.html">Ver en 3D</a>
   <button class="btn" id="bLink">Copiar enlace</button>
   <button class="btn btn-primary" id="bPrint">Imprimir / PDF</button>
@@ -130,6 +131,7 @@ table.t th.n{text-align:right;}
 <div class="aviso-copia" id="avisoCopia">Enlace copiado</div>
 
 <script src="/taller.js"></script>
+<script src="/mecanico.js"></script>
 <script>
 const T = window.Taller;
 const fmt0 = new Intl.NumberFormat('es-BO', { maximumFractionDigits: 0 });
@@ -207,6 +209,7 @@ function guardarEnDireccion() {
   const q = new URLSearchParams({ placa: S.placa });
   if (S.per) q.set('periodo', S.per);
   history.replaceState(null, '', '?' + q);
+  document.getElementById('bTaller').href = '/taller.html#vehiculo/' + encodeURIComponent(S.placa);
   document.getElementById('b3d').href = `/flota-3d.html?placa=${encodeURIComponent(S.placa)}${/^\d{4}$/.test(S.per) ? '&anio=' + S.per : ''}`;
   document.title = `TOGO · Informe ${S.placa}`;
 }
@@ -253,10 +256,13 @@ function mostrar() {
     : '<p style="color:var(--p-text2)">No se encontraron señales de mal uso, falta de mantenimiento ni reparaciones repetidas en este período.</p>';
 
   const ac = inf.aceite;
+  // Preguntas para llevar al taller: las de las piezas que aparecen en los hallazgos
+  const piezas = [...new Set([...inf.hallazgos.filter(h => h.nivel !== 'bajo').map(h => window.Mecanico.piezaDe(h)), ...window.Mecanico.cruzar(CTX, inf.placa).map(c => c.pieza)].filter(Boolean))];
+  const preguntas = piezas.map(id => ({ p: window.Mecanico.PIEZAS[id], id })).filter(x => x.p).slice(0, 5);
   const proxDia = ac.ultimo != null ? ac.ultimo + ac.cada : null;
   const actual = r.hasta >= CTX.ref;
   const estadoAceite = ac.ultimo == null ? '<span class="chip mal">Sin registros</span>'
-    : !actual ? '—' : ac.vencido ? `<span class="chip mal">Vencido hace ${fmt0.format(ac.dias - ac.cada)} días</span>` : '<span class="chip ok">Al día</span>';
+    : !actual ? '—' : ac.vencido ? `<span class="chip mal">Sin registro: pasó el plazo hace ${fmt0.format(ac.dias - ac.cada)} días</span>` : '<span class="chip ok">Al día</span>';
 
   const top = inf.principales.map(g => `<tr><td style="white-space:nowrap">${T.fechaCorta(g.dia)}</td><td>${esc(g.tipo)}</td><td>${esc(g.descripcion.trim() || '—')}</td><td class="n">${bs(g.monto)}</td></tr>`).join('');
 
@@ -320,7 +326,11 @@ function mostrar() {
       <ol class="recos">${inf.recomendaciones.map(x => `<li>${esc(x)}</li>`).join('')}</ol>
     </div>
 
-    <div class="sec"><div class="sec-t"><span>07</span>Próximo mantenimiento</div>
+    ${preguntas.length ? `<div class="sec"><div class="sec-t"><span>07</span>Preguntas para llevar al taller</div>
+      ${preguntas.map(x => `<div style="margin-bottom:10px;break-inside:avoid"><b>${esc(x.p.nombre)}</b><ul class="recos" style="margin-top:4px">${x.p.taller.slice(0, 3).map(q => `<li>${esc(q)}</li>`).join('')}</ul></div>`).join('')}
+    </div>` : ''}
+
+    <div class="sec"><div class="sec-t"><span>08</span>Próximo mantenimiento</div>
       <div class="prox">
         <div class="kpi"><div class="k">Último cambio de aceite</div><div class="v" style="font-size:16px">${ac.ultimo != null ? T.fechaCorta(ac.ultimo) : '—'}</div><div class="s">${ac.ultimo != null && actual ? `hace ${fmt0.format(ac.dias)} días` : ''}</div></div>
         <div class="kpi"><div class="k">Se hace cada</div><div class="v" style="font-size:16px">${ac.cada} días</div><div class="s">${ac.desdeHistorial ? 'según su propio historial' : 'valor normal para este tipo'}</div></div>
@@ -328,9 +338,9 @@ function mostrar() {
       </div>
     </div>
 
-    <div class="sec"><div class="sec-t"><span>08</span>Observaciones del responsable</div>${obs}</div>
+    <div class="sec"><div class="sec-t"><span>09</span>Observaciones del responsable</div>${obs}</div>
 
-    ${top ? `<div class="sec"><div class="sec-t"><span>09</span>Anexo: gastos más altos del período</div>
+    ${top ? `<div class="sec"><div class="sec-t"><span>10</span>Anexo: gastos más altos del período</div>
       <table class="t"><thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th class="n">Monto</th></tr></thead><tbody>${top}</tbody></table>
     </div>` : ''}
 

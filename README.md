@@ -1,5 +1,17 @@
 # togo-equipo
 
+## Mi taller (mecánico virtual)
+
+`/taller.html` reúne todo lo del taller; el tablero solo muestra un resumen con el botón **Abrir Mi taller**.
+
+- **Hoy**: mantenimientos pendientes por vehículo y lo que conviene revisar.
+- **Vehículos**: semáforo de cada placa y, al abrirla, el diagnóstico: por qué suele fallar cada pieza,
+  qué otras piezas arrastra, qué revisar y qué preguntarle al taller y al conductor.
+- **Lo que el mecánico preguntaría**: arreglos que normalmente van juntos y no aparecen en los gastos
+  (embrague sin rectificar el volante, dirección sin alineación, baterías o focos repetidos sin medir la carga…).
+- **Plan de mantenimiento**: última vez que se hizo cada tarea y si ya toca.
+- **Biblioteca**: la base de conocimiento por pieza para motos CB160, APV 1.6 y RAM 700 (`public/mecanico.js`).
+
 ## Taller: consejos e informe por placa
 
 El panel lee los gastos de mantenimiento como un mecánico (`public/taller.js`) y se recalcula solo
