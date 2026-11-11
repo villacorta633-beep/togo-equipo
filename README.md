@@ -10,6 +10,10 @@
 - **Lo que el mecánico preguntaría**: arreglos que normalmente van juntos y no aparecen en los gastos
   (embrague sin rectificar el volante, dirección sin alineación, baterías o focos repetidos sin medir la carga…).
 - **Plan de mantenimiento**: última vez que se hizo cada tarea y si ya toca.
+- **Agenda**: próxima fecha de cada tarea por vehículo (por días o por km cuando se conoce el kilometraje).
+- **Revisiones periódicas**: listas semanal y mensual por tipo de vehículo, que se registran con el kilometraje
+  (tabla `revisiones`, solo admin). Lo marcado "con atención" aparece en Hoy hasta la siguiente revisión.
+  Cada vehículo tiene su hoja de revisión para imprimir y llevar.
 - **Biblioteca**: la base de conocimiento por pieza para motos CB160, APV 1.6 y RAM 700 (`public/mecanico.js`).
 
 ## Taller: consejos e informe por placa

@@ -445,24 +445,24 @@ function piezaDe(h) {
 // re: cómo se reconoce en la descripción del gasto que se hizo.
 const PLAN = {
   moto: [
-    { id: 'aceite', nombre: 'Cambio de aceite (y limpieza de malla)', cada: '2.000–3.000 km', dias: 35, re: /CAMBIO DE ACEITE|ACEITE (DE )?MOTOR|ACEITE \d+W|MANTENIMIENTO PREVENTIVO/ },
-    { id: 'cadena', nombre: 'Tensar y lubricar la cadena', cada: '500–1.000 km', dias: 35, re: /TASAD|TENSAD|LUBRIC|ENGRAS|CADENA/, nota: 'Lo puede hacer el conductor cada semana; aquí solo se ve cuando lo hace el taller.' },
-    { id: 'valvulas', nombre: 'Calibración de válvulas', cada: '4.000–6.000 km', dias: 90, re: /BALANCIN|CALIBRA|REGULADO DE VALV|TASADO DE VALV/ },
-    { id: 'filtroAire', nombre: 'Filtro de aire (limpiar / cambiar)', cada: 'limpiar 3.000 km, cambiar 12.000 km', dias: 120, re: /FILTRO DE AIRE/ },
-    { id: 'bujia', nombre: 'Bujía', cada: '8.000–12.000 km', dias: 180, re: /BUJIA/ },
-    { id: 'frenos', nombre: 'Revisión de frenos (pastillas y balatas)', cada: 'en cada servicio', dias: 120, re: /PASTILLA|BALATA|FRENO/ },
-    { id: 'telescopios', nombre: 'Aceite y retenes de telescopios', cada: '20.000 km o si gotean', dias: 365, re: /TELESCOP/ },
-    { id: 'kit', nombre: 'Kit de transmisión', cada: '10.000–20.000 km', dias: 300, re: /KIT DE TRANSMISION|KIT TRANSMISION|TRANSMISION COMPLETA|PINON|CORONA/ },
+    { id: 'aceite', km: 2500, nombre: 'Cambio de aceite (y limpieza de malla)', cada: '2.000–3.000 km', dias: 35, re: /CAMBIO DE ACEITE|ACEITE (DE )?MOTOR|ACEITE \d+W|MANTENIMIENTO PREVENTIVO/ },
+    { id: 'cadena', km: 700, nombre: 'Tensar y lubricar la cadena', cada: '500–1.000 km', dias: 35, re: /TASAD|TENSAD|LUBRIC|ENGRAS|CADENA/, nota: 'Lo puede hacer el conductor cada semana; aquí solo se ve cuando lo hace el taller.' },
+    { id: 'valvulas', km: 5000, nombre: 'Calibración de válvulas', cada: '4.000–6.000 km', dias: 90, re: /BALANCIN|CALIBRA|REGULADO DE VALV|TASADO DE VALV/ },
+    { id: 'filtroAire', km: 3000, nombre: 'Filtro de aire (limpiar / cambiar)', cada: 'limpiar 3.000 km, cambiar 12.000 km', dias: 120, re: /FILTRO DE AIRE/ },
+    { id: 'bujia', km: 10000, nombre: 'Bujía', cada: '8.000–12.000 km', dias: 180, re: /BUJIA/ },
+    { id: 'frenos', km: 3000, nombre: 'Revisión de frenos (pastillas y balatas)', cada: '3.000 km (en cada servicio)', dias: 120, re: /PASTILLA|BALATA|FRENO/ },
+    { id: 'telescopios', km: 20000, nombre: 'Aceite y retenes de telescopios', cada: '20.000 km o si gotean', dias: 365, re: /TELESCOP/ },
+    { id: 'kit', km: 15000, nombre: 'Kit de transmisión', cada: '10.000–20.000 km', dias: 300, re: /KIT DE TRANSMISION|KIT TRANSMISION|TRANSMISION COMPLETA|PINON|CORONA/ },
   ],
   furgon: [
-    { id: 'aceite', nombre: 'Aceite y filtro de motor', cada: '5.000 km', dias: 100, re: /CAMBIO DE ACEITE|ACEITE (DE )?MOTOR|ACEITE \d+W|MANTENIMIENTO PREVENTIVO|FILTRO DE ACEITE/ },
-    { id: 'filtroAire', nombre: 'Filtro de aire', cada: '10.000–20.000 km', dias: 240, re: /FILTRO DE AIRE/ },
-    { id: 'bujia', nombre: 'Bujías', cada: '20.000–40.000 km', dias: 365, re: /BUJIA/ },
-    { id: 'frenos', nombre: 'Revisión de frenos', cada: '10.000 km', dias: 180, re: /PASTILLA|ZAPATA|BALATA|FRENO/ },
-    { id: 'refrigerante', nombre: 'Refrigerante', cada: '2 años', dias: 730, re: /REFRIGERANTE|RADIADOR/ },
-    { id: 'alineacion', nombre: 'Alineación, balanceo y rotación', cada: '10.000 km', dias: 240, re: /ALINEA|BALANCEO|ROTACION/ },
-    { id: 'diferencial', nombre: 'Aceite de caja y diferencial', cada: '40.000 km', dias: 730, re: /CORONA|DIFERENCIAL|ACEITE DE CAJA|CAJA DE CAMBIO/, solo: ['apv'] },
-    { id: 'correa', nombre: 'Correa de distribución (con tensor y bomba de agua)', cada: 'APV 60.000–70.000 km; RAM 50.000–60.000 km', dias: 1460, re: /CORREA (DENTADA|DE DISTRIB|DE TIEMPO)|KIT DE DISTRIB/, critico: true,
+    { id: 'aceite', km: 5000, nombre: 'Aceite y filtro de motor', cada: '5.000 km', dias: 100, re: /CAMBIO DE ACEITE|ACEITE (DE )?MOTOR|ACEITE \d+W|MANTENIMIENTO PREVENTIVO|FILTRO DE ACEITE/ },
+    { id: 'filtroAire', km: 15000, nombre: 'Filtro de aire', cada: '10.000–20.000 km', dias: 240, re: /FILTRO DE AIRE/ },
+    { id: 'bujia', km: 30000, nombre: 'Bujías', cada: '20.000–40.000 km', dias: 365, re: /BUJIA/ },
+    { id: 'frenos', km: 10000, nombre: 'Revisión de frenos', cada: '10.000 km', dias: 180, re: /PASTILLA|ZAPATA|BALATA|FRENO/ },
+    { id: 'refrigerante', km: 0, nombre: 'Refrigerante', cada: '2 años', dias: 730, re: /REFRIGERANTE|RADIADOR/ },
+    { id: 'alineacion', km: 10000, nombre: 'Alineación, balanceo y rotación', cada: '10.000 km', dias: 240, re: /ALINEA|BALANCEO|ROTACION/ },
+    { id: 'diferencial', km: 40000, nombre: 'Aceite de caja y diferencial', cada: '40.000 km', dias: 730, re: /CORONA|DIFERENCIAL|ACEITE DE CAJA|CAJA DE CAMBIO/, solo: ['apv'] },
+    { id: 'correa', km: 60000, nombre: 'Correa de distribución (con tensor y bomba de agua)', cada: 'APV 60.000–70.000 km; RAM 50.000–60.000 km', dias: 1460, re: /CORREA (DENTADA|DE DISTRIB|DE TIEMPO)|KIT DE DISTRIB/, critico: true,
       nota: 'Si no hay registro, hay que averiguar con el kilometraje cuándo se cambió: si se corta, el arreglo es muy caro.' },
   ],
 };
@@ -481,7 +481,7 @@ function plan(ctx, placa) {
     let estado = ult ? (dias > it.dias * 1.25 ? 'toca' : dias > it.dias * 0.9 ? 'pronto' : 'ok') : (desde > it.dias || it.critico ? 'sin' : 'ok');
     // Si desde el último registro casi ninguna placa tiene sus cambios cargados, puede faltar el dato
     if (estado === 'toca' && it.id === 'aceite' && ctx.parteCompleta(v.tipo, ult.dia, ctx.ref) < 0.6) estado = 'verificar';
-    return { ...it, ultimo: ult || null, dias, veces: T.eventos(hechos, 7).length, estado };
+    return { ...it, intervalo: it.dias, ultimo: ult || null, dias, veces: T.eventos(hechos, 7).length, estado };
   });
 }
 
@@ -561,10 +561,131 @@ function cruzar(ctx, placa) {
   return out;
 }
 
+// ── Revisiones periódicas: lo que alarga la vida del vehículo ───────────────
+// diaria: antes de salir (la hace el conductor, no se registra); semanal y mensual: se registran
+// en Mi taller con el kilometraje. Cada punto dice por qué importa.
+const REVISION = {
+  moto: {
+    diaria: [
+      { id: 'luces', t: 'Luces, stop, direccionales y bocina funcionan', por: 'Seguridad y evitar multas; un stop que no prende puede ser un foco o el regulador.' },
+      { id: 'frenos', t: 'Los dos frenos responden firmes', por: 'Una palanca esponjosa avisa de líquido viejo o aire en el circuito.' },
+      { id: 'llantas', t: 'Llantas sin cortes ni bajas a simple vista', por: 'Una llanta baja se pincha y se daña por dentro.' },
+      { id: 'ruidos', t: 'Sin ruidos raros al arrancar ni manchas de aceite donde estaba estacionada', por: 'Detectar una fuga o un ruido a tiempo evita una reparación grande.' },
+    ],
+    semanal: [
+      { id: 'aceite', t: 'Nivel de aceite (mirilla o varilla, moto derecha y tibia)', por: 'Un motor enfriado por aire con poco aceite se recalienta y gasta pistón y cadenilla.' },
+      { id: 'presion', t: 'Presión de llantas con medidor (en frío)', por: 'Con la presión correcta la llanta dura más y se pincha menos.' },
+      { id: 'cadena', t: 'Cadena: tensión (unos 25–35 mm de juego) y lubricada', por: 'Es lo que más alarga la vida del kit de transmisión.' },
+      { id: 'embrague', t: 'Juego de la palanca de embrague (unos 10–20 mm)', por: 'Sin juego el embrague patina y se quema.' },
+      { id: 'frenoTrasero', t: 'Juego del pedal de freno trasero (no debe quedar rozando)', por: 'Un freno trasero que roza gasta la balata y calienta el rodamiento.' },
+      { id: 'pastillas', t: 'Pastillas delanteras con material (mirar por la mordaza)', por: 'Si llegan al metal, rayan el disco.' },
+    ],
+    mensual: [
+      { id: 'filtroAire', t: 'Filtro de aire limpio y bien asentado', por: 'Un filtro sucio o mal puesto deja entrar polvo que gasta el cilindro.' },
+      { id: 'dibujo', t: 'Dibujo de las llantas, cortes, deformaciones y estado de las cámaras', por: 'Llantas lisas = más pinchazos y menos frenado.' },
+      { id: 'telescopios', t: 'Telescopios sin aceite en las barras', por: 'Un retén que gotea ensucia el freno delantero.' },
+      { id: 'roseta', t: 'Gomas de la roseta y dientes de piñón y corona', por: 'Gomas gastadas dan tirones que destruyen la cadena.' },
+      { id: 'rodamientos', t: 'Ruedas sin juego lateral (rodamientos) y dirección suave', por: 'Un rodamiento flojo termina dañando el eje y la llanta.' },
+      { id: 'cables', t: 'Acelerador vuelve solo; chicotillos sin hilos rotos', por: 'Un acelerador que no vuelve es peligroso; un chicotillo deshilachado se corta.' },
+      { id: 'bateria', t: 'Batería: bornes limpios y apretados', por: 'Un borne flojo parece batería mala y hace trabajar de más al arranque.' },
+      { id: 'tornilleria', t: 'Tornillos de ejes, manubrio, escape y parrilla apretados', por: 'La vibración del reparto los afloja.' },
+    ],
+  },
+  furgon: {
+    diaria: [
+      { id: 'testigos', t: 'Sin luces de advertencia en el tablero al arrancar', por: 'Aceite, temperatura o batería: parar a tiempo evita romper el motor.' },
+      { id: 'luces', t: 'Luces, stop y direccionales funcionan', por: 'Seguridad y evitar multas.' },
+      { id: 'llantas', t: 'Llantas sin bajas ni cortes a simple vista', por: 'Una llanta baja se calienta y revienta con carga.' },
+      { id: 'fugas', t: 'Sin manchas debajo del vehículo', por: 'Aceite, refrigerante o líquido de frenos: detectar una fuga a tiempo es barato.' },
+    ],
+    semanal: [
+      { id: 'aceite', t: 'Nivel de aceite del motor (en plano, motor frío o 5 minutos apagado)', por: 'Es lo que más protege el motor.' },
+      { id: 'refrigerante', t: 'Nivel de refrigerante en el depósito (en frío; nunca abrir caliente)', por: 'Un furgón que pierde agua termina con la culata dañada.' },
+      { id: 'liquidoFrenos', t: 'Nivel del líquido de frenos', por: 'Si baja, hay una fuga o las pastillas están gastadas.' },
+      { id: 'presion', t: 'Presión de las llantas, incluida la de repuesto', por: 'Con carga, la presión correcta evita reventones y desgaste.' },
+      { id: 'carga', t: 'La carga no supera lo que soporta el vehículo', por: 'La sobrecarga es la principal enemiga de muelles, frenos y embrague.' },
+      { id: 'limpia', t: 'Plumillas y agua del limpiaparabrisas', por: 'Visibilidad en lluvia.' },
+    ],
+    mensual: [
+      { id: 'correas', t: 'Correas de accesorios sin grietas ni chillidos', por: 'Si se corta, se pierde la carga de la batería y a veces la bomba de agua.' },
+      { id: 'mangueras', t: 'Mangueras del radiador sin grietas ni hinchazones', por: 'Una manguera que revienta recalienta el motor en minutos.' },
+      { id: 'ventilador', t: 'El electroventilador prende cuando el motor calienta', por: 'En reparto lento es lo que evita el recalentamiento.' },
+      { id: 'amortiguadores', t: 'Amortiguadores sin fugas y sin rebote', por: 'Protegen llantas, muelles y la carga.' },
+      { id: 'direccion', t: 'Volante sin juego; guardapolvos de rótulas y terminales sanos', por: 'Un guardapolvo roto deja entrar tierra y gasta la pieza.' },
+      { id: 'desgaste', t: 'Desgaste parejo de las llantas (no de un solo lado)', por: 'Desgaste de un lado = hace falta alinear.' },
+      { id: 'embrague', t: 'Embrague: no patina en subida con carga y corta bien', por: 'Detectarlo temprano evita dañar el volante de inercia.' },
+      { id: 'frenoMano', t: 'Freno de mano sostiene en pendiente', por: 'Si no sostiene, las zapatas traseras están gastadas o desreguladas.' },
+      { id: 'muelles', t: 'Muelles y bujes traseros sin hojas rotas ni golpes', por: 'Con carga atrás, una hoja rota se descubre tarde.' },
+      { id: 'bateria', t: 'Batería: bornes limpios y apretados', por: 'Evita fallas de arranque.' },
+    ],
+  },
+};
+const CADA_REVISION = { semanal: 7, mensual: 30 };
+
+// Kilómetros por día de un vehículo, con el kilometraje de revisiones y gastos de los últimos 4 meses
+function ritmoKm(ctx, placa, revs = [], hoyDia) {
+  const v = ctx.veh.get(placa);
+  const puntos = [
+    ...revs.filter(r => r.placa === placa && +r.km > 0).map(r => [T.dia(r.fecha), +r.km]),
+    ...(v ? v.filas.filter(r => +r.km > 0).map(r => [r.dia, +r.km]) : []),
+  ].sort((a, b) => a[0] - b[0]);
+  if (!puntos.length) return null;
+  const ult = puntos[puntos.length - 1];
+  const rec = puntos.filter(p => p[0] >= ult[0] - 120);
+  const pri = rec[0];
+  const porDia = ult[0] - pri[0] >= 14 && ult[1] > pri[1] ? (ult[1] - pri[1]) / (ult[0] - pri[0]) : null;
+  const actual = porDia ? Math.round(ult[1] + porDia * Math.max(0, hoyDia - ult[0])) : ult[1];
+  return { porDia, actual, ultimo: ult, estimado: !!porDia && hoyDia > ult[0] };
+}
+
+// Agenda de un vehículo: próxima fecha de cada tarea y de las revisiones.
+// La próxima fecha sale del último registro: por días, o por km cuando se conoce el ritmo.
+function agenda(ctx, placa, revs = [], hoyDia = Math.max(ctx.ref, Math.floor(Date.now() / 864e5))) {
+  const v = ctx.veh.get(placa);
+  if (!v) return null;
+  const km = ritmoKm(ctx, placa, revs, hoyDia);
+  const tareas = plan(ctx, placa).map(p => {
+    const kmTarea = p.id === 'correa' && v.modelo === 'ram' ? 50000 : p.km;
+    let proxima = null, fuente = 'días';
+    if (p.ultimo) {
+      proxima = p.ultimo.dia + p.intervalo;
+      // Con kilometraje del último trabajo y ritmo conocido, manda el km si llega antes
+      if (kmTarea && km && km.porDia && +p.ultimo.km > 0) {
+        // km que le quedan hasta la próxima, al ritmo de este vehículo
+        const quedan = +p.ultimo.km + kmTarea - km.actual;
+        const diaKm = hoyDia + Math.round(quedan / km.porDia);
+        if (diaKm < proxima) { proxima = diaKm; fuente = 'km'; }
+      }
+    }
+    const falta = proxima == null ? null : proxima - hoyDia;
+    const cuando = proxima == null ? (p.critico ? 'averiguar' : 'sin') : falta < 0 ? 'atrasada' : falta <= 7 ? 'semana' : falta <= 30 ? 'mes' : 'luego';
+    return { ...p, kmTarea, proxima, falta, fuente, cuando };
+  }).sort((a, b) => (a.proxima ?? -1e9) - (b.proxima ?? -1e9));
+  const r = revs.filter(x => x.placa === placa).sort((a, b) => b.fecha.localeCompare(a.fecha));
+  const revisiones = ['semanal', 'mensual'].map(tipo => {
+    const ult = r.find(x => x.tipo === tipo);
+    const proxima = ult ? T.dia(ult.fecha) + CADA_REVISION[tipo] : null;
+    const falta = proxima == null ? null : proxima - hoyDia;
+    return { tipo, ultima: ult || null, proxima, falta, cuando: proxima == null ? 'nunca' : falta < 0 ? 'atrasada' : falta <= 7 ? 'semana' : 'mes' };
+  });
+  // Puntos marcados "con atención" en la última revisión de cada tipo: siguen abiertos hasta la próxima
+  const lista = REVISION[v.tipo];
+  const abiertos = [];
+  ['semanal', 'mensual'].forEach(tipo => {
+    const ult = r.find(x => x.tipo === tipo);
+    if (!ult) return;
+    Object.entries(ult.items || {}).filter(([, e]) => e === 'atencion').forEach(([id]) => {
+      const it = lista[tipo].find(i => i.id === id);
+      if (it) abiertos.push({ tipo, fecha: ult.fecha, item: it, nota: ult.nota || '' });
+    });
+  });
+  return { placa, tipo: v.tipo, km, tareas, revisiones, abiertos, hoyDia };
+}
+
 // ── Lo de hoy: qué hacer y qué revisar en los vehículos que están trabajando ─
 // Lo usan Mi taller y el resumen del tablero, así los dos cuentan lo mismo.
 const COLOR = { rojo: '#FF5A4E', ambar: '#F5A623', azul: '#5b8def' };
-function hoy(ctx, placas) {
+function hoy(ctx, placas, revs = []) {
   const ahora = [], revisar = [];
   const corto = p => p.nombre.split(' (')[0].toLowerCase();
   const fmt0 = new Intl.NumberFormat('es-BO', { maximumFractionDigits: 0 });
@@ -584,10 +705,18 @@ function hoy(ctx, placas) {
       ahora.push({ placa, color: aceite ? COLOR.rojo : toca.length ? COLOR.ambar : COLOR.azul,
         etiqueta: aceite ? 'Aceite sin registro' : toca.length ? 'Mantenimiento' : 'Averiguar',
         t: toca.length ? `${toca.length} ${toca.length === 1 ? 'tarea sin registro reciente' : 'tareas sin registro reciente'}${averiguar.length ? ' y datos por averiguar' : ''}` : 'Datos por averiguar',
-        d: partes.join('. ') + '.', orden: aceite ? 0 : toca.length ? 1 : 2, n: toca.length });
+        d: partes.join('. ') + '.', orden: aceite ? 0 : toca.length ? 1 : 2, n: toca.length,
+        // Lo mismo por separado, para mostrarlo como chips
+        tareas: toca.map(p => ({ id: p.id, nombre: corto(p), dias: p.dias })),
+        averiguar: averiguar.map(corto), verificar: verificar.map(corto) });
     }
     cruzar(ctx, placa).filter(x => x.ultimo >= ctx.ref - 365 && x.pieza !== 'distribucion').forEach(x => revisar.push({
       placa, color: COLOR.azul, etiqueta: 'Pregunta del mecánico', t: x.titulo, d: x.detalle, orden: 2 }));
+  });
+  placas.forEach(placa => {
+    const ag = agenda(ctx, placa, revs);
+    if (ag) ag.abiertos.forEach(a => revisar.push({ placa, color: COLOR.rojo, etiqueta: `Revisión ${a.tipo}`,
+      t: `Con atención: ${a.item.t.split(' (')[0].toLowerCase()}`, d: `Marcado en la revisión del ${T.fechaCorta(T.dia(a.fecha))}.${a.nota ? ' Nota: ' + a.nota.replace(/[.\s]+$/, '') + '.' : ''} ${a.item.por}`, orden: 0 }));
   });
   T.consejos(ctx, { placas: new Set(placas) }).filter(c => c.clase !== 'aceite').forEach(c => revisar.push({
     placa: c.placa, color: c.nivel === 'alto' ? COLOR.rojo : T.CAUSAS[c.causa].color, etiqueta: T.CAUSAS[c.causa].nombre, t: c.titulo, d: c.detalle, orden: c.nivel === 'alto' ? 0 : 1 }));
@@ -598,7 +727,7 @@ function hoy(ctx, placas) {
 // Placas que están trabajando: la flota actual, o las que tuvieron gastos en los últimos 90 días
 const activas = ctx => [...ctx.veh.values()].filter(v => v.mant.length && (ctx.enFlota ? ctx.enFlota.has(v.placa) : v.ultimo >= ctx.ref - 90));
 
-const api = { VEHICULOS, PIEZAS, PLAN, piezaDe, plan, cruzar, hoy, activas };
+const api = { VEHICULOS, PIEZAS, PLAN, REVISION, CADA_REVISION, piezaDe, plan, cruzar, hoy, activas, agenda, ritmoKm };
 global.Mecanico = api;
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
