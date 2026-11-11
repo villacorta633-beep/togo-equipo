@@ -232,6 +232,21 @@ a.rev-box:hover{border-color:var(--c);transform:translateY(-1px);}
   .hist-r{grid-column:2/3;}
 }
 
+/* Las columnas no se estiran más que la pantalla por un contenido largo */
+.cols>*,.board>*{min-width:0;}
+/* Mi gestión */
+.filtros-d{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.sel-per{border-radius:20px;padding:6px 12px;}
+.cmp{display:inline-flex;align-items:baseline;gap:6px;flex-wrap:wrap;font-family:var(--mono);font-size:13px;}
+.cmp s{color:var(--text3);text-decoration:none;}
+.cmp b{color:var(--text);}
+.cmp em{font-style:normal;font-size:11px;color:var(--text3);}
+.cmp em.bien{color:var(--green);} .cmp em.mal{color:var(--red);}
+.kpi .cmp{font-size:17px;margin-top:6px;}
+.kpi .cmp b{font-size:20px;}
+.tchip.verde{background:#3fb68b22;color:#7fd7ae;}
+.ini-g{display:inline-flex;align-items:center;gap:5px;color:var(--text);}
+.ini-g input{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:3px 8px;font-size:12.5px;font-family:var(--mono);color-scheme:dark;}
 /* Agenda y revisiones */
 .rev-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
 .rev-box{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;}
@@ -305,6 +320,7 @@ table.hj td.box{border:1px solid #999;width:48px;}
     <a class="tab" href="#agenda" data-v="agenda">Agenda</a>
     <a class="tab" href="#vehiculos" data-v="vehiculos">Vehículos</a>
     <a class="tab" href="#plan" data-v="plan">Plan</a>
+    <a class="tab" href="#gestion" data-v="gestion">Mi gestión</a>
     <a class="tab" href="#biblioteca" data-v="biblioteca">Biblioteca</a>
   </nav>
   <span class="sep"></span>
@@ -393,6 +409,7 @@ function mostrar(quieto) {
   else if (vista === 'revision' && CTX.veh.has(arg) && M.CADA_REVISION[arg2]) { app.innerHTML = vRevision(arg, arg2); armarRevision(arg, arg2); }
   else if (vista === 'hoja' && CTX.veh.has(arg)) app.innerHTML = vHoja(arg);
   else if (vista === 'agenda') app.innerHTML = vAgenda();
+  else if (vista === 'gestion') app.innerHTML = vGestion();
   else if (vista === 'vehiculos') app.innerHTML = vVehiculos();
   else if (vista === 'plan') app.innerHTML = vPlan();
   else if (vista === 'biblioteca') { app.innerHTML = vBiblioteca(); armarBiblioteca(); }
@@ -516,24 +533,118 @@ function vAgenda() {
       <div class="ag-sin">${col.sin.map(chip).join('')}</div></details>`;
 }
 
+// ── PERÍODO Y GESTIÓN ────────────────────────────────────────────────────────
+// Inicio de la gestión del responsable (se puede cambiar en la pestaña Mi gestión)
+const gestionIni = () => { try { return localStorage.getItem('togo_gestion') || '2026-02-01'; } catch { return '2026-02-01'; } };
+// Período para el diagnóstico: '' todo, 'gestion', 'antes' o un año
+const PER = { id: '' };
+function rangoPer() {
+  const ini = T.dia(gestionIni());
+  if (PER.id === 'gestion') return { desde: ini, hasta: Infinity };
+  if (PER.id === 'antes') return { desde: -Infinity, hasta: ini - 1 };
+  if (/^\d{4}$/.test(PER.id)) return { desde: T.dia(`${PER.id}-01-01`), hasta: T.dia(`${PER.id}-12-31`) };
+  return { desde: -Infinity, hasta: Infinity };
+}
+const periodoTxt = () => PER.id === 'gestion' ? `mi gestión (desde ${T.fechaCorta(T.dia(gestionIni()))})` : PER.id === 'antes' ? `antes de mi gestión` : PER.id ? `año ${PER.id}` : 'todo el historial';
+const CACHE_INF = new Map();
+// Informe de una placa en el período elegido (se guarda para no recalcular)
+function infDe(placa) {
+  if (!PER.id) return DIAG.get(placa)?.inf || T.informe(CTX, placa);
+  const k = `${placa}|${PER.id}|${gestionIni()}`;
+  if (!CACHE_INF.has(k)) CACHE_INF.set(k, T.informe(CTX, placa, rangoPer()));
+  return CACHE_INF.get(k);
+}
+function selPeriodo() {
+  const anios = [...new Set([...CTX.veh.values()].flatMap(v => v.filas.map(r => r.anio)))].sort((a, b) => b - a);
+  const op = [['', 'Todo el historial'], ['gestion', 'Mi gestión'], ['antes', 'Antes de mi gestión'], ...anios.map(a => [String(a), String(a)])];
+  return `<select class="sel sel-per" id="selPer" title="Período del diagnóstico">${op.map(([k, t]) => `<option value="${k}" ${PER.id === k ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+}
+
+// ── MI GESTIÓN: antes y durante ──────────────────────────────────────────────
+function vGestion() {
+  const iniTxt = gestionIni(), ini = T.dia(iniTxt);
+  const vs = ACTIVAS.filter(v => pasaFiltro(v.placa));
+  const G = vs.map(v => ({ v, g: M.gestion(CTX, v.placa, ini) })).filter(x => x.g);
+  // Totales de la flota: gasto por mes, parte evitable, preventivos por vehículo y mes
+  const suma = (k, campo) => G.reduce((s, x) => s + (x.g[k][campo] || 0), 0);
+  const porMes = k => { const m = Math.max(...G.map(x => x.g[k].meses), 1); return suma(k, 'total') / m; };
+  const evit = k => { const t = suma(k, 'total'); return t ? G.reduce((s, x) => s + M.EVITABLES.reduce((y, c) => y + x.g[k].causas[c], 0), 0) / t : 0; };
+  const prev = k => { const l = G.map(x => x.g[k === 'antes' ? 'prevAntes' : 'prevAhora']).filter(x => x != null); return l.length ? l.reduce((s, x) => s + x, 0) / l.length : null; };
+  // puntos: para porcentajes se muestra la diferencia en puntos (16% → 22% = +6 pts), no el cambio relativo
+  const comp = (antes, ahora, fmt, mejorSiBaja, puntos) => {
+    if (antes == null || ahora == null) return `<span class="cmp">${ahora == null ? '—' : fmt(ahora)}</span>`;
+    const dif = puntos ? ahora - antes : antes ? (ahora - antes) / antes : 0, mejor = mejorSiBaja ? ahora <= antes : ahora >= antes;
+    const igual = Math.abs(dif) < (puntos ? 0.02 : 0.05);
+    const txt = igual ? '=' : (dif > 0 ? '▲' : '▼') + (puntos ? Math.round(Math.abs(dif) * 100) + ' pts' : Math.round(Math.abs(dif) * 100) + '%');
+    return `<span class="cmp"><s>${fmt(antes)}</s> → <b>${fmt(ahora)}</b> <em class="${igual ? '' : mejor ? 'bien' : 'mal'}">${txt}</em></span>`;
+  };
+  const pct = x => Math.round(x * 100) + '%';
+  const meses = Math.max(...G.map(x => x.g.ahora.meses), 0);
+  // ¿Los registros de la gestión están completos? Si faltan, la comparación de preventivos no es confiable
+  const completo = ['moto', 'furgon'].filter(t => vs.some(v => v.tipo === t)).map(t => CTX.parteCompleta(t, ini, CTX.ref));
+  const incompleto = completo.some(x => x < 0.6);
+
+  const heredadas = G.flatMap(x => x.g.heredadas.map(h => ({ ...h, placa: x.v.placa, tipo: x.v.tipo })));
+  const resueltas = heredadas.filter(h => h.resuelta).length;
+  const vienen = G.flatMap(x => x.g.vienen.map(h => ({ h, placa: x.v.placa })));
+  const propios = G.flatMap(x => x.g.propios.map(h => ({ h, placa: x.v.placa })));
+  const C = T.CAUSAS;
+
+  const porPlaca = new Map();
+  heredadas.forEach(h => { if (!porPlaca.has(h.placa)) porPlaca.set(h.placa, []); porPlaca.get(h.placa).push(h); });
+  const tarjetasHer = [...porPlaca.entries()].map(([placa, l]) => `<a class="card-v" style="--c:${l.every(h => h.resuelta) ? 'var(--green)' : 'var(--amber)'}" href="#vehiculo/${encodeURIComponent(placa)}/agenda">
+      <div class="cv-top">${icoVeh(l[0].tipo)}<span class="placa">${esc(placa)}</span><span class="cv-sub">${l.filter(h => h.resuelta).length} de ${l.length} resueltas</span></div>
+      <div class="tchips">${l.map(h => `<span class="tchip ${h.resuelta ? 'verde' : h.critico ? 'azul' : ''}" title="${h.ultimoAntes ? `Último antes: ${T.fechaCorta(h.ultimoAntes.dia)}` : 'Sin ningún registro antes'}${h.resuelta ? ` · hecho el ${T.fechaCorta(h.resuelta.dia)}` : ''}">${h.resuelta ? ico('check') : ''}${esc(h.nombre.split(' (')[0])}${h.ultimoAntes ? ` <b>${T.fechaCorta(h.ultimoAntes.dia).slice(3)}</b>` : ' <b>nunca</b>'}</span>`).join('')}</div></a>`).join('');
+  const filaH = ({ h, placa }, previo) => `<details class="fila" style="--c:${previo ? 'var(--blue)' : C[h.causa].color}">
+      <summary><span class="dot"></span><span class="placa">${esc(placa)}</span><span class="fila-t">${esc(h.titulo)}</span><span class="fila-e">${previo ? 'desde ' + T.fechaCorta(h.causaDesde) : esc(C[h.causa].nombre)}</span></summary>
+      <div class="fila-d">${previo ? `<b>La causa empezó el ${T.fechaCorta(h.causaDesde)}, antes de tu gestión.</b> ` : ''}${esc(h.detalle)} <a href="#vehiculo/${encodeURIComponent(placa)}/diagnostico">Ver vehículo →</a></div></details>`;
+  const tabla = G.map(({ v, g }) => `<tr><td><a class="placa" href="#vehiculo/${encodeURIComponent(v.placa)}" style="text-decoration:none">${esc(v.placa)}</a><div class="item-d">${esc(v.etiqueta)}</div></td>
+      <td>${comp(g.hayAntes ? g.antes.porMes : null, g.hayAhora ? g.ahora.porMes : null, x => bs(x), true)}</td>
+      <td>${comp(g.hayAntes ? g.evitableAntes : null, g.hayAhora ? g.evitableAhora : null, pct, true, true)}</td>
+      <td>${comp(g.prevAntes, g.prevAhora, x => x.toFixed(1).replace('.', ','), false)}</td>
+      <td>${g.heredadas.length ? `${g.heredadas.filter(h => h.resuelta).length}/${g.heredadas.length}` : '—'}</td></tr>`).join('');
+
+  return `<div class="cab"><div><h2>Mi gestión</h2>
+      <div class="sub">Antes y desde el <label class="ini-g">${ico('calendario')}<input type="date" id="gesIni" value="${esc(iniTxt)}" max="${hoyISO()}"></label> ${info('Compara los vehículos que están trabajando antes y después de la fecha de inicio de tu gestión (la puedes cambiar). Todo sale de los gastos cargados en el Excel: si en un período faltan registros, la comparación pierde precisión.')}</div></div>${segmento()}</div>
+    ${incompleto ? `<div class="banner" style="border-color:#F5A62355;background:#F5A62312">${ico('alerta')}<div><b>Faltan registros en parte de tu gestión</b><span>En varios meses casi ningún vehículo tiene sus cambios de aceite cargados: la comparación de preventivos puede salir peor de lo que fue. Cargar lo que falte en el Excel la corrige sola.</span></div></div>` : ''}
+    <div class="kpis kpis-4">
+      <div class="kpi" style="--c:var(--amber)">${ico('llave')}${comp(porMes('antes'), porMes('ahora'), x => bs(x), true)}<span>gasto de mantenimiento por mes</span></div>
+      <div class="kpi" style="--c:var(--red)">${ico('alerta')}${comp(evit('antes'), evit('ahora'), pct, true, true)}<span>del gasto se pudo evitar</span></div>
+      <div class="kpi" style="--c:var(--green)">${ico('aceite')}${comp(prev('antes'), prev('ahora'), x => x.toFixed(1).replace('.', ','), false)}<span>preventivos por vehículo al mes</span></div>
+      <div class="kpi" style="--c:var(--blue)">${ico('check')}<b data-n="${resueltas}">0</b><span>de ${heredadas.length} pendientes heredados ya resueltos</span></div>
+    </div>
+    <div class="cols">
+      <section><div class="h3">${ico('lista')} Lo que heredaste ${info(`Tareas que el ${T.fechaCorta(ini)} ya estaban atrasadas o nunca se habían registrado. En verde, las que ya se hicieron en tu gestión. El mes que aparece es el del último registro antes de empezar.`)}</div>
+        ${tarjetasHer || `<div class="vacio">${ico('check')} No había tareas atrasadas al empezar.</div>`}</section>
+      <section><div class="h3">${ico('pregunta')} Problemas que vienen de antes <span class="n">${vienen.length}</span> ${info('Fallas que aparecieron en tu gestión pero cuya causa empezó antes: una pieza puesta antes que duró poco, o un período sin cambio de aceite que empezó antes de tu fecha de inicio.')}</div>
+        ${vienen.length ? vienen.map(x => filaH(x, true)).join('') : `<div class="vacio">${ico('check')} Ninguno.</div>`}
+        <div class="h3">${ico('alerta')} Problemas de tu gestión <span class="n">${propios.length}</span> ${info('Hallazgos importantes cuya causa empezó después de tu fecha de inicio. Sirven para corregir a tiempo.')}</div>
+        ${propios.length ? propios.map(x => filaH(x, false)).join('') : `<div class="vacio">${ico('check')} Ninguno.</div>`}</section>
+    </div>
+    <div class="h3">${ico('furgon')} Vehículo por vehículo <span class="n">${fmt0.format(meses)} meses de gestión</span></div>
+    <div class="tabla-scroll"><table class="plan"><thead><tr><th>Placa</th><th>Gasto / mes</th><th>Se pudo evitar</th><th>Preventivos / mes</th><th>Heredados resueltos</th></tr></thead><tbody>${tabla}</tbody></table></div>`;
+}
+
 // ── VEHÍCULOS ────────────────────────────────────────────────────────────────
 function vVehiculos() {
   const card = v => {
-    const d = DIAG.get(v.placa), a = d.anio;
+    const d = DIAG.get(v.placa);
+    // Con un período elegido, el veredicto y el gasto son de ese período; si no, del último año
+    const inf = infDe(v.placa), a = PER.id ? inf : d.anio;
     const ratio = a.comp.n >= 3 && a.ratio ? a.ratio : 0;
     return `<a class="veh" style="--c:${d.color}" href="#vehiculo/${encodeURIComponent(v.placa)}">
       <div class="cv-top">${icoVeh(v.tipo)}<span class="placa">${esc(v.placa)}</span><span class="semaforo" title="${d.color === ROJO ? 'Algo importante' : d.color === AMBAR ? 'Cosas para revisar' : 'En orden'}"></span></div>
       <div class="cv-sub" style="margin-top:2px">${esc(v.etiqueta)} · ${esc(v.proxi)}</div>
-      <div class="v">${esc(d.inf.veredicto.titulo)}</div>
+      <div class="v">${esc(inf.veredicto.titulo)}</div>
       <div class="mini-stats">
-        <span title="Gasto de mantenimiento por mes, último año">${bs(a.porMes)}<i>/mes</i></span>
+        <span title="Gasto de mantenimiento por mes, ${PER.id ? esc(periodoTxt()) : 'último año'}">${bs(a.porMes)}<i>/mes</i></span>
         ${ratio ? `<span class="${ratio >= 1.3 ? 'alto' : ''}" title="Comparado con vehículos iguales">${ratio >= 1.3 ? ratio.toFixed(1).replace('.', ',') + '×' : ratio <= 0.75 ? 'bajo' : 'normal'}</span>` : ''}
         ${d.altos ? `<span class="alto" title="Hallazgos importantes">${ico('alerta')}${d.altos}</span>` : ''}
         ${d.toca ? `<span class="medio" title="Tareas sin registro reciente">${ico('llave')}${d.toca}</span>` : ''}
       </div></a>`;
   };
   const grupo = (tipo, titulo) => { const vs = ACTIVAS.filter(v => v.tipo === tipo && pasaFiltro(v.placa)); return vs.length ? `<div class="h3">${icoVeh(tipo)} ${titulo} <span class="n">${vs.length}</span></div><div class="grid-veh">${vs.map(card).join('')}</div>` : ''; };
-  return `<div class="cab"><div><h2>Vehículos</h2><div class="sub ley-dots"><span style="--c:var(--red)">algo importante</span><span style="--c:var(--amber)">para revisar</span><span style="--c:var(--green)">en orden</span></div></div>${segmento()}</div>
+  return `<div class="cab"><div><h2>Vehículos</h2><div class="sub ley-dots"><span style="--c:var(--red)">algo importante</span><span style="--c:var(--amber)">para revisar</span><span style="--c:var(--green)">en orden</span></div></div><div class="filtros-d">${selPeriodo()}${segmento()}</div></div>
     ${grupo('furgon', 'Furgones')}${grupo('moto', 'Motos')}`;
 }
 
@@ -542,7 +653,8 @@ const SUBS = [['resumen', 'Resumen'], ['agenda', 'Agenda'], ['revisiones', 'Revi
 function vVehiculo(placa, sub = 'resumen') {
   if (!SUBS.some(s => s[0] === sub)) sub = 'resumen';
   const v = CTX.veh.get(placa);
-  const d = DIAG.get(placa) || diagnostico(placa);
+  // El diagnóstico y el resumen siguen el período elegido; agenda y revisiones siempre son de hoy
+  const d = { ...(DIAG.get(placa) || diagnostico(placa)), inf: infDe(placa) };
   const inf = d.inf, C = T.CAUSAS, a = d.agenda;
   const opciones = [...ACTIVAS, ...(ACTIVAS.some(x => x.placa === placa) ? [] : [v])].map(x => `<option value="${esc(x.placa)}" ${x.placa === placa ? 'selected' : ''}>${esc(x.placa)} · ${esc(x.etiqueta)}</option>`).join('');
   const hall = inf.hallazgos.filter(h => h.nivel !== 'bajo' || h.causa !== 'desgaste');
@@ -553,7 +665,7 @@ function vVehiculo(placa, sub = 'resumen') {
   const cuerpo = { resumen: subResumen, agenda: subAgenda, revisiones: subRevisiones, diagnostico: subDiagnostico, ficha: subFicha }[sub](placa, v, d);
   return `<div class="cab-veh">
       <div class="cv-id">${icoVeh(v.tipo)}<div><h2>${esc(placa)}</h2><div class="sub">${esc(v.etiqueta)} · ${esc(v.proxi)}</div></div></div>
-      <div class="acc"><select class="sel" id="selVeh">${opciones}</select>
+      <div class="acc">${selPeriodo()}<select class="sel" id="selVeh">${opciones}</select>
         <a class="btn-i" href="/informe.html?placa=${encodeURIComponent(placa)}" title="Informe para imprimir">${ico('imprimir')}</a>
         <a class="btn-i" href="/flota-3d.html?placa=${encodeURIComponent(placa)}" title="Ver en 3D">${ico('cubo')}</a></div>
     </div>
@@ -671,6 +783,10 @@ function subFicha(placa, v) {
 // Después de dibujar: filtros, contadores animados y atajos
 function despues() {
   document.querySelectorAll('#seg button').forEach(b => b.onclick = () => { FILTRO.tipo = b.dataset.t; mostrar(true); });
+  const sp = document.getElementById('selPer');
+  if (sp) sp.onchange = () => { PER.id = sp.value; mostrar(true); };
+  const gi = document.getElementById('gesIni');
+  if (gi) gi.onchange = () => { if (!gi.value) return; try { localStorage.setItem('togo_gestion', gi.value); } catch {} CACHE_INF.clear(); mostrar(true); };
   document.querySelectorAll('[data-ir]').forEach(a => a.onclick = e => { e.preventDefault(); document.getElementById(a.dataset.ir)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.querySelectorAll('[data-n]').forEach(el => {

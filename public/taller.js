@@ -277,7 +277,9 @@ function informe(ctx, placa, { desde = -Infinity, hasta = Infinity } = {}) {
   const principales = [...mant].sort((a, b) => b.monto - a.monto).slice(0, 10);
 
   const hallazgos = [];
-  const add = h => hallazgos.push({ evidencias: [], monto: 0, ...h });
+  // causaDesde: cuándo empezó lo que causó el hallazgo (sirve para saber si viene de antes de un período)
+  const add = h => hallazgos.push({ evidencias: [], monto: 0, ...h,
+    causaDesde: h.causaDesde ?? (h.evidencias && h.evidencias.length ? Math.min(...h.evidencias.map(r => r.dia)) : h.ultimo) });
 
   // 1) Piezas que se cambian antes de lo que suelen durar
   const normales = [];
@@ -310,6 +312,8 @@ function informe(ctx, placa, { desde = -Infinity, hasta = Infinity } = {}) {
           (causa === 'reparacion' ? 'Volver al taller por lo mismo en menos de 3 meses indica que el arreglo no quedó bien o el repuesto fue de mala calidad.' : c.porque),
         consejo: causa === 'reparacion' ? 'Pedir garantía al taller por los arreglos que no duraron y exigir repuestos de calidad.' : c.consejo,
         evidencias: rapidos.flatMap(x => x.e.filas), monto, ultimo: Math.max(...rapidos.map(x => x.e.dia)),
+        // la pieza que duró poco se había puesto en el cambio anterior
+        causaDesde: Math.min(...rapidos.map(x => x.prev.dia)),
       });
     } else if (buenos.length) {
       normales.push(`${c.nombre.split(' (')[0].toLowerCase()} cada ~${fmt0.format(mediana(buenos.map(x => x.int)))} meses`);
@@ -351,12 +355,12 @@ function informe(ctx, placa, { desde = -Infinity, hasta = Infinity } = {}) {
           'lo más probable es que falten registros, así que no se puede saber si fue descuido o desgaste.',
         consejo: 'Registrar todos los cambios de aceite en el Excel para que el análisis pueda separar descuido de desgaste.' });
     } else if (hueco > esperado * 2) {
-      add({ ...base, causa: 'mantenimiento', nivel: 'alto', titulo: `Reparación mayor de motor tras ${fmt0.format(hueco)} días sin cambio de aceite registrado (${cuando})`,
+      add({ ...base, causaDesde: hA, causa: 'mantenimiento', nivel: 'alto', titulo: `Reparación mayor de motor tras ${fmt0.format(hueco)} días sin cambio de aceite registrado (${cuando})`,
         detalle: `En los 6 meses anteriores a esta reparación pasaron ${fmt0.format(hueco)} días sin cambio de aceite cargado en el Excel (del ${fechaCorta(hA)} al ${fechaCorta(hB)}), cuando lo normal es cada ${esperado}; en esos meses el resto de la flota sí tiene sus cambios cargados. ` +
           'Si de verdad no se cambió, el motor trabajó con aceite vencido y este gasto probablemente se pudo evitar. Si se cambió y no se cargó, el comprobante lo demuestra.',
         consejo: `Buscar si hubo un cambio de aceite entre el ${fechaCorta(hA)} y el ${fechaCorta(hB)} que no se cargó; si no lo hubo, cumplir el cambio cada ${esperado} días aproximadamente (o según el kilometraje).` });
     } else if (repetida) {
-      add({ ...base, causa: 'reparacion', nivel: 'alto', titulo: `El motor se volvió a reparar al poco tiempo (${cuando})`,
+      add({ ...base, causaDesde: arr[i - 1].dia, causa: 'reparacion', nivel: 'alto', titulo: `El motor se volvió a reparar al poco tiempo (${cuando})`,
         detalle: `Ya había tenido una reparación de motor en ${mesAnio(arr[i - 1].dia)}. ${cMotor.porque}`,
         consejo: 'Pedir al taller un diagnóstico de la causa (recalentamiento, consumo de aceite) y garantía de la reparación anterior.' });
     } else {

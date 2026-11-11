@@ -682,6 +682,50 @@ function agenda(ctx, placa, revs = [], hoyDia = Math.max(ctx.ref, Math.floor(Dat
   return { placa, tipo: v.tipo, km, tareas, revisiones, abiertos, hoyDia };
 }
 
+// ── Antes y durante una gestión ─────────────────────────────────────────────
+// Compara un vehículo antes y después de una fecha (el inicio de la gestión del responsable):
+// cuánto gastó, cuánto se pudo evitar, cada cuánto se hizo el preventivo, qué tareas ya venían
+// atrasadas al empezar (y si se resolvieron) y qué problemas aparecieron después pero empezaron antes.
+const EVITABLES = ['maluso', 'externo', 'mantenimiento', 'reparacion'];
+function gestion(ctx, placa, inicio) {
+  const v = ctx.veh.get(placa);
+  if (!v) return null;
+  const antes = T.informe(ctx, placa, { hasta: inicio - 1 });
+  const ahora = T.informe(ctx, placa, { desde: inicio });
+  const evitable = inf => inf.total ? EVITABLES.reduce((x, k) => x + inf.causas[k], 0) / inf.total : 0;
+  // Cambios de aceite o preventivos por mes en un tramo
+  const prevPorMes = (a, b) => {
+    if (b - a < 30) return null;
+    const ev = T.eventos(v.filas.filter(r => r.dia >= a && r.dia <= b && T.esAceite(r)), 7).length;
+    return ev / ((b - a) / 30.44);
+  };
+  const aIni = v.primero, aFin = Math.min(inicio - 1, v.ultimo);
+  const bIni = Math.max(inicio, v.primero), bFin = ctx.ref;
+
+  // Tareas que al empezar la gestión ya estaban atrasadas o nunca se habían hecho
+  const heredadas = [];
+  PLAN[v.tipo].filter(it => (!it.solo || it.solo.includes(v.modelo)) && it.id !== 'cadena').forEach(it => {
+    const hechos = v.filas.filter(r => !['GASOLINA', 'GNV'].includes(r.tipo) && it.re.test(r.d));
+    const previos = hechos.filter(r => r.dia < inicio);
+    const ult = previos[previos.length - 1];
+    const vencida = ult ? inicio - ult.dia > it.dias * 1.25 : (v.primero < inicio && (inicio - v.primero > it.dias || it.critico));
+    if (!vencida) return;
+    heredadas.push({ id: it.id, nombre: it.nombre, critico: !!it.critico, ultimoAntes: ult || null,
+      atraso: ult ? inicio - ult.dia - it.dias : null, resuelta: hechos.find(r => r.dia >= inicio) || null });
+  });
+
+  // Problemas que aparecieron en la gestión pero cuya causa empezó antes
+  const vienen = ahora.hallazgos.filter(h => h.nivel !== 'bajo' && !['desgaste', 'datos'].includes(h.causa)
+    && (h.ultimo || 0) >= inicio && h.causaDesde != null && h.causaDesde < inicio);
+  const propios = ahora.hallazgos.filter(h => h.nivel !== 'bajo' && !['desgaste', 'datos'].includes(h.causa)
+    && (h.ultimo || 0) >= inicio && !(h.causaDesde < inicio));
+
+  return { placa, antes, ahora, hayAntes: aFin - aIni >= 60, hayAhora: bFin - bIni >= 30,
+    evitableAntes: evitable(antes), evitableAhora: evitable(ahora),
+    prevAntes: prevPorMes(aIni, aFin), prevAhora: prevPorMes(bIni, bFin),
+    heredadas, vienen, propios };
+}
+
 // ── Lo de hoy: qué hacer y qué revisar en los vehículos que están trabajando ─
 // Lo usan Mi taller y el resumen del tablero, así los dos cuentan lo mismo.
 const COLOR = { rojo: '#FF5A4E', ambar: '#F5A623', azul: '#5b8def' };
@@ -727,7 +771,7 @@ function hoy(ctx, placas, revs = []) {
 // Placas que están trabajando: la flota actual, o las que tuvieron gastos en los últimos 90 días
 const activas = ctx => [...ctx.veh.values()].filter(v => v.mant.length && (ctx.enFlota ? ctx.enFlota.has(v.placa) : v.ultimo >= ctx.ref - 90));
 
-const api = { VEHICULOS, PIEZAS, PLAN, REVISION, CADA_REVISION, piezaDe, plan, cruzar, hoy, activas, agenda, ritmoKm };
+const api = { VEHICULOS, PIEZAS, PLAN, REVISION, CADA_REVISION, EVITABLES, piezaDe, plan, cruzar, hoy, activas, agenda, ritmoKm, gestion };
 global.Mecanico = api;
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
