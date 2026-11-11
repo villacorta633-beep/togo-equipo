@@ -101,6 +101,9 @@ const CAUSAS = {
 const COMPONENTES = [
   { id: 'embrague', nombre: 'Embrague', vida: { moto: 12, furgon: 30 }, causa: 'maluso',
     re: /EMBRAGUE|COLLARIN|PRENSA DE EMBRAGUE/,
+    // el chicotillo (cable) o la palanca del embrague no son un cambio de embrague
+    // salvo que en el mismo gasto haya piezas del embrague de verdad (disco, prensa, kit, collarín)
+    excluye: /^(?!.*(DISCO|PRENSA|PLATO|KIT|COLLARIN|DESPLAZADOR)).*(CHICOTILLO|CABLE|PALANCA|MANIJA)/,
     porque: 'Un embrague que dura poco suele venir de manejar con el embrague a medio pisar, arrancar con mucha carga o forzarlo en subidas.',
     consejo: 'Hablar con el conductor sobre el uso del embrague (no apoyar el pie, no arrancar en segunda, no sobrecargar).' },
   { id: 'kit', nombre: 'Kit de transmisión (cadena, piñón y corona)', vida: { moto: 8 }, causa: 'mantenimiento', solo: 'moto',
@@ -147,7 +150,8 @@ const COMPONENTES = [
     porque: 'Una reparación de motor repetida apunta a que la causa de fondo no se resolvió (recalentamiento, falta de aceite o refrigerante).',
     consejo: 'Revisar niveles de aceite y refrigerante cada semana.' },
 ];
-const RE_ACEITE = /CAMBIO DE ACEITE|ACEITE (DE )?MOTOR|ACEITE \d+W|MANTENIMIENTO PREVENTIVO/;
+// "Cambio de aceite de caja / corona / diferencial…" es aceite de otra pieza, no del motor
+const RE_ACEITE = /CAMBIO DE ACEITE(?! (DE |DEL |PARA )?(LA |EL )?(CAJA|CORONA|DIFERENCIAL|TELESCOP|TRANSMISION|DIRECCION|FRENO|HIDRAUL))|ACEITE (DE )?MOTOR|ACEITE \d+W|MANTENIMIENTO PREVENTIVO/;
 // "Y ACEITE", "ACEITES", "ACEITE MOTUL"… junto con otro trabajo también es cambio de aceite,
 // salvo que sea el aceite de otra pieza (telescopios, caja, diferencial, frenos, hidráulico, cadena)
 const RE_ACEITE_SUELTO = /\bACEITES?\b/;
