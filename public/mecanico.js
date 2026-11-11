@@ -726,6 +726,34 @@ function gestion(ctx, placa, inicio) {
     heredadas, vienen, propios };
 }
 
+// ── Proformas del taller que faltan en el Excel ─────────────────────────────
+// El taller de motos numera sus proformas en orden (FACT / RECIBO). Si en la serie faltan
+// números sueltos, son trabajos pagados que no se cargaron (pueden ser cambios de aceite).
+// Los saltos grandes (más de 15 seguidos) se toman como cambio de talonario, no como faltantes.
+function proformasFaltantes(ctx, desde = -Infinity) {
+  // Proformas del taller: las de las motos (de 2 o 3 cifras) y las de furgones que dicen "(FACT. n)"
+  const dia = new Map();
+  [...ctx.veh.values()].forEach(v => v.filas.forEach(r => {
+    if (['GASOLINA', 'GNV'].includes(r.tipo)) return;
+    const doc = String(r.doc || '').trim();
+    if (!/^0*\d{2,3}$/.test(doc) || +doc < 85) return;
+    if (v.tipo !== 'moto' && !/\(FACT\. \d+\)/.test(r.d)) return;
+    dia.set(+doc, Math.max(dia.get(+doc) ?? -Infinity, r.dia));
+  }));
+  const nums = [...dia.keys()].sort((a, b) => a - b);
+  // La serie del taller es densa: un hueco cuenta solo si alrededor (±12) hay al menos 8 proformas cargadas.
+  // Así no se mezclan los recibos sueltos de otros negocios que caen en el mismo rango de números.
+  const densa = n => nums.filter(x => Math.abs(x - n) <= 12).length >= 8;
+  const faltan = [];
+  for (let i = 1; i < nums.length; i++) {
+    const hueco = nums[i] - nums[i - 1] - 1;
+    // Solo los huecos que terminan dentro del período mirado
+    if (hueco > 0 && hueco <= 15 && dia.get(nums[i]) >= desde && densa(nums[i - 1]) && densa(nums[i]))
+      for (let n = nums[i - 1] + 1; n < nums[i]; n++) faltan.push(n);
+  }
+  return faltan;
+}
+
 // ── Lo de hoy: qué hacer y qué revisar en los vehículos que están trabajando ─
 // Lo usan Mi taller y el resumen del tablero, así los dos cuentan lo mismo.
 const COLOR = { rojo: '#FF5A4E', ambar: '#F5A623', azul: '#5b8def' };
@@ -771,7 +799,7 @@ function hoy(ctx, placas, revs = []) {
 // Placas que están trabajando: la flota actual, o las que tuvieron gastos en los últimos 90 días
 const activas = ctx => [...ctx.veh.values()].filter(v => v.mant.length && (ctx.enFlota ? ctx.enFlota.has(v.placa) : v.ultimo >= ctx.ref - 90));
 
-const api = { VEHICULOS, PIEZAS, PLAN, REVISION, CADA_REVISION, EVITABLES, piezaDe, plan, cruzar, hoy, activas, agenda, ritmoKm, gestion };
+const api = { VEHICULOS, PIEZAS, PLAN, REVISION, CADA_REVISION, EVITABLES, piezaDe, plan, cruzar, hoy, activas, agenda, ritmoKm, gestion, proformasFaltantes };
 global.Mecanico = api;
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

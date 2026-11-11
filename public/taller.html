@@ -606,6 +606,12 @@ function vGestion() {
 
   return `<div class="cab"><div><h2>Mi gestión</h2>
       <div class="sub">Antes y desde el <label class="ini-g">${ico('calendario')}<input type="date" id="gesIni" value="${esc(iniTxt)}" max="${hoyISO()}"></label> ${info('Compara los vehículos que están trabajando antes y después de la fecha de inicio de tu gestión (la puedes cambiar). Todo sale de los gastos cargados en el Excel: si en un período faltan registros, la comparación pierde precisión.')}</div></div>${segmento()}</div>
+    ${(() => {
+      // Proformas del taller de motos que faltan en el Excel desde unos meses antes de la gestión
+      const faltan = M.proformasFaltantes(CTX, ini - 60);
+      return faltan.length ? `<div class="banner" style="border-color:#FF5A4E55;background:#FF5A4E12">${ico('alerta')}<div><b>Faltan ${faltan.length} proformas del taller de motos en el Excel</b>
+        <span>N.º ${faltan.join(', ')}. Pueden ser trabajos que no se cargaron (o proformas anuladas) e incluir cambios de aceite: mientras falten, los "días sin cambio de aceite" pueden ser menos de los que se ven. Pide esas proformas al taller y cárgalas con su placa.</span></div></div>` : '';
+    })()}
     ${incompleto ? `<div class="banner" style="border-color:#F5A62355;background:#F5A62312">${ico('alerta')}<div><b>Faltan registros en parte de tu gestión</b><span>En varios meses casi ningún vehículo tiene sus cambios de aceite cargados: la comparación de preventivos puede salir peor de lo que fue. Cargar lo que falte en el Excel la corrige sola.</span></div></div>` : ''}
     <div class="kpis kpis-4">
       <div class="kpi" style="--c:var(--amber)">${ico('llave')}${comp(porMes('antes'), porMes('ahora'), x => bs(x), true)}<span>gasto de mantenimiento por mes</span></div>

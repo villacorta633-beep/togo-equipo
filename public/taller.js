@@ -148,8 +148,13 @@ const COMPONENTES = [
     consejo: 'Revisar niveles de aceite y refrigerante cada semana.' },
 ];
 const RE_ACEITE = /CAMBIO DE ACEITE|ACEITE (DE )?MOTOR|ACEITE \d+W|MANTENIMIENTO PREVENTIVO/;
+// "Y ACEITE", "ACEITES", "ACEITE MOTUL"… junto con otro trabajo también es cambio de aceite,
+// salvo que sea el aceite de otra pieza (telescopios, caja, diferencial, frenos, hidráulico, cadena)
+const RE_ACEITE_SUELTO = /\bACEITES?\b/;
+const RE_OTRO_ACEITE = /ACEITES? (DE |PARA |DEL )?(LOS |LA |EL )?(TELESCOP|CAJA|CORONA|DIFERENCIAL|HIDRAUL|DIRECCION|FRENO|TRANSMISION|CADENA)/;
 const COMBUSTIBLE = ['GASOLINA', 'GNV'];
-const esAceite = r => !COMBUSTIBLE.includes(r.tipo) && (r.tipo === 'PREVENTIVO' || RE_ACEITE.test(r.d));
+const esAceite = r => !COMBUSTIBLE.includes(r.tipo) && (r.tipo === 'PREVENTIVO' || RE_ACEITE.test(r.d) ||
+  (RE_ACEITE_SUELTO.test(r.d) && !RE_OTRO_ACEITE.test(r.d.replace(/ACEITE (DE )?MOTOR/g, ''))));
 const RE_PINCHAZO = /PARCHAD|VULCANIZ|PINCHAD/;
 const RE_EXTERNO = /CHOQUE|GOLPE|ACCIDENT|\bCAIDA\b|SE CAYO|ENDEREZ|ABOLLAD|ROBAD|\bROBO\b/;
 const RE_AGUA = /AGUA AL MOTOR|ENTRAR AGUA|ENTRO AGUA|INUNDA|LLUVIA/;
