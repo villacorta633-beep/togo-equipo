@@ -445,7 +445,7 @@ function piezaDe(h) {
 // re: cómo se reconoce en la descripción del gasto que se hizo.
 const PLAN = {
   moto: [
-    { id: 'aceite', km: 2500, nombre: 'Cambio de aceite (y limpieza de malla)', cada: '2.000–3.000 km', dias: 35, re: /CAMBIO DE ACEITE|ACEITE (DE )?MOTOR|ACEITE \d+W|MANTENIMIENTO PREVENTIVO/ },
+    { id: 'aceite', km: 2500, nombre: 'Cambio de aceite (y limpieza de malla)', cada: '2.000–3.000 km', dias: 35, re: /CAMBIO DE ACEITE(?! (DE |DEL |PARA )?(LA |EL )?(CAJA|CORONA|DIFERENCIAL|TELESCOP|TRANSMISION|DIRECCION|FRENO|HIDRAUL))|ACEITE (DE )?MOTOR|ACEITE \d+W|MANTENIMIENTO PREVENTIVO/ },
     { id: 'cadena', km: 700, nombre: 'Tensar y lubricar la cadena', cada: '500–1.000 km', dias: 35, re: /TASAD|TENSAD|LUBRIC|ENGRAS|CADENA/, nota: 'Lo puede hacer el conductor cada semana; aquí solo se ve cuando lo hace el taller.' },
     { id: 'valvulas', km: 5000, nombre: 'Calibración de válvulas', cada: '4.000–6.000 km', dias: 90, re: /BALANCIN|CALIBRA|REGULADO DE VALV|TASADO DE VALV/ },
     { id: 'filtroAire', km: 3000, nombre: 'Filtro de aire (limpiar / cambiar)', cada: 'limpiar 3.000 km, cambiar 12.000 km', dias: 120, re: /FILTRO DE AIRE/ },
@@ -455,7 +455,7 @@ const PLAN = {
     { id: 'kit', km: 15000, nombre: 'Kit de transmisión', cada: '10.000–20.000 km', dias: 300, re: /KIT DE TRANSMISION|KIT TRANSMISION|TRANSMISION COMPLETA|PINON|CORONA/ },
   ],
   furgon: [
-    { id: 'aceite', km: 5000, nombre: 'Aceite y filtro de motor', cada: '5.000 km', dias: 100, re: /CAMBIO DE ACEITE|ACEITE (DE )?MOTOR|ACEITE \d+W|MANTENIMIENTO PREVENTIVO|FILTRO DE ACEITE/ },
+    { id: 'aceite', km: 5000, nombre: 'Aceite y filtro de motor', cada: '5.000 km', dias: 100, re: /CAMBIO DE ACEITE(?! (DE |DEL |PARA )?(LA |EL )?(CAJA|CORONA|DIFERENCIAL|TELESCOP|TRANSMISION|DIRECCION|FRENO|HIDRAUL))|ACEITE (DE )?MOTOR|ACEITE \d+W|MANTENIMIENTO PREVENTIVO|FILTRO DE ACEITE/ },
     { id: 'filtroAire', km: 15000, nombre: 'Filtro de aire', cada: '10.000–20.000 km', dias: 240, re: /FILTRO DE AIRE/ },
     { id: 'bujia', km: 30000, nombre: 'Bujías', cada: '20.000–40.000 km', dias: 365, re: /BUJIA/ },
     { id: 'frenos', km: 10000, nombre: 'Revisión de frenos', cada: '10.000 km', dias: 180, re: /PASTILLA|ZAPATA|BALATA|FRENO/ },
@@ -689,10 +689,24 @@ function agenda(ctx, placa, revs = [], hoyDia = Math.max(ctx.ref, Math.floor(Dat
 // cuánto gastó, cuánto se pudo evitar, cada cuánto se hizo el preventivo, qué tareas ya venían
 // atrasadas al empezar (y si se resolvieron) y qué problemas aparecieron después pero empezaron antes.
 const EVITABLES = ['maluso', 'externo', 'mantenimiento', 'reparacion'];
-function gestion(ctx, placa, inicio) {
+function gestion(ctx, placa, inicioGestion) {
   const v = ctx.veh.get(placa);
   if (!v) return null;
-  const antes = T.informe(ctx, placa, { hasta: inicio - 1 });
+  // Si el vehículo estuvo más de 4 meses sin ningún movimiento (ni combustible ni gastos) y volvió
+  // durante la gestión, para él la gestión empieza el día que volvió: lo de antes no estaba a cargo.
+  // Solo si antes cargaba combustible con regularidad: así el silencio es que no trabajó, no que falten
+  // registros (las motos, por ejemplo, casi no tienen su combustible por placa).
+  let reingreso = null;
+  const combustible = v.filas.filter(r => ['GASOLINA', 'GNV'].includes(r.tipo)).map(r => r.dia);
+  for (let i = 1; i < v.filas.length; i++) {
+    const a = v.filas[i - 1].dia, b = v.filas[i].dia;
+    const cargabaAntes = combustible.filter(d => d > a - 90 && d <= a).length >= 3;
+    if (b - a >= 120 && b >= inicioGestion && cargabaAntes) reingreso = { ultimoAntes: a, vuelve: b };
+  }
+  const inicio = reingreso ? reingreso.vuelve : inicioGestion;
+  // El "antes" de un vehículo que estuvo parado termina en su último movimiento, no el día que volvió
+  const finAntes = reingreso ? reingreso.ultimoAntes : inicio - 1;
+  const antes = T.informe(ctx, placa, { hasta: finAntes });
   const ahora = T.informe(ctx, placa, { desde: inicio });
   const evitable = inf => inf.total ? EVITABLES.reduce((x, k) => x + inf.causas[k], 0) / inf.total : 0;
   // Cambios de aceite o preventivos por mes en un tramo
@@ -701,7 +715,7 @@ function gestion(ctx, placa, inicio) {
     const ev = T.eventos(v.filas.filter(r => r.dia >= a && r.dia <= b && T.esAceite(r)), 7).length;
     return ev / ((b - a) / 30.44);
   };
-  const aIni = v.primero, aFin = Math.min(inicio - 1, v.ultimo);
+  const aIni = v.primero, aFin = Math.min(finAntes, v.ultimo);
   const bIni = Math.max(inicio, v.primero), bFin = ctx.ref;
 
   // Tareas que al empezar la gestión ya estaban atrasadas o nunca se habían hecho
@@ -722,7 +736,7 @@ function gestion(ctx, placa, inicio) {
   const propios = ahora.hallazgos.filter(h => h.nivel !== 'bajo' && !['desgaste', 'datos'].includes(h.causa)
     && (h.ultimo || 0) >= inicio && !(h.causaDesde < inicio));
 
-  return { placa, antes, ahora, hayAntes: aFin - aIni >= 60, hayAhora: bFin - bIni >= 30,
+  return { placa, inicio, reingreso, antes, ahora, hayAntes: aFin - aIni >= 60, hayAhora: bFin - bIni >= 30,
     evitableAntes: evitable(antes), evitableAhora: evitable(ahora),
     prevAntes: prevPorMes(aIni, aFin), prevAhora: prevPorMes(bIni, bFin),
     heredadas, vienen, propios };

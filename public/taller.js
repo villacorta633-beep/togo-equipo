@@ -150,7 +150,8 @@ const COMPONENTES = [
     porque: 'Una reparación de motor repetida apunta a que la causa de fondo no se resolvió (recalentamiento, falta de aceite o refrigerante).',
     consejo: 'Revisar niveles de aceite y refrigerante cada semana.' },
 ];
-const RE_ACEITE = /CAMBIO DE ACEITE|ACEITE (DE )?MOTOR|ACEITE \d+W|MANTENIMIENTO PREVENTIVO/;
+// "Cambio de aceite de caja / corona / diferencial…" es aceite de otra pieza, no del motor
+const RE_ACEITE = /CAMBIO DE ACEITE(?! (DE |DEL |PARA )?(LA |EL )?(CAJA|CORONA|DIFERENCIAL|TELESCOP|TRANSMISION|DIRECCION|FRENO|HIDRAUL))|ACEITE (DE )?MOTOR|ACEITE \d+W|MANTENIMIENTO PREVENTIVO/;
 // "Y ACEITE", "ACEITES", "ACEITE MOTUL"… junto con otro trabajo también es cambio de aceite,
 // salvo que sea el aceite de otra pieza (telescopios, caja, diferencial, frenos, hidráulico, cadena)
 const RE_ACEITE_SUELTO = /\bACEITES?\b/;

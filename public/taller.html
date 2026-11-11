@@ -567,7 +567,8 @@ function vGestion() {
   const G = vs.map(v => ({ v, g: M.gestion(CTX, v.placa, ini) })).filter(x => x.g);
   // Totales de la flota: gasto por mes, parte evitable, preventivos por vehículo y mes
   const suma = (k, campo) => G.reduce((s, x) => s + (x.g[k][campo] || 0), 0);
-  const porMes = k => { const m = Math.max(...G.map(x => x.g[k].meses), 1); return suma(k, 'total') / m; };
+  // Gasto mensual de la flota: suma de lo que gasta por mes cada vehículo en su propio tramo
+  const porMes = k => G.filter(x => k === 'antes' ? x.g.hayAntes : x.g.hayAhora).reduce((s, x) => s + x.g[k].porMes, 0);
   const evit = k => { const t = suma(k, 'total'); return t ? G.reduce((s, x) => s + M.EVITABLES.reduce((y, c) => y + x.g[k].causas[c], 0), 0) / t : 0; };
   const prev = k => { const l = G.map(x => x.g[k === 'antes' ? 'prevAntes' : 'prevAhora']).filter(x => x != null); return l.length ? l.reduce((s, x) => s + x, 0) / l.length : null; };
   // puntos: para porcentajes se muestra la diferencia en puntos (16% → 22% = +6 pts), no el cambio relativo
@@ -598,7 +599,7 @@ function vGestion() {
   const filaH = ({ h, placa }, previo) => `<details class="fila" style="--c:${previo ? 'var(--blue)' : C[h.causa].color}">
       <summary><span class="dot"></span><span class="placa">${esc(placa)}</span><span class="fila-t">${esc(h.titulo)}</span><span class="fila-e">${previo ? 'desde ' + T.fechaCorta(h.causaDesde) : esc(C[h.causa].nombre)}</span></summary>
       <div class="fila-d">${previo ? `<b>La causa empezó el ${T.fechaCorta(h.causaDesde)}, antes de tu gestión.</b> ` : ''}${esc(h.detalle)} <a href="#vehiculo/${encodeURIComponent(placa)}/diagnostico">Ver vehículo →</a></div></details>`;
-  const tabla = G.map(({ v, g }) => `<tr><td><a class="placa" href="#vehiculo/${encodeURIComponent(v.placa)}" style="text-decoration:none">${esc(v.placa)}</a><div class="item-d">${esc(v.etiqueta)}</div></td>
+  const tabla = G.map(({ v, g }) => `<tr><td><a class="placa" href="#vehiculo/${encodeURIComponent(v.placa)}" style="text-decoration:none">${esc(v.placa)}</a><div class="item-d">${esc(v.etiqueta)}</div>${g.reingreso ? `<div class="item-d" style="color:var(--blue)">a cargo desde ${T.fechaCorta(g.reingreso.vuelve)}</div>` : ''}</td>
       <td>${comp(g.hayAntes ? g.antes.porMes : null, g.hayAhora ? g.ahora.porMes : null, x => bs(x), true)}</td>
       <td>${comp(g.hayAntes ? g.evitableAntes : null, g.hayAhora ? g.evitableAhora : null, pct, true, true)}</td>
       <td>${comp(g.prevAntes, g.prevAhora, x => x.toFixed(1).replace('.', ','), false)}</td>
@@ -627,6 +628,7 @@ function vGestion() {
         <div class="h3">${ico('alerta')} Problemas de tu gestión <span class="n">${propios.length}</span> ${info('Hallazgos importantes cuya causa empezó después de tu fecha de inicio. Sirven para corregir a tiempo.')}</div>
         ${propios.length ? propios.map(x => filaH(x, false)).join('') : `<div class="vacio">${ico('check')} Ninguno.</div>`}</section>
     </div>
+    ${G.some(x => x.g.reingreso) ? `<div class="banner">${ico('info')}<div><b>Vehículos que volvieron a la flota durante tu gestión</b><span>${G.filter(x => x.g.reingreso).map(x => `${esc(x.v.placa)}: sin ningún movimiento del ${T.fechaCorta(x.g.reingreso.ultimoAntes)} al ${T.fechaCorta(x.g.reingreso.vuelve)}`).join(' · ')}. Para ellos la comparación empieza el día que volvieron; lo atrasado de antes cuenta como heredado.</span></div></div>` : ''}
     <div class="h3">${ico('furgon')} Vehículo por vehículo <span class="n">${fmt0.format(meses)} meses de gestión</span></div>
     <div class="tabla-scroll"><table class="plan"><thead><tr><th>Placa</th><th>Gasto / mes</th><th>Se pudo evitar</th><th>Preventivos / mes</th><th>Heredados resueltos</th></tr></thead><tbody>${tabla}</tbody></table></div>`;
 }
