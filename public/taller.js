@@ -101,6 +101,9 @@ const CAUSAS = {
 const COMPONENTES = [
   { id: 'embrague', nombre: 'Embrague', vida: { moto: 12, furgon: 30 }, causa: 'maluso',
     re: /EMBRAGUE|COLLARIN|PRENSA DE EMBRAGUE/,
+    // el chicotillo (cable) o la palanca del embrague no son un cambio de embrague
+    // salvo que en el mismo gasto haya piezas del embrague de verdad (disco, prensa, kit, collarín)
+    excluye: /^(?!.*(DISCO|PRENSA|PLATO|KIT|COLLARIN|DESPLAZADOR)).*(CHICOTILLO|CABLE|PALANCA|MANIJA)/,
     porque: 'Un embrague que dura poco suele venir de manejar con el embrague a medio pisar, arrancar con mucha carga o forzarlo en subidas.',
     consejo: 'Hablar con el conductor sobre el uso del embrague (no apoyar el pie, no arrancar en segunda, no sobrecargar).' },
   { id: 'kit', nombre: 'Kit de transmisión (cadena, piñón y corona)', vida: { moto: 8 }, causa: 'mantenimiento', solo: 'moto',

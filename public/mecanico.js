@@ -504,10 +504,12 @@ function cruzar(ctx, placa) {
   const arreglos = (re, junta = 21) => T.eventos(rec.filter(r => re.test(r.d)), junta).map(e => ({ ...e.filas[0], monto: e.monto, filasEv: e.filas }));
 
   // Embrague del furgón sin volante ni collarín
-  if (v.tipo === 'furgon') arreglos(/EMBRAGUE/).forEach(r => {
+  // (el chicotillo o la palanca del embrague solos no son un cambio de embrague)
+  const soloMando = /^(?!.*(DISCO|PRENSA|PLATO|KIT|COLLARIN|DESPLAZADOR)).*(CHICOTILLO|CABLE|PALANCA|MANIJA)/;
+  if (v.tipo === 'furgon') arreglos(/EMBRAGUE/).filter(r => !soloMando.test(r.filasEv.map(x => x.d).join(' '))).forEach(r => {
     if (!hay(/VOLANTE|INERCIA/, r.dia - 30, r.dia + 30))
       add('embrague', `Embrague cambiado sin rectificar el volante (${T.fechaCorta(r.dia)})`, 'No aparece rectificado del volante de inercia en la misma reparación. Si quedó marcado, el embrague nuevo vibra y dura menos.', [r]);
-    if (!hay(/COLLARIN|RODAMIENTO DE EMPUJE|CRAPODINA|KIT DE EMBRAGUE|KIT EMBRAGUE/, r.dia - 30, r.dia + 30))
+    if (!hay(/COLLARIN|RODAMIENTO DE EMPUJE|RODAMIENTO DESPLAZADOR|CRAPODINA|KIT DE EMBRAGUE|KIT EMBRAGUE/, r.dia - 30, r.dia + 30))
       add('embrague', `¿Cambiaron el collarín con el embrague? (${T.fechaCorta(r.dia)})`, 'No se ve el collarín en la misma reparación. Si falla después, hay que volver a bajar la caja.', [r]);
   });
 
