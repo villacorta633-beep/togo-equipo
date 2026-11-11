@@ -450,7 +450,7 @@ const PLAN = {
     { id: 'valvulas', km: 5000, nombre: 'Calibración de válvulas', cada: '4.000–6.000 km', dias: 90, re: /BALANCIN|CALIBRA|REGULADO DE VALV|TASADO DE VALV/ },
     { id: 'filtroAire', km: 3000, nombre: 'Filtro de aire (limpiar / cambiar)', cada: 'limpiar 3.000 km, cambiar 12.000 km', dias: 120, re: /FILTRO DE AIRE/ },
     { id: 'bujia', km: 10000, nombre: 'Bujía', cada: '8.000–12.000 km', dias: 180, re: /BUJIA/ },
-    { id: 'frenos', km: 3000, nombre: 'Revisión de frenos (pastillas y balatas)', cada: 'en cada servicio', dias: 120, re: /PASTILLA|BALATA|FRENO/ },
+    { id: 'frenos', km: 3000, nombre: 'Revisión de frenos (pastillas y balatas)', cada: '3.000 km (en cada servicio)', dias: 120, re: /PASTILLA|BALATA|FRENO/ },
     { id: 'telescopios', km: 20000, nombre: 'Aceite y retenes de telescopios', cada: '20.000 km o si gotean', dias: 365, re: /TELESCOP/ },
     { id: 'kit', km: 15000, nombre: 'Kit de transmisión', cada: '10.000–20.000 km', dias: 300, re: /KIT DE TRANSMISION|KIT TRANSMISION|TRANSMISION COMPLETA|PINON|CORONA/ },
   ],
@@ -705,7 +705,10 @@ function hoy(ctx, placas, revs = []) {
       ahora.push({ placa, color: aceite ? COLOR.rojo : toca.length ? COLOR.ambar : COLOR.azul,
         etiqueta: aceite ? 'Aceite sin registro' : toca.length ? 'Mantenimiento' : 'Averiguar',
         t: toca.length ? `${toca.length} ${toca.length === 1 ? 'tarea sin registro reciente' : 'tareas sin registro reciente'}${averiguar.length ? ' y datos por averiguar' : ''}` : 'Datos por averiguar',
-        d: partes.join('. ') + '.', orden: aceite ? 0 : toca.length ? 1 : 2, n: toca.length });
+        d: partes.join('. ') + '.', orden: aceite ? 0 : toca.length ? 1 : 2, n: toca.length,
+        // Lo mismo por separado, para mostrarlo como chips
+        tareas: toca.map(p => ({ id: p.id, nombre: corto(p), dias: p.dias })),
+        averiguar: averiguar.map(corto), verificar: verificar.map(corto) });
     }
     cruzar(ctx, placa).filter(x => x.ultimo >= ctx.ref - 365 && x.pieza !== 'distribucion').forEach(x => revisar.push({
       placa, color: COLOR.azul, etiqueta: 'Pregunta del mecánico', t: x.titulo, d: x.detalle, orden: 2 }));
