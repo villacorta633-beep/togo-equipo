@@ -52,13 +52,13 @@ function aFila(g) {
 
 // ¿Ya está en el Detalle? Mismo monto y: mismo N° de factura/proforma, o misma placa (o SIN PLACA)
 // con fecha cercana. Los drivers a veces cargan días después o con otra placa que la proforma.
+// El N° de factura manda: primero se busca por número y solo si no aparece, por placa y fecha.
 function buscarEnDetalle(fila, detalle) {
   const doc = soloDigitos(fila.doc);
-  return detalle.find(d => {
-    if (Math.abs(d.monto - fila.monto) > 0.6) return false;
-    if (doc && soloDigitos(d.doc) === doc && dias(d.fecha, fila.fecha) <= 45) return true;
-    return (d.placa === fila.placa || d.placa === 'SIN PLACA') && dias(d.fecha, fila.fecha) <= 3;
-  });
+  const mismoMonto = detalle.filter(d => Math.abs(d.monto - fila.monto) <= 0.6);
+  return (doc && mismoMonto.find(d => soloDigitos(d.doc) === doc && dias(d.fecha, fila.fecha) <= 45)) ||
+    mismoMonto.find(d => d.placa === fila.placa && dias(d.fecha, fila.fecha) <= 3) ||
+    mismoMonto.find(d => d.placa === 'SIN PLACA' && dias(d.fecha, fila.fecha) <= 3);
 }
 
 function excelAbierto(file) {
