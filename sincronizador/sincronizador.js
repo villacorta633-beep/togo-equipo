@@ -72,12 +72,18 @@ const TAREAS = {
     async preparar(file) {
       const wb = await leerLibro(file);
       if (!wb.Sheets['Detalle']) throw new Error('el Excel de gastos no tiene la hoja Detalle');
-      const { rows, malas } = lector.limpiar(hojaATabla(wb.Sheets['Detalle']));
-      if (!rows.length) throw new Error('la hoja Detalle no tiene filas de gastos válidas');
+      const leidas = lector.limpiar(hojaATabla(wb.Sheets['Detalle']));
+      if (!leidas.rows.length) throw new Error('la hoja Detalle no tiene filas de gastos válidas');
+      const { malas } = leidas;
       if (malas.length) log(`  aviso: ${malas.length} filas sin fecha o monto válido no se suben (filas ${malas.slice(0, 8).map(m => m.fila).join(', ')})`);
+      // Un gasto de STGO que repite uno cargado a mano no se sube: queda el manual y la web avisa
+      const { rows, repetidos } = lector.repetidosSTGO(leidas.rows);
+      for (const { stgo: s, manual: m } of repetidos) {
+        log(`  repetido: fila ${s.fila} (STGO) ${s.fecha} ${s.placa} Bs ${s.monto} = fila ${m.fila} ${m.fecha} ${m.placa}; no se sube la de STGO`);
+      }
       const total = rows.reduce((s, r) => s + r.monto, 0);
-      return { datos: rows, cuerpo: { rows, archivo: `${path.basename(file)} · hoja Detalle` },
-               resumen: `${rows.length} filas, Bs ${total.toFixed(2)}` };
+      return { datos: { rows, repetidos }, cuerpo: { rows, repetidos, archivo: `${path.basename(file)} · hoja Detalle` },
+               resumen: `${rows.length} filas, Bs ${total.toFixed(2)}${repetidos.length ? `, ${repetidos.length} repetidos sin subir` : ''}` };
     }
   },
   flota: {

@@ -250,7 +250,12 @@ app.post('/api/gastos/import', requireAdminOSync, async (req, res, next) => {
        col('monto'),
        rows.map(r => String(r.km || '')), rows.map(r => String(r.prox || '')), rows.map(r => String(r.solicitud || ''))]
     );
-    const meta = { archivo: archivo || '', filas: rows.length, por: req.user.username, fecha: new Date().toISOString() };
+    // Gastos de STGO que repiten uno cargado a mano: no vienen en rows; se guardan para avisar en la web
+    const corto = r => ({ fila: +r.fila || null, fecha: String(r.fecha || '').slice(0, 10), placa: String(r.placa || '').slice(0, 20),
+                          monto: Number(r.monto) || 0, doc: String(r.doc || '').slice(0, 30), descripcion: String(r.descripcion || '').slice(0, 300) });
+    const repetidos = (Array.isArray(req.body.repetidos) ? req.body.repetidos : []).slice(0, 200)
+      .filter(p => p && p.stgo && p.manual).map(p => ({ stgo: corto(p.stgo), manual: corto(p.manual) }));
+    const meta = { archivo: archivo || '', filas: rows.length, por: req.user.username, fecha: new Date().toISOString(), repetidos };
     await client.query("UPDATE config SET value=$1 WHERE key='gastos_meta'", [JSON.stringify(meta)]);
     await client.query('COMMIT');
     res.json({ ok: true, ...meta });

@@ -18,8 +18,8 @@ const TIPOS = {
   MANT_CORR: 'CORRECTIVO', REPUESTOS: 'REPUESTOS', PARCHADO: 'OTROS GASTOS', OTROS: 'OTROS GASTOS'
 };
 
-const dias = (a, b) => Math.abs(new Date(a) - new Date(b)) / 864e5;
-const soloDigitos = v => String(v ?? '').replace(/\D/g, '').replace(/^0+/, '');
+
+
 const coma = n => String(n).replace('.', ',');
 const leerJSON = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { return d; } };
 
@@ -50,16 +50,10 @@ function aFila(g) {
   };
 }
 
-// ¿Ya está en el Detalle? Mismo monto y: mismo N° de factura/proforma, o misma placa (o SIN PLACA)
-// con fecha cercana. Los drivers a veces cargan días después o con otra placa que la proforma.
-// El N° de factura manda: primero se busca por número y solo si no aparece, por placa y fecha.
-function buscarEnDetalle(fila, detalle) {
-  const doc = soloDigitos(fila.doc);
-  const mismoMonto = detalle.filter(d => Math.abs(d.monto - fila.monto) <= 0.6);
-  return (doc && mismoMonto.find(d => soloDigitos(d.doc) === doc && dias(d.fecha, fila.fecha) <= 45)) ||
-    mismoMonto.find(d => d.placa === fila.placa && dias(d.fecha, fila.fecha) <= 3) ||
-    mismoMonto.find(d => d.placa === 'SIN PLACA' && dias(d.fecha, fila.fecha) <= 3);
-}
+// ¿Ya está en el Detalle? La regla es la misma que usa la web para avisar repetidos
+// (lector-excel.js): mismo monto y mismo N° de factura, o misma placa / SIN PLACA con fecha cercana.
+// Los drivers a veces cargan días después o con otra placa que la proforma.
+const { buscarIgual: buscarEnDetalle } = require('../public/lector-excel.js');
 
 function excelAbierto(file) {
   const dir = path.dirname(file), base = path.basename(file);
