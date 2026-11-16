@@ -78,7 +78,7 @@
       const p = String(get('proxi') ?? '').trim().toUpperCase();
       const tipo = String(get('tipo') ?? '').trim().toUpperCase() || 'SIN CLASIFICAR';
       const txt = k => String(get(k) ?? '').trim();
-      rows.push({ fecha, monto, placa, proxi: PROXIS.includes(p) ? p : 'SIN PROXY', tipo,
+      rows.push({ fila: hi + i + 2, fecha, monto, placa, proxi: PROXIS.includes(p) ? p : 'SIN PROXY', tipo,
                   descripcion: txt('descripcion'), ot: txt('ot'), doc: txt('doc'),
                   km: txt('km'), prox: txt('prox'), solicitud: txt('solicitud') });
     });
@@ -114,7 +114,35 @@
     return [...vistas.values()];
   }
 
-  const lector = { PROXIS, HEADERS, normH, parseCSV, parseFecha, parseMonto, limpiar, normPlaca, normProxi, leerFlota };
+  // Gastos que llegan de STGO (la descripción termina en "(STGO)") frente a los cargados a mano.
+  // Se considera el mismo gasto si tiene el mismo monto y: el mismo N° de factura/proforma
+  // (hasta 45 días de diferencia), o la misma placa con hasta 3 días, o una fila SIN PLACA con hasta 3 días.
+  // El N° de factura manda: se prueba primero.
+  const esSTGO = r => /\(STGO\)\s*$/i.test(String(r.descripcion || r.desc || ''));
+  const soloDigitos = v => String(v ?? '').replace(/\D/g, '').replace(/^0+/, '');
+  const dias = (a, b) => Math.abs(new Date(a) - new Date(b)) / 864e5;
+  function buscarIgual(g, filas) {
+    const doc = soloDigitos(g.doc);
+    const mismoMonto = filas.filter(d => Math.abs(d.monto - g.monto) <= 0.6);
+    return (doc && mismoMonto.find(d => soloDigitos(d.doc) === doc && dias(d.fecha, g.fecha) <= 45)) ||
+      mismoMonto.find(d => d.placa === g.placa && dias(d.fecha, g.fecha) <= 3) ||
+      mismoMonto.find(d => d.placa === 'SIN PLACA' && dias(d.fecha, g.fecha) <= 3) || null;
+  }
+  // Separa las filas STGO que repiten un gasto cargado a mano: esas no se suben (queda la manual)
+  // y se devuelven para avisar en la web.
+  function repetidosSTGO(rows) {
+    const manuales = rows.filter(r => !esSTGO(r));
+    const repetidos = [], fuera = new Set();
+    for (const r of rows) {
+      if (!esSTGO(r)) continue;
+      const m = buscarIgual(r, manuales);
+      if (m) { fuera.add(r); repetidos.push({ stgo: r, manual: m }); }
+    }
+    return { rows: rows.filter(r => !fuera.has(r)), repetidos };
+  }
+
+  const lector = { PROXIS, HEADERS, normH, parseCSV, parseFecha, parseMonto, limpiar, normPlaca, normProxi, leerFlota,
+                   esSTGO, buscarIgual, repetidosSTGO };
   if (typeof module !== 'undefined' && module.exports) module.exports = lector;
   else Object.assign(root, lector);
 })(typeof window !== 'undefined' ? window : globalThis);

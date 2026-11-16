@@ -8,7 +8,10 @@
     "start": "node sincronizador.js"
   },
   "dependencies": {
+    "pg": "^8.11.3",
     "xlsx": "0.18.5"
   },
-  "engines": { "node": ">=18.0.0" }
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
