@@ -1,6 +1,7 @@
 // Sincronizador TOGO: cada vez que se guarda el Excel de gastos o el de vehículos en esta PC,
 // lee los datos (con el mismo lector que usa la página) y los sube a la web.
-// Solo lee el Excel, desde una copia temporal: el archivo original nunca se modifica.
+// Lee el Excel desde una copia temporal. Lo único que escribe en él son los gastos nuevos de
+// STGO (ver stgo.js), y lo hace con el propio Excel.
 const fs = require('fs');
 const os = require('os');
 const net = require('net');
@@ -8,6 +9,7 @@ const path = require('path');
 const crypto = require('crypto');
 const XLSX = require('xlsx');
 const lector = require('../public/lector-excel.js');
+const stgo = require('./stgo.js');
 
 const DIR = __dirname;
 const LOG = path.join(DIR, 'sincronizador.log');
@@ -55,6 +57,13 @@ async function leerLibro(file) {
   }
 }
 const hojaATabla = ws => XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+
+// Filas actuales del Detalle (para que STGO no agregue lo que ya está)
+async function leerDetalle(file) {
+  const wb = await leerLibro(file);
+  if (!wb.Sheets['Detalle']) throw new Error('el Excel de gastos no tiene la hoja Detalle');
+  return lector.limpiar(hojaATabla(wb.Sheets['Detalle'])).rows;
+}
 
 const TAREAS = {
   gastos: {
@@ -152,4 +161,5 @@ net.createServer().once('error', () => {
   log(`sincronizador iniciado → ${URL_WEB}`);
   for (const tipo of Object.keys(TAREAS)) vigilar(tipo);
   for (const tipo of Object.keys(TAREAS)) await sincronizar(tipo, 'al iniciar');
+  stgo.iniciar({ config, log, leerDetalle });
 });

@@ -13,3 +13,5 @@ sincronizador/config.json
 sincronizador/estado.json
 sincronizador/sincronizador.log*
 .claude/
+sincronizador/stgo-estado.json
+sincronizador/respaldos/
