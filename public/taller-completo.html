@@ -121,6 +121,14 @@ a.kpi:hover{border-color:var(--c);transform:translateY(-1px);}
 .lista-v{display:flex;flex-direction:column;gap:8px;}
 .card-v{display:block;text-decoration:none;background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--c);border-radius:8px;padding:10px 14px;transition:border-color .15s,background .15s;}
 .card-v:hover{border-color:var(--amber);background:var(--bg3);}
+.card-v.pend:hover{background:var(--bg2);}
+.card-v.pend .placa{text-decoration:none;}
+.card-v.pend .placa:hover{color:var(--amber);}
+.pend-acc{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-top:10px;font-size:12px;color:var(--text3);}
+.pend-acc span{margin-right:auto;}
+.pend-acc a{color:var(--amber);text-decoration:none;}
+.pend-acc a:hover{text-decoration:underline;}
+.plan-det{margin-top:18px;}
 .cv-top{display:flex;align-items:center;gap:8px;}
 .cv-top .ico{color:var(--text2);}
 .cv-sub{font-size:11.5px;color:var(--text3);margin-left:auto;}
@@ -316,10 +324,7 @@ table.hj td.box{border:1px solid #999;width:48px;}
   <a class="logo" href="/">TOGO</a>
   <div class="titulo"><b>Mi taller</b><span>MECÁNICO VIRTUAL</span></div>
   <nav class="tabs" id="tabs">
-    <a class="tab" href="#hoy" data-v="hoy">Hoy</a>
-    <a class="tab" href="#agenda" data-v="agenda">Agenda</a>
-    <a class="tab" href="#vehiculos" data-v="vehiculos">Vehículos</a>
-    <a class="tab" href="#plan" data-v="plan">Plan</a>
+    <a class="tab" href="#pendientes" data-v="pendientes">Pendientes</a>
     <a class="tab" href="#gestion" data-v="gestion">Mi gestión</a>
     <a class="tab" href="#biblioteca" data-v="biblioteca">Biblioteca</a>
   </nav>
@@ -401,28 +406,25 @@ function diagnostico(placa) {
 const peso = d => (d.color === ROJO ? 100 : d.color === AMBAR ? 50 : 0) + d.altos * 5 + d.medios;
 
 function mostrar(quieto) {
-  const h = decodeURIComponent(location.hash.slice(1) || 'hoy');
+  const h = decodeURIComponent(location.hash.slice(1) || 'pendientes');
   const [vista, arg, arg2] = h.split('/');
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.v === (['vehiculo', 'revision', 'hoja'].includes(vista) ? 'vehiculos' : vista)));
+  // Los enlaces viejos a un vehículo abren su informe en la vista sencilla
+  if (vista === 'vehiculo' && arg) { location.replace(irVeh(arg)); return; }
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.v === (['revision', 'hoja'].includes(vista) || !['gestion', 'biblioteca'].includes(vista) ? 'pendientes' : vista)));
   document.body.classList.toggle('modo-hoja', vista === 'hoja');
   const app = document.getElementById('app');
-  if (vista === 'vehiculo' && CTX.veh.has(arg)) app.innerHTML = vVehiculo(arg, arg2);
-  else if (vista === 'revision' && CTX.veh.has(arg) && M.CADA_REVISION[arg2]) { app.innerHTML = vRevision(arg, arg2); armarRevision(arg, arg2); }
+  if (vista === 'revision' && CTX.veh.has(arg) && M.CADA_REVISION[arg2]) { app.innerHTML = vRevision(arg, arg2); armarRevision(arg, arg2); }
   else if (vista === 'hoja' && CTX.veh.has(arg)) app.innerHTML = vHoja(arg);
-  else if (vista === 'agenda') app.innerHTML = vAgenda();
   else if (vista === 'gestion') app.innerHTML = vGestion();
-  else if (vista === 'vehiculos') app.innerHTML = vVehiculos();
-  else if (vista === 'plan') app.innerHTML = vPlan();
   else if (vista === 'biblioteca') { app.innerHTML = vBiblioteca(); armarBiblioteca(); }
-  else app.innerHTML = vHoy();
-  const sel = document.getElementById('selVeh');
-  if (sel) sel.onchange = () => location.hash = 'vehiculo/' + sel.value;
+  else app.innerHTML = vPendientes();
   document.querySelectorAll('[data-borrar]').forEach(b => b.onclick = () => borrarRevision(b.dataset.borrar));
   despues();
   app.classList.remove('entra'); void app.offsetWidth; app.classList.add('entra');
-  // Las pestañas internas de un vehículo no vuelven arriba del todo
-  if (!quieto && !(vista === 'vehiculo' && arg2)) window.scrollTo(0, 0);
+  if (!quieto) window.scrollTo(0, 0);
 }
+// Informe de un vehículo: está en la vista sencilla de Mi taller
+const irVeh = placa => '/taller.html#vehiculo/' + encodeURIComponent(placa);
 
 // ── AYUDANTES ─────────────────────────────────────────────────────────────────
 const CUANDO = { atrasada: ['toca', 'Atrasada'], semana: ['pronto', 'Esta semana'], mes: ['pronto', 'Este mes'], luego: ['ok', 'Más adelante'], sin: ['sin', 'Sin registro'], averiguar: ['sin', 'Averiguar'] };
@@ -461,105 +463,54 @@ function aviso(texto) {
   setTimeout(() => { t.classList.remove('on'); setTimeout(() => t.remove(), 300); }, 2400);
 }
 
-// ── HOY ──────────────────────────────────────────────────────────────────────
-function vHoy() {
+// ── PENDIENTES: lo que toca a cada vehículo, lo que hay que revisar y el plan ─
+const chipsTareas = x => [
+  ...x.tareas.map(t => `<span class="tchip ${t.id === 'aceite' ? 'rojo' : 'ambar'}" title="Último cargado hace ${fmt0.format(t.dias)} días">${t.id === 'aceite' ? ico('aceite') : ''}${esc(t.nombre)} <b>${fmt0.format(t.dias)} d</b></span>`),
+  ...x.averiguar.map(n => `<span class="tchip azul" title="No hay ningún registro: averiguar">${ico('pregunta')}${esc(n)}</span>`),
+  ...x.verificar.map(n => `<span class="tchip azul" title="Faltan registros de casi toda la flota en esos meses">${ico('pregunta')}${esc(n)}</span>`),
+].join('');
+
+function vPendientes() {
   const todo = M.hoy(CTX, ACTIVAS.map(v => v.placa), REVS);
-  const ahora = todo.ahora.filter(x => pasaFiltro(x.placa)), revisar = todo.revisar.filter(x => pasaFiltro(x.placa));
-  const activas = ACTIVAS.filter(v => pasaFiltro(v.placa));
-  const rojos = activas.filter(v => DIAG.get(v.placa).color === ROJO).length;
-  const chipsTareas = x => [
-    ...x.tareas.map(t => `<span class="tchip ${t.id === 'aceite' ? 'rojo' : 'ambar'}" title="Último cargado hace ${fmt0.format(t.dias)} días">${t.id === 'aceite' ? ico('aceite') : ''}${esc(t.nombre)} <b>${fmt0.format(t.dias)} d</b></span>`),
-    ...x.averiguar.map(n => `<span class="tchip azul" title="No hay ningún registro: averiguar">${ico('pregunta')}${esc(n)}</span>`),
-    ...x.verificar.map(n => `<span class="tchip azul" title="Faltan registros de casi toda la flota en esos meses">${ico('pregunta')}${esc(n)}</span>`),
-  ].join('');
-  const tarjeta = x => {
-    const v = CTX.veh.get(x.placa);
-    return `<a class="card-v" style="--c:${x.color}" href="#vehiculo/${encodeURIComponent(x.placa)}/agenda">
-      <div class="cv-top">${icoVeh(v.tipo)}<span class="placa">${esc(x.placa)}</span><span class="cv-sub">${esc(v.proxi)}</span></div>
-      <div class="tchips">${chipsTareas(x)}</div></a>`;
-  };
+  const ahora = new Map(todo.ahora.map(x => [x.placa, x]));
+  const revisar = todo.revisar.filter(x => pasaFiltro(x.placa));
+  const tarjetas = ACTIVAS.filter(v => pasaFiltro(v.placa)).map(v => {
+    const x = ahora.get(v.placa), a = DIAG.get(v.placa).agenda, enc = encodeURIComponent(v.placa);
+    const abiertos = a.abiertos.map(o => `<span class="tchip rojo" title="Marcado con atención en la revisión del ${T.fechaCorta(T.dia(o.fecha))}">${ico('alerta')}${esc(o.item.t.split(' (')[0])}</span>`).join('');
+    const tareas = x ? chipsTareas(x) : '';
+    const sem = a.revisiones.find(r => r.tipo === 'semanal');
+    const n = (x ? x.tareas.length : 0) + a.abiertos.length * 10;
+    const color = a.abiertos.length ? 'var(--red)' : x && x.tareas.length ? 'var(--amber)' : 'var(--green)';
+    return { n, html: `<div class="card-v pend" style="--c:${color}">
+      <div class="cv-top">${icoVeh(v.tipo)}<a class="placa" href="${irVeh(v.placa)}" title="Ver el informe del vehículo">${esc(v.placa)}</a><span class="cv-sub">${esc(v.etiqueta)} · ${esc(v.proxi)}</span></div>
+      <div class="tchips">${abiertos}${tareas || (abiertos ? '' : `<span class="tchip verde">${ico('check')}Todo al día</span>`)}</div>
+      <div class="pend-acc"><span>${sem && sem.ultima ? `Revisión semanal: ${T.fechaCorta(T.dia(sem.ultima.fecha))}` : 'Sin revisiones registradas'}</span>
+        <a href="#revision/${enc}/semanal">+ Revisión</a><a href="#hoja/${enc}">Hoja del conductor</a><a href="${irVeh(v.placa)}">Informe →</a></div></div>` };
+  }).sort((a, b) => b.n - a.n);
   const fila = x => `<details class="fila" style="--c:${x.color}">
       <summary><span class="dot"></span><span class="placa">${esc(x.placa)}</span><span class="fila-t">${esc(x.t)}</span><span class="fila-e">${esc(x.etiqueta)}</span></summary>
-      <div class="fila-d">${esc(x.d)} <a href="#vehiculo/${encodeURIComponent(x.placa)}/diagnostico">Ver vehículo →</a></div></details>`;
-  return `<div class="cab"><div><h2>Hoy en el taller</h2><div class="sub">${activas.length} vehículos trabajando · datos hasta ${T.fechaCorta(CTX.ref)} ${info('Todo sale de lo cargado en el Excel y de las revisiones registradas. Un trabajo que se hizo y no se cargó aparece como pendiente: si es así, cárgalo en el Excel. Se actualiza solo con cada carga de gastos.')}</div></div>${segmento()}</div>
-    <div class="kpis">
-      <a class="kpi" href="#hoy" data-ir="pend" style="--c:var(--red)">${ico('llave')}<b data-n="${ahora.filter(x => x.orden < 2).length}">0</b><span>por confirmar o hacer</span></a>
-      <a class="kpi" href="#hoy" data-ir="rev" style="--c:var(--amber)">${ico('alerta')}<b data-n="${revisar.length}">0</b><span>para revisar</span></a>
-      <a class="kpi" href="#vehiculos" style="--c:var(--text2)">${icoVeh('furgon')}<b data-n="${rojos}">0</b><span>vehículos en rojo</span></a>
-    </div>
+      <div class="fila-d">${esc(x.d)} <a href="${irVeh(x.placa)}">Ver informe →</a></div></details>`;
+  const hist = REVS.slice(0, 15).map(r => {
+    const v = CTX.veh.get(r.placa);
+    const at = v ? Object.entries(r.items || {}).filter(([, e]) => e === 'atencion').map(([id]) => nombreItem(v.tipo, r.tipo, id)) : [];
+    return `<div class="hist" style="--c:${at.length ? 'var(--red)' : 'var(--green)'}"><span class="dot"></span>
+      <span class="hist-f">${T.fechaCorta(T.dia(r.fecha))}</span><span class="hist-t">${esc(r.placa)} · ${esc(r.tipo)}</span><span class="hist-km">${r.km ? fmt0.format(r.km) + ' km' : '—'}</span>
+      <span class="hist-r">${at.length ? esc(at.join(' · ')) : 'Todo bien'}${r.nota ? ` ${info(r.nota)}` : ''}</span><button class="link-x" data-borrar="${r.id}" title="Borrar">✕</button></div>`;
+  }).join('');
+  return `<div class="cab"><div><h2>Pendientes</h2><div class="sub">Lo que toca a cada vehículo · datos hasta ${T.fechaCorta(CTX.ref)} ${info('Sale de lo cargado en el Excel y de las revisiones registradas. El número es cuántos días pasaron desde el último registro de esa tarea. Un trabajo que se hizo y no se cargó aparece como pendiente: si es así, cárgalo en el Excel.')}</div></div>${segmento()}</div>
     <div class="cols">
-      <section id="pend"><div class="h3">${ico('llave')} Para confirmar o hacer ${info('Tareas sin registro dentro de su plazo. El número es cuántos días pasaron desde el último registro.')}</div>
-        ${ahora.length ? `<div class="lista-v">${ahora.map(tarjeta).join('')}</div>` : `<div class="vacio">${ico('check')} Todo al día.</div>`}</section>
-      <section id="rev"><div class="h3">${ico('alerta')} Para revisar ${info('Toca una fila para ver el detalle.')}</div>
-        ${revisar.length ? revisar.map(fila).join('') : `<div class="vacio">${ico('check')} Nada para revisar.</div>`}</section>
-    </div>`;
-}
-
-// ── AGENDA (toda la flota) ───────────────────────────────────────────────────
-function vAgenda() {
-  const col = { atrasada: [], semana: [], proxima: [], mes: [], sin: [] };
-  let sinRevisiones = 0;
-  ACTIVAS.filter(v => pasaFiltro(v.placa)).forEach(v => {
-    const a = DIAG.get(v.placa).agenda;
-    // Tensar la cadena va en la revisión semanal del conductor
-    a.tareas.filter(t => t.id !== 'cadena').forEach(t => {
-      const k = t.proxima == null ? 'sin' : t.falta < 0 ? 'atrasada' : t.falta <= 7 ? 'semana' : t.falta <= 14 ? 'proxima' : t.falta <= 31 ? 'mes' : null;
-      if (k) col[k].push({ placa: v.placa, tipo: v.tipo, t: t.nombre.split(' (')[0], fecha: t.proxima, falta: t.falta, km: t.fuente === 'km', critico: t.critico });
-    });
-    if (a.revisiones.every(r => r.cuando === 'nunca')) sinRevisiones++;
-    a.revisiones.filter(r => r.proxima != null && r.falta <= 14).forEach(r => {
-      const k = r.falta < 0 ? 'atrasada' : r.falta <= 7 ? 'semana' : 'proxima';
-      col[k].push({ placa: v.placa, tipo: v.tipo, t: `Revisión ${r.tipo}`, fecha: r.proxima, falta: r.falta, rev: r.tipo });
-    });
-  });
-  Object.values(col).forEach(l => l.sort((a, b) => (a.fecha ?? 0) - (b.fecha ?? 0)));
-  const chip = x => `<a class="ag-chip" href="#${x.rev ? `revision/${encodeURIComponent(x.placa)}/${x.rev}` : `vehiculo/${encodeURIComponent(x.placa)}/agenda`}" title="${esc(x.t)} · ${x.fecha != null ? T.fechaCorta(x.fecha) : ''}">
-      <span class="ag-f">${x.fecha != null ? T.fechaCorta(x.fecha).slice(0, 5) : '—'}</span><span class="ag-t">${esc(x.t)}</span><span class="ag-p">${icoVeh(x.tipo)}${esc(x.placa)}</span></a>`;
-  // Lo atrasado se agrupa por vehículo: suele ser mucho y casi siempre por falta de registros
-  const porPlaca = new Map();
-  col.atrasada.forEach(x => { if (!porPlaca.has(x.placa)) porPlaca.set(x.placa, []); porPlaca.get(x.placa).push(x); });
-  const atrasado = [...porPlaca.entries()].sort((a, b) => b[1].length - a[1].length).map(([placa, l]) => `<a class="ag-veh" href="#vehiculo/${encodeURIComponent(placa)}/agenda">
-      <div class="cv-top">${icoVeh(l[0].tipo)}<span class="placa">${esc(placa)}</span><span class="ag-n">${l.length}</span></div>
-      <div class="ag-mini">${l.slice(0, 3).map(x => esc(x.t)).join(' · ')}${l.length > 3 ? ` · +${l.length - 3}` : ''}</div></a>`).join('');
-  const columna = (titulo, cls, cuerpo, n) => `<div class="ag-col ${cls}"><div class="ag-h"><span>${titulo}</span><b>${n}</b></div><div class="ag-body">${cuerpo || `<div class="ag-vacio">${ico('check')}</div>`}</div></div>`;
-  return `<div class="cab"><div><h2>Agenda</h2><div class="sub">Lo que viene en las próximas semanas ${info('La fecha sale del último trabajo cargado en el Excel: por días o, si se conoce el kilometraje, por km (lo que llegue antes). Si algo aparece atrasado y ya se hizo, falta cargarlo en el Excel con el kilometraje.')}</div></div>${segmento()}</div>
-    ${sinRevisiones ? `<a class="banner" href="#vehiculos">${ico('lista')}<div><b>${sinRevisiones === ACTIVAS.length ? 'Todavía no hay revisiones registradas' : `${sinRevisiones} vehículos sin revisiones`}</b><span>Imprime la hoja de cada vehículo y registra la revisión semanal con el kilometraje.</span></div></a>` : ''}
-    <div class="board">
-      ${columna('Atrasado', 'c-rojo', atrasado, porPlaca.size)}
-      ${columna('Esta semana', 'c-ambar', col.semana.map(chip).join(''), col.semana.length)}
-      ${columna('Próxima semana', 'c-azul', col.proxima.map(chip).join(''), col.proxima.length)}
-      ${columna('Resto del mes', 'c-gris', col.mes.map(chip).join(''), col.mes.length)}
+      <section><div class="h3">${ico('llave')} Por vehículo</div><div class="lista-v">${tarjetas.map(t => t.html).join('')}</div></section>
+      <section><div class="h3">${ico('alerta')} Para revisar <span class="n">${revisar.length}</span> ${info('Hallazgos del mecánico virtual: toca una fila para ver el detalle.')}</div>
+        ${revisar.length ? revisar.map(fila).join('') : `<div class="vacio">${ico('check')} Nada para revisar.</div>`}
+        ${hist ? `<div class="h3">${ico('calendario')} Revisiones registradas</div><div class="hist-lista">${hist}</div>` : ''}</section>
     </div>
-    <details class="fila" style="--c:#8a8a8a;margin-top:16px"><summary><span class="dot"></span><span class="fila-t">Sin ningún registro: averiguar o programar</span><span class="fila-e">${col.sin.length}</span></summary>
-      <div class="ag-sin">${col.sin.map(chip).join('')}</div></details>`;
+    <details class="fila plan-det" style="--c:var(--text3)"><summary><span class="dot"></span><span class="fila-t">Plan de mantenimiento de toda la flota</span><span class="fila-e">tabla</span></summary>
+      <div class="fila-d">${planTablas()}</div></details>`;
 }
 
 // ── PERÍODO Y GESTIÓN ────────────────────────────────────────────────────────
 // Inicio de la gestión del responsable (se puede cambiar en la pestaña Mi gestión)
 const gestionIni = () => { try { return localStorage.getItem('togo_gestion') || '2026-02-01'; } catch { return '2026-02-01'; } };
-// Período para el diagnóstico: '' todo, 'gestion', 'antes' o un año
-const PER = { id: '' };
-function rangoPer() {
-  const ini = T.dia(gestionIni());
-  if (PER.id === 'gestion') return { desde: ini, hasta: Infinity };
-  if (PER.id === 'antes') return { desde: -Infinity, hasta: ini - 1 };
-  if (/^\d{4}$/.test(PER.id)) return { desde: T.dia(`${PER.id}-01-01`), hasta: T.dia(`${PER.id}-12-31`) };
-  return { desde: -Infinity, hasta: Infinity };
-}
-const periodoTxt = () => PER.id === 'gestion' ? `mi gestión (desde ${T.fechaCorta(T.dia(gestionIni()))})` : PER.id === 'antes' ? `antes de mi gestión` : PER.id ? `año ${PER.id}` : 'todo el historial';
-const CACHE_INF = new Map();
-// Informe de una placa en el período elegido (se guarda para no recalcular)
-function infDe(placa) {
-  if (!PER.id) return DIAG.get(placa)?.inf || T.informe(CTX, placa);
-  const k = `${placa}|${PER.id}|${gestionIni()}`;
-  if (!CACHE_INF.has(k)) CACHE_INF.set(k, T.informe(CTX, placa, rangoPer()));
-  return CACHE_INF.get(k);
-}
-function selPeriodo() {
-  const anios = [...new Set([...CTX.veh.values()].flatMap(v => v.filas.map(r => r.anio)))].sort((a, b) => b - a);
-  const op = [['', 'Todo el historial'], ['gestion', 'Mi gestión'], ['antes', 'Antes de mi gestión'], ...anios.map(a => [String(a), String(a)])];
-  return `<select class="sel sel-per" id="selPer" title="Período del diagnóstico">${op.map(([k, t]) => `<option value="${k}" ${PER.id === k ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
-}
 
 // ── MI GESTIÓN: antes y durante ──────────────────────────────────────────────
 function vGestion() {
@@ -594,13 +545,13 @@ function vGestion() {
 
   const porPlaca = new Map();
   heredadas.forEach(h => { if (!porPlaca.has(h.placa)) porPlaca.set(h.placa, []); porPlaca.get(h.placa).push(h); });
-  const tarjetasHer = [...porPlaca.entries()].map(([placa, l]) => `<a class="card-v" style="--c:${l.every(h => h.resuelta) ? 'var(--green)' : 'var(--amber)'}" href="#vehiculo/${encodeURIComponent(placa)}/agenda">
+  const tarjetasHer = [...porPlaca.entries()].map(([placa, l]) => `<a class="card-v" style="--c:${l.every(h => h.resuelta) ? 'var(--green)' : 'var(--amber)'}" href="${irVeh(placa)}">
       <div class="cv-top">${icoVeh(l[0].tipo)}<span class="placa">${esc(placa)}</span><span class="cv-sub">${l.filter(h => h.resuelta).length} de ${l.length} resueltas</span></div>
       <div class="tchips">${l.map(h => `<span class="tchip ${h.resuelta ? 'verde' : h.critico ? 'azul' : ''}" title="${h.ultimoAntes ? `Último antes: ${T.fechaCorta(h.ultimoAntes.dia)}` : 'Sin ningún registro antes'}${h.resuelta ? ` · hecho el ${T.fechaCorta(h.resuelta.dia)}` : ''}">${h.resuelta ? ico('check') : ''}${esc(h.nombre.split(' (')[0])}${h.ultimoAntes ? ` <b>${T.fechaCorta(h.ultimoAntes.dia).slice(3)}</b>` : ' <b>nunca</b>'}</span>`).join('')}</div></a>`).join('');
   const filaH = ({ h, placa }, previo) => `<details class="fila" style="--c:${previo ? 'var(--blue)' : C[h.causa].color}">
       <summary><span class="dot"></span><span class="placa">${esc(placa)}</span><span class="fila-t">${esc(h.titulo)}</span><span class="fila-e">${previo ? 'desde ' + T.fechaCorta(h.causaDesde) : esc(C[h.causa].nombre)}</span></summary>
-      <div class="fila-d">${previo ? `<b>La causa empezó el ${T.fechaCorta(h.causaDesde)}, antes de tu gestión.</b> ` : ''}${esc(h.detalle)} <a href="#vehiculo/${encodeURIComponent(placa)}/diagnostico">Ver vehículo →</a></div></details>`;
-  const tabla = G.map(({ v, g }) => `<tr><td><a class="placa" href="#vehiculo/${encodeURIComponent(v.placa)}" style="text-decoration:none">${esc(v.placa)}</a><div class="item-d">${esc(v.etiqueta)}</div>${g.reingreso ? `<div class="item-d" style="color:var(--blue)">a cargo desde ${T.fechaCorta(g.reingreso.vuelve)}</div>` : ''}</td>
+      <div class="fila-d">${previo ? `<b>La causa empezó el ${T.fechaCorta(h.causaDesde)}, antes de tu gestión.</b> ` : ''}${esc(h.detalle)} <a href="${irVeh(placa)}">Ver vehículo →</a></div></details>`;
+  const tabla = G.map(({ v, g }) => `<tr><td><a class="placa" href="${irVeh(v.placa)}" style="text-decoration:none">${esc(v.placa)}</a><div class="item-d">${esc(v.etiqueta)}</div>${g.reingreso ? `<div class="item-d" style="color:var(--blue)">a cargo desde ${T.fechaCorta(g.reingreso.vuelve)}</div>` : ''}</td>
       <td>${comp(g.hayAntes ? g.antes.porMes : null, g.hayAhora ? g.ahora.porMes : null, x => bs(x), true)}</td>
       <td>${comp(g.hayAntes ? g.evitableAntes : null, g.hayAhora ? g.evitableAhora : null, pct, true, true)}</td>
       <td>${comp(g.prevAntes, g.prevAhora, x => x.toFixed(1).replace('.', ','), false)}</td>
@@ -634,168 +585,11 @@ function vGestion() {
     <div class="tabla-scroll"><table class="plan"><thead><tr><th>Placa</th><th>Gasto / mes</th><th>Se pudo evitar</th><th>Preventivos / mes</th><th>Heredados resueltos</th></tr></thead><tbody>${tabla}</tbody></table></div>`;
 }
 
-// ── VEHÍCULOS ────────────────────────────────────────────────────────────────
-function vVehiculos() {
-  const card = v => {
-    const d = DIAG.get(v.placa);
-    // Con un período elegido, el veredicto y el gasto son de ese período; si no, del último año
-    const inf = infDe(v.placa), a = PER.id ? inf : d.anio;
-    const ratio = a.comp.n >= 3 && a.ratio ? a.ratio : 0;
-    return `<a class="veh" style="--c:${d.color}" href="#vehiculo/${encodeURIComponent(v.placa)}">
-      <div class="cv-top">${icoVeh(v.tipo)}<span class="placa">${esc(v.placa)}</span><span class="semaforo" title="${d.color === ROJO ? 'Algo importante' : d.color === AMBAR ? 'Cosas para revisar' : 'En orden'}"></span></div>
-      <div class="cv-sub" style="margin-top:2px">${esc(v.etiqueta)} · ${esc(v.proxi)}</div>
-      <div class="v">${esc(inf.veredicto.titulo)}</div>
-      <div class="mini-stats">
-        <span title="Gasto de mantenimiento por mes, ${PER.id ? esc(periodoTxt()) : 'último año'}">${bs(a.porMes)}<i>/mes</i></span>
-        ${ratio ? `<span class="${ratio >= 1.3 ? 'alto' : ''}" title="Comparado con vehículos iguales">${ratio >= 1.3 ? ratio.toFixed(1).replace('.', ',') + '×' : ratio <= 0.75 ? 'bajo' : 'normal'}</span>` : ''}
-        ${d.altos ? `<span class="alto" title="Hallazgos importantes">${ico('alerta')}${d.altos}</span>` : ''}
-        ${d.toca ? `<span class="medio" title="Tareas sin registro reciente">${ico('llave')}${d.toca}</span>` : ''}
-      </div></a>`;
-  };
-  const grupo = (tipo, titulo) => { const vs = ACTIVAS.filter(v => v.tipo === tipo && pasaFiltro(v.placa)); return vs.length ? `<div class="h3">${icoVeh(tipo)} ${titulo} <span class="n">${vs.length}</span></div><div class="grid-veh">${vs.map(card).join('')}</div>` : ''; };
-  return `<div class="cab"><div><h2>Vehículos</h2><div class="sub ley-dots"><span style="--c:var(--red)">algo importante</span><span style="--c:var(--amber)">para revisar</span><span style="--c:var(--green)">en orden</span></div></div><div class="filtros-d">${selPeriodo()}${segmento()}</div></div>
-    ${grupo('furgon', 'Furgones')}${grupo('moto', 'Motos')}`;
-}
-
-// ── UN VEHÍCULO ──────────────────────────────────────────────────────────────
-const SUBS = [['resumen', 'Resumen'], ['agenda', 'Agenda'], ['revisiones', 'Revisiones'], ['diagnostico', 'Diagnóstico'], ['ficha', 'Ficha']];
-function vVehiculo(placa, sub = 'resumen') {
-  if (!SUBS.some(s => s[0] === sub)) sub = 'resumen';
-  const v = CTX.veh.get(placa);
-  // El diagnóstico y el resumen siguen el período elegido; agenda y revisiones siempre son de hoy
-  const d = { ...(DIAG.get(placa) || diagnostico(placa)), inf: infDe(placa) };
-  const inf = d.inf, C = T.CAUSAS, a = d.agenda;
-  const opciones = [...ACTIVAS, ...(ACTIVAS.some(x => x.placa === placa) ? [] : [v])].map(x => `<option value="${esc(x.placa)}" ${x.placa === placa ? 'selected' : ''}>${esc(x.placa)} · ${esc(x.etiqueta)}</option>`).join('');
-  const hall = inf.hallazgos.filter(h => h.nivel !== 'bajo' || h.causa !== 'desgaste');
-  const prox = a.tareas.find(t => t.proxima != null && t.falta >= 0);
-  const atrasadas = a.tareas.filter(t => t.cuando === 'atrasada').length;
-  const ultRev = REVS.filter(r => r.placa === placa).sort((x, y) => y.fecha.localeCompare(x.fecha))[0];
-  const cuenta = { agenda: atrasadas, revisiones: a.abiertos.length, diagnostico: hall.length + d.cruces.length };
-  const cuerpo = { resumen: subResumen, agenda: subAgenda, revisiones: subRevisiones, diagnostico: subDiagnostico, ficha: subFicha }[sub](placa, v, d);
-  return `<div class="cab-veh">
-      <div class="cv-id">${icoVeh(v.tipo)}<div><h2>${esc(placa)}</h2><div class="sub">${esc(v.etiqueta)} · ${esc(v.proxi)}</div></div></div>
-      <div class="acc">${selPeriodo()}<select class="sel" id="selVeh">${opciones}</select>
-        <a class="btn-i" href="/informe.html?placa=${encodeURIComponent(placa)}" title="Informe para imprimir">${ico('imprimir')}</a>
-        <a class="btn-i" href="/flota-3d.html?placa=${encodeURIComponent(placa)}" title="Ver en 3D">${ico('cubo')}</a></div>
-    </div>
-    <div class="kpis kpis-4">
-      <div class="kpi" style="--c:${C[inf.veredicto.causa].color}">${ico('llave')}<b class="txt">${esc(inf.veredicto.titulo)}</b><span>estado</span></div>
-      <div class="kpi" style="--c:var(--text2)">${ico('km')}<b class="txt">${a.km ? fmt0.format(a.km.actual) + ' km' : '—'}</b><span>${a.km ? (a.km.porDia ? `~${fmt0.format(a.km.porDia)} km/día` : 'último registrado') : 'sin kilometraje'}</span></div>
-      <div class="kpi" style="--c:${atrasadas ? 'var(--red)' : 'var(--amber)'}">${ico('calendario')}<b class="txt">${prox ? esc(prox.nombre.split(' (')[0]) : '—'}</b><span>${prox ? `próxima: ${T.fechaCorta(prox.proxima)} (${enDias(prox.falta)})` : 'sin próxima fecha'}${atrasadas ? ` · ${atrasadas} atrasada${atrasadas > 1 ? 's' : ''}` : ''}</span></div>
-      <div class="kpi" style="--c:${a.abiertos.length ? 'var(--red)' : 'var(--green)'}">${ico('lista')}<b class="txt">${ultRev ? T.fechaCorta(T.dia(ultRev.fecha)) : 'Nunca'}</b><span>última revisión${a.abiertos.length ? ` · ${a.abiertos.length} con atención` : ''}</span></div>
-    </div>
-    <nav class="subtabs">${SUBS.map(([k, t]) => `<a href="#vehiculo/${encodeURIComponent(placa)}/${k}" class="${k === sub ? 'on' : ''}">${t}${cuenta[k] ? `<i>${cuenta[k]}</i>` : ''}</a>`).join('')}</nav>
-    <div class="sub-cuerpo">${cuerpo}</div>`;
-}
-
-function subResumen(placa, v, d) {
-  const inf = d.inf, a = d.agenda, C = T.CAUSAS;
-  // Lo más urgente primero: puntos con atención, tareas atrasadas y hallazgos importantes del último año
-  const acciones = [
-    ...a.abiertos.map(x => ({ c: ROJO, i: 'alerta', t: `Con atención: ${x.item.t.split(' (')[0]}`, s: `Revisión ${x.tipo} del ${T.fechaCorta(T.dia(x.fecha))}`, ir: 'revisiones' })),
-    ...a.tareas.filter(t => t.cuando === 'atrasada').slice(0, 3).map(t => ({ c: AMBAR, i: t.id === 'aceite' ? 'aceite' : 'llave', t: t.nombre.split(' (')[0], s: `tocaba el ${T.fechaCorta(t.proxima)} · si se hizo, cargarlo en el Excel`, ir: 'agenda' })),
-    ...inf.hallazgos.filter(h => h.nivel === 'alto' && h.causa !== 'desgaste' && (h.ultimo || 0) >= CTX.ref - 365).slice(0, 3).map(h => ({ c: C[h.causa].color, i: 'alerta', t: h.titulo, s: C[h.causa].nombre, ir: 'diagnostico' })),
-  ];
-  const causas = Object.entries(inf.causas).filter(([, x]) => x > 0).sort((x, y) => C[x[0]].orden - C[y[0]].orden);
-  return `<div class="veredicto" style="--c:${C[inf.veredicto.causa].color}"><b>${esc(inf.veredicto.titulo)}</b><p>${esc(inf.veredicto.texto)}</p>
-      ${inf.total ? `<div class="barra-c">${causas.map(([k, x]) => `<div style="width:${x / inf.total * 100}%;background:${C[k].color}" title="${esc(C[k].nombre)}: ${bs(x)} (${Math.round(x / inf.total * 100)}%)"></div>`).join('')}</div>
-      <div class="ley-dots">${causas.map(([k, x]) => `<span style="--c:${C[k].color}">${esc(C[k].nombre)} ${Math.round(x / inf.total * 100)}%</span>`).join('')}</div>` : ''}</div>
-    <div class="h3">${ico('llave')} Qué hacer ahora</div>
-    ${acciones.length ? acciones.map(x => `<a class="accion" style="--c:${x.c}" href="#vehiculo/${encodeURIComponent(placa)}/${x.ir}">${ico(x.i)}<div><b>${esc(x.t)}</b><span>${esc(x.s)}</span></div><i>→</i></a>`).join('') : `<div class="vacio">${ico('check')} Nada urgente.</div>`}`;
-}
-
-function subAgenda(placa, v, d) {
-  const a = d.agenda;
-  const fila = t => {
-    // Barra: cuánto del plazo ya pasó desde el último registro
-    const prog = t.ultimo && t.proxima != null ? Math.min(1, Math.max(0, (a.hoyDia - t.ultimo.dia) / Math.max(1, t.proxima - t.ultimo.dia))) : null;
-    const color = t.cuando === 'atrasada' ? 'var(--red)' : t.cuando === 'semana' || t.cuando === 'mes' ? 'var(--amber)' : t.proxima == null ? '#8a8a8a' : 'var(--green)';
-    return `<div class="tarea" style="--c:${color}">
-      <div class="tarea-top"><b>${esc(t.nombre.split(' (')[0])}</b><span class="tarea-f">${t.proxima != null ? `${T.fechaCorta(t.proxima)} · ${enDias(t.falta)}` : t.critico ? 'Averiguar km del último cambio' : 'Sin registro'}</span></div>
-      <div class="prog">${prog != null ? `<div style="width:${Math.round(prog * 100)}%"></div>` : ''}</div>
-      <div class="tarea-s">cada ${esc(t.cada)}${t.ultimo ? ` · último ${T.fechaCorta(t.ultimo.dia)}${+t.ultimo.km > 0 ? ` (${fmt0.format(+t.ultimo.km)} km)` : ''}` : ''}${t.fuente === 'km' ? ' · por km' : ''}${t.nota ? ' ' + info(t.nota) : ''}</div></div>`;
-  };
-  return `<div class="sub" style="margin-bottom:12px">La barra muestra cuánto del plazo ya pasó ${info('La próxima fecha sale del último trabajo cargado en el Excel: por días o, si se conoce el kilometraje, por km (lo que llegue antes). Si una tarea aparece atrasada y ya se hizo, falta cargarla en el Excel.')}</div>
-    <div class="tareas">${a.tareas.map(fila).join('')}</div>`;
-}
-
-function subRevisiones(placa, v, d) {
-  const a = d.agenda;
-  const tarjetas = a.revisiones.map(r => {
-    const c = r.cuando === 'atrasada' || r.cuando === 'nunca' ? 'var(--red)' : r.cuando === 'semana' ? 'var(--amber)' : 'var(--green)';
-    return `<a class="rev-box" style="--c:${c}" href="#revision/${encodeURIComponent(placa)}/${r.tipo}">
-      <div class="cv-top">${ico('lista')}<b>Revisión ${r.tipo}</b></div>
-      <div class="rev-estado">${r.cuando === 'nunca' ? 'Nunca registrada' : r.cuando === 'atrasada' ? `Atrasada · ${enDias(r.falta)}` : `Próxima ${T.fechaCorta(r.proxima)}`}</div>
-      <div class="cv-sub">${r.ultima ? `Última ${T.fechaCorta(T.dia(r.ultima.fecha))}${r.ultima.km ? ' · ' + fmt0.format(r.ultima.km) + ' km' : ''}` : `cada ${M.CADA_REVISION[r.tipo]} días`}</div>
-      <span class="rev-btn">+ Registrar</span></a>`;
-  }).join('');
-  const abiertos = a.abiertos.map(x => `<div class="accion" style="--c:var(--red)">${ico('alerta')}<div><b>${esc(x.item.t.split(' (')[0])}</b><span>${T.fechaCorta(T.dia(x.fecha))}${x.nota ? ' · ' + esc(x.nota) : ''}</span></div>${info(x.item.por)}</div>`).join('');
-  const hist = REVS.filter(r => r.placa === placa).slice(0, 12).map(r => {
-    const at = Object.entries(r.items || {}).filter(([, e]) => e === 'atencion').map(([id]) => nombreItem(v.tipo, r.tipo, id));
-    return `<div class="hist" style="--c:${at.length ? 'var(--red)' : 'var(--green)'}"><span class="dot"></span>
-      <span class="hist-f">${T.fechaCorta(T.dia(r.fecha))}</span><span class="hist-t">${esc(r.tipo)}</span><span class="hist-km">${r.km ? fmt0.format(r.km) + ' km' : '—'}</span>
-      <span class="hist-r">${at.length ? esc(at.join(' · ')) : 'Todo bien'}${r.nota ? ` ${info(r.nota)}` : ''}</span><button class="link-x" data-borrar="${r.id}" title="Borrar">✕</button></div>`;
-  }).join('');
-  return `${abiertos ? `<div class="h3">${ico('alerta')} Con atención</div>${abiertos}` : ''}
-    <div class="rev-grid">${tarjetas}
-      <a class="rev-box" style="--c:var(--blue)" href="#hoja/${encodeURIComponent(placa)}"><div class="cv-top">${ico('imprimir')}<b>Hoja del conductor</b></div>
-        <div class="cv-sub">Diaria, semanal y mensual para llevar en el vehículo</div><span class="rev-btn">Imprimir</span></a></div>
-    ${hist ? `<div class="h3">${ico('calendario')} Historial</div><div class="hist-lista">${hist}</div>` : ''}`;
-}
-
-function subDiagnostico(placa, v, d) {
-  const inf = d.inf, C = T.CAUSAS;
-  const evid = filas => {
-    const vistos = [...new Map(filas.map(e => [e.id, e])).values()];
-    return vistos.length ? `<div class="evid">${vistos.slice(0, 4).map(e => `<div>${T.fechaCorta(e.dia)} · ${bs(e.monto)} · ${esc(e.descripcion.trim() || e.tipo)}</div>`).join('')}${vistos.length > 4 ? `<div>… y ${vistos.length - 4} más</div>` : ''}</div>` : '';
-  };
-  const lista = (arr, f) => `<ul>${arr.map(f).join('')}</ul>`;
-  const saber = id => {
-    const p = M.PIEZAS[id];
-    if (!p) return '';
-    const vida = p.vida[v.modelo] || p.vida[v.tipo] || '';
-    // Lo que es solo de motos no se muestra en un furgón, y al revés
-    const otro = v.tipo === 'moto' ? /^Furg[oó]n\b|\(furg[oó]n\)/i : /^Moto:|\(moto\)/i;
-    const propio = x => !otro.test(x.t || x.p || x);
-    return `<div class="bloques">
-      <div class="bloque"><h5>¿Por qué suele fallar?</h5>${lista(p.causas.filter(propio), c => `<li><b>${esc(c.t)}.</b> <span>${esc(c.d)}</span></li>`)}</div>
-      <div class="bloque"><h5>¿Qué más puede afectar?</h5>${lista(p.afecta.filter(propio), c => `<li><b>${esc(c.p)}:</b> <span>${esc(c.d)}</span></li>`)}</div>
-      <div class="bloque"><h5>Qué revisar</h5>${lista(p.revisar.filter(propio), x => `<li>${esc(x)}</li>`)}${vida ? `<div class="que"><b>Vida normal:</b> ${esc(vida)}</div>` : ''}</div>
-      <div class="bloque"><h5>Preguntas para el taller</h5>${lista(p.taller, x => `<li>${esc(x)}</li>`)}<h5 style="margin-top:12px">Preguntas para el conductor</h5>${lista(p.conductor, x => `<li>${esc(x)}</li>`)}</div>
-    </div>`;
-  };
-  const tarjeta = h => {
-    const pieza = M.piezaDe(h);
-    return `<details class="diag" style="--c:${h.nivel === 'alto' ? ROJO : C[h.causa].color}">
-      <summary><span class="dot"></span><div class="diag-t"><b>${esc(h.titulo)}</b><span>${esc(C[h.causa].nombre)} · ${h.nivel === 'alto' ? 'importante' : h.nivel === 'medio' ? 'a revisar' : 'informativo'}</span></div><i class="abre">▾</i></summary>
-      <div class="cuerpo"><div class="que">${esc(h.detalle)}</div>${h.consejo ? `<div class="que"><b style="color:var(--text)">Qué hacer:</b> ${esc(h.consejo)}</div>` : ''}${evid(h.evidencias)}
-        ${pieza ? saber(pieza) : ''}</div></details>`;
-  };
-  const hall = inf.hallazgos.filter(h => h.nivel !== 'bajo' || h.causa !== 'desgaste');
-  const cruces = d.cruces.map(x => `<details class="diag" style="--c:var(--blue)">
-      <summary><span class="dot"></span><div class="diag-t"><b>${esc(x.titulo)}</b><span>Pregunta del mecánico</span></div><i class="abre">▾</i></summary>
-      <div class="cuerpo"><div class="que">${esc(x.detalle)}</div>${evid(x.filas)}${saber(x.pieza)}</div></details>`).join('');
-  const normales = inf.hallazgos.find(h => h.titulo === 'Cambios normales por desgaste');
-  return `<div class="sub" style="margin-bottom:12px">Toca un hallazgo para ver por qué pasa, qué más afecta y qué preguntar</div>
-    ${hall.length ? hall.map(tarjeta).join('') : `<div class="vacio">${ico('check')} Sin señales de mal uso ni de falta de mantenimiento.</div>`}
-    ${d.cruces.length ? `<div class="h3">${ico('pregunta')} Lo que el mecánico preguntaría ${info('Arreglos que normalmente van juntos y no aparecen en los gastos. Puede que se hayan hecho y no se anotaron: vale la pena preguntar.')}</div>${cruces}` : ''}
-    ${normales ? `<div class="accion" style="--c:var(--green);margin-top:12px">${ico('check')}<div><b>Desgaste normal</b><span>${esc(normales.detalle)}</span></div></div>` : ''}`;
-}
-
-function subFicha(placa, v) {
-  const nota = NOTAS.get(placa);
-  return `<div class="ficha"><ul>${M.VEHICULOS[v.modelo].ficha.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
-    <div class="h3">Observaciones del responsable ${info('Se escriben desde el informe para imprimir.')}</div>
-    <div class="notas ${nota?.texto ? '' : 'vacia'}">${nota?.texto ? esc(nota.texto) : 'Sin observaciones.'}</div>`;
-}
-
 // Después de dibujar: filtros, contadores animados y atajos
 function despues() {
   document.querySelectorAll('#seg button').forEach(b => b.onclick = () => { FILTRO.tipo = b.dataset.t; mostrar(true); });
-  const sp = document.getElementById('selPer');
-  if (sp) sp.onchange = () => { PER.id = sp.value; mostrar(true); };
   const gi = document.getElementById('gesIni');
-  if (gi) gi.onchange = () => { if (!gi.value) return; try { localStorage.setItem('togo_gestion', gi.value); } catch {} CACHE_INF.clear(); mostrar(true); };
+  if (gi) gi.onchange = () => { if (!gi.value) return; try { localStorage.setItem('togo_gestion', gi.value); } catch {} mostrar(true); };
   document.querySelectorAll('[data-ir]').forEach(a => a.onclick = e => { e.preventDefault(); document.getElementById(a.dataset.ir)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
   const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.querySelectorAll('[data-n]').forEach(el => {
@@ -808,29 +602,27 @@ function despues() {
   });
 }
 
-// ── PLAN DE TODA LA FLOTA ────────────────────────────────────────────────────
-function vPlan() {
+// ── PLAN DE TODA LA FLOTA (va plegado en Pendientes) ──────────────────────
+function planTablas() {
   const tabla = tipo => {
-    const vs = ACTIVAS.filter(v => v.tipo === tipo);
+    const vs = ACTIVAS.filter(v => v.tipo === tipo && pasaFiltro(v.placa));
     if (!vs.length) return '';
     const tareas = M.PLAN[tipo];
     const cab = tareas.map(t => `<th title="${esc(t.nombre)} · cada ${esc(t.cada)}">${esc(t.nombre.split(' (')[0].replace('Revisión de ', '').replace('Cambio de ', ''))}</th>`).join('');
     const filas = vs.map(v => {
       const pl = new Map(DIAG.get(v.placa).plan.map(p => [p.id, p]));
-      return `<tr><td><a href="#vehiculo/${encodeURIComponent(v.placa)}" class="placa" style="text-decoration:none">${esc(v.placa)}</a><div class="item-d">${esc(v.etiqueta)}</div></td>${tareas.map(t => {
+      return `<tr><td><a href="${irVeh(v.placa)}" class="placa" style="text-decoration:none">${esc(v.placa)}</a><div class="item-d">${esc(v.etiqueta)}</div></td>${tareas.map(t => {
         const p = pl.get(t.id);
         if (!p) return '<td><span class="item-d">—</span></td>';
         return `<td title="${p.ultimo ? 'Último: ' + T.fechaCorta(p.ultimo.dia) : 'Sin registro'}"><span class="chip ${p.estado}">${ESTADO[p.estado]}</span>${p.dias != null ? `<div class="item-d">${fmt0.format(p.dias)} d</div>` : ''}</td>`;
       }).join('')}</tr>`;
     }).join('');
     return `<div class="h3">${tipo === 'moto' ? 'Motos' : 'Furgones'}</div>
-      <div class="tabla-scroll"><table class="plan"><thead><tr><th>Placa</th>${cab}</tr></thead><tbody>${filas}</tbody></table></div>
-      `;
+      <div class="tabla-scroll"><table class="plan"><thead><tr><th>Placa</th>${cab}</tr></thead><tbody>${filas}</tbody></table></div>`;
   };
-  return `<h2>Plan de mantenimiento</h2>
-    <div class="sub">Días desde el último registro de cada tarea ${info(`Según los gastos cargados, hasta el ${T.fechaCorta(CTX.ref)}. "Pasó el plazo" quiere decir que no hay registro dentro del plazo: si se hizo, falta cargarlo en el Excel; si no, toca. Los intervalos son referencias de taller para reparto urbano: confirmarlos con el manual de cada vehículo. Pasa el mouse por el nombre de una tarea para ver cada cuánto se hace.`)}</div>
-    <div class="ley"><span class="chip ok">Al día</span><span class="chip pronto">Pronto</span><span class="chip toca">Pasó el plazo</span><span class="chip sin">Sin registro</span><span class="chip verificar">Verificar</span></div>
-    ${tabla('furgon')}${tabla('moto')}`;
+  return `<div class="ley"><span class="chip ok">Al día</span><span class="chip pronto">Pronto</span><span class="chip toca">Pasó el plazo</span><span class="chip sin">Sin registro</span><span class="chip verificar">Verificar</span></div>
+    ${tabla('furgon')}${tabla('moto')}
+    <div class="item-d" style="margin-top:8px">Días desde el último registro de cada tarea, según los gastos cargados. Los intervalos son referencias de taller para reparto urbano: confirmarlos con el manual de cada vehículo.</div>`;
 }
 
 // ── BIBLIOTECA ───────────────────────────────────────────────────────────────
@@ -869,9 +661,9 @@ function vRevision(placa, tipo) {
   const v = CTX.veh.get(placa);
   const lista = M.REVISION[v.tipo][tipo];
   const km = DIAG.get(placa)?.agenda?.km;
-  return `<a class="btn" href="#vehiculo/${encodeURIComponent(placa)}">← ${esc(placa)}</a>
+  return `<a class="btn" href="#pendientes">← Pendientes</a>
     <h2 style="margin-top:14px">Revisión ${esc(tipo)} · ${esc(placa)}</h2>
-    <div class="sub">${esc(v.etiqueta)}. Marca cada punto: <b>Bien</b>, <b>Con atención</b> (hay que arreglarlo o vigilarlo) o <b>No aplica</b>. Lo que quede con atención aparece en "Hoy" hasta la próxima revisión.</div>
+    <div class="sub">${esc(v.etiqueta)}. Marca cada punto: <b>Bien</b>, <b>Con atención</b> (hay que arreglarlo o vigilarlo) o <b>No aplica</b>. Lo que quede con atención aparece en Pendientes hasta la próxima revisión.</div>
     <div class="form-rev">
       <label>Fecha<input type="date" id="rvFecha" value="${hoyISO()}" max="${hoyISO()}"></label>
       <label>Kilometraje<input type="number" id="rvKm" min="0" max="2000000" step="1" inputmode="numeric" placeholder="${km ? 'último: ' + fmt0.format(km.actual) : 'lectura del tablero'}"></label>
@@ -900,7 +692,7 @@ function armarRevision(placa, tipo) {
       REVS.unshift(r.revision);
       DIAG.set(placa, diagnostico(placa));
       aviso('Revisión guardada');
-      location.hash = 'vehiculo/' + encodeURIComponent(placa) + '/revisiones';
+      location.hash = 'pendientes';
     } catch (e) { msg.textContent = 'No se pudo guardar: ' + e.message; btn.disabled = false; }
   };
 }
@@ -930,7 +722,7 @@ function vHoja(placa) {
   const casillas = n => Array.from({ length: n }, () => '<td class="box"></td>').join('');
   const tabla = (items, cols, cab) => `<table class="hj"><thead><tr><th>Punto a revisar</th>${cab.map(c => `<th class="c">${c}</th>`).join('')}</tr></thead>
     <tbody>${items.map(i => `<tr><td><b>${esc(i.t)}</b><div class="por">${esc(i.por)}</div></td>${casillas(cols)}</tr>`).join('')}</tbody></table>`;
-  return `<div class="no-print hoja-acc"><a class="btn" href="#vehiculo/${encodeURIComponent(placa)}">← ${esc(placa)}</a><button class="btn btn-ok" onclick="window.print()">Imprimir</button>
+  return `<div class="no-print hoja-acc"><a class="btn" href="#pendientes">← Pendientes</a><button class="btn btn-ok" onclick="window.print()">Imprimir</button>
       <span class="item-d">Sale en una hoja A4. Marca ✓ si está bien o ✗ si hay que revisarlo, y avisa al responsable.</span></div>
     <div class="hoja-imp">
       <div class="hj-top"><div><span class="hj-logo">TOGO</span><div class="hj-tit">Hoja de revisión</div><div class="hj-sub">${esc(placa)} · ${esc(v.etiqueta)} · ${esc(v.proxi)}</div></div>
